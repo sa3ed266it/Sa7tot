@@ -1,6 +1,6 @@
 //
 //  SettingsEraseView.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 5/11/23.
 //
@@ -61,7 +61,7 @@ struct DeleteAllAlert: View {
   @Environment(\.dismiss) var dismiss
   @Environment(\.colorScheme) var systemColorScheme
 
-  @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var bottomEdge: Double = 15
 
   @State private var offset: CGFloat = 0

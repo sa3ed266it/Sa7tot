@@ -1,4 +1,6 @@
-# Dime
+# Sa7tot
+
+Sa7tot is a private app based on the open-source Dime project. Dime is licensed under the GNU General Public License v3.0. Upstream repository: https://github.com/rafsoh/dimeApp
 
 <p align="center">
   <img src="./docs/assets/hero.png" width="451" style="max-width: 100%; height: auto;" />

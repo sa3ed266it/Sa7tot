@@ -1,6 +1,6 @@
 //
 //  BudgetInsightsIntent.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 6/8/23.
 //
@@ -11,15 +11,15 @@ import SwiftUI
 
 @available(iOS 16.4, *)
 struct BudgetIntent: AppIntent {
-    static var title: LocalizedStringResource = "Get Budget Insights"
+    static var title: LocalizedStringResource = "Stato del budget"
 
     static var description =
-        IntentDescription("Extract leftover amount for a particular budget")
+        IntentDescription("Mostra l’importo rimanente di un budget specifico")
 
-    @Parameter(title: "Budget Type", requestValueDialog: IntentDialog("What budget type would you like to extract insights from?"))
+    @Parameter(title: "Tipo di budget", requestValueDialog: IntentDialog("Di quale tipo di budget vuoi visualizzare lo stato?"))
     var type: ShortcutsBudgetsType
 
-    @Parameter(title: "Category Budget", requestValueDialog: IntentDialog("Select a categorical budget."))
+    @Parameter(title: "Budget di categoria", requestValueDialog: IntentDialog("Seleziona un budget di categoria."))
     var budget: BudgetEntity?
 
     @MainActor
@@ -52,7 +52,7 @@ struct BudgetIntent: AppIntent {
             }
         }
 
-        return .result(value: amount, dialog: "Here you go!") {
+        return .result(value: amount, dialog: "Ecco qui!") {
             ShortcutBudgetView(amount: amount, type: Int(budgetType))
         }
     }
@@ -79,12 +79,12 @@ enum ShortcutsBudgetsType: String {
 @available(iOS 16, *)
 extension ShortcutsBudgetsType: AppEnum {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        return TypeDisplayRepresentation(name: "Budget Type")
+        return TypeDisplayRepresentation(name: "Tipo di budget")
     }
 
     static var caseDisplayRepresentations: [ShortcutsBudgetsType: DisplayRepresentation] = [
-        .overall: DisplayRepresentation(title: "overall budget"),
-        .category: DisplayRepresentation(title: "categorical budget")
+        .overall: DisplayRepresentation(title: "budget complessivo"),
+        .category: DisplayRepresentation(title: "budget di categoria")
     ]
 }
 
@@ -92,9 +92,9 @@ struct ShortcutBudgetView: View {
     let amount: Double
     let type: Int
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
 
     var budgetType: String {
         switch type {

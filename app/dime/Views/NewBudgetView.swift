@@ -1,6 +1,6 @@
 //
 //  NewBudgetView.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 15/7/23.
 //
@@ -21,15 +21,15 @@ struct PickerStyle: ViewModifier {
 }
 
 struct InstructionHeadings {
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
 }
 
 struct BrandNewBudgetView: View {
     @FetchRequest private var categories: FetchedResults<Category>
 
-    @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var firstWeekday: Int = 1
-    @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var firstDayOfMonth: Int = 1
+    @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstWeekday: Int = 1
+    @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstDayOfMonth: Int = 1
 
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
@@ -60,7 +60,9 @@ struct BrandNewBudgetView: View {
     @State var chosenDayMonth = 1
     @State var chosenDayYear = Date.now
 
-    let weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    private var weekdays: [String] {
+        DateFormatter().weekdaySymbols ?? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    }
 
     var timeFrameString: String {
         switch budgetTimeFrame {
@@ -84,7 +86,7 @@ struct BrandNewBudgetView: View {
 //        return (amount as NSString).doubleValue
 //    }
 
-    @AppStorage("numberEntryType", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var numberEntryType: Int = 1
+    @AppStorage("numberEntryType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var numberEntryType: Int = 1
 
     @State private var price: Double = 0
     @State private var category: Category?
@@ -92,7 +94,7 @@ struct BrandNewBudgetView: View {
     @State var decimalValuesAssigned: AssignedDecimal = .none
     @State private var priceString: String = "0"
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

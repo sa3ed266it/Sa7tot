@@ -1,6 +1,6 @@
 /* 
   Localizable.strings
-  dime
+  sa7tot
 
   Created by Rafael Soh on 6/3/23.
   
@@ -8,7 +8,7 @@
 
 // welcome sheet
 
-"dime_name" = "Dime";
+"sa7tot_name" = "Sa7tot";
 "welcome_header_1" = "Track your finances";
 "welcome_subtitle_1" = "Add new entries in a simple, straightforward manner";
 "welcome_header_2" = "Analyse your expenditure";
@@ -220,7 +220,7 @@
 "Report Bug" = "Report Bug";
 "Rate on App Store" = "Rate on App Store";
 "Share with Friends" = "Share with Friends";
-"Follow Dime on Twitter" = "Follow Dime on Twitter";
+"Follow Sa7tot on Twitter" = "Follow Sa7tot on Twitter";
 "Follow Rafael on Instagram" = "Follow Rafael on Instagram";
 "Light" = "Light";
 "Dark" = "Dark";
@@ -260,7 +260,7 @@
 "Remember to input your expenses today." = "Remember to input your expenses today.";
 "Loading" = "Loading";
 "Unable to load tip options, please try again later 🥲" = "Unable to load tip options, please try again later 🥲";
-"Hey! Dime was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Dime and want to support development, please consider a small tip." = "Hey! Dime was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Dime and want to support development, please consider a small tip.";
+"Hey! Sa7tot was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Sa7tot and want to support development, please consider a small tip." = "Hey! Sa7tot was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Sa7tot and want to support development, please consider a small tip.";
 "Tip failed to go through, please try again!" = "Tip failed to go through, please try again!";
 "Thanks a million, %@ Rafael" = "Thanks a million, %@ Rafael";
 "Have a great day ahead!" = "Have a great day ahead!";

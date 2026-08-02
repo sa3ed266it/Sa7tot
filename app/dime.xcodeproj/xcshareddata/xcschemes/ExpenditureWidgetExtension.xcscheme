@@ -30,8 +30,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "5327D282287C697400F76ADF"
-               BuildableName = "dime.app"
-               BlueprintName = "dime"
+               BuildableName = "Sa7tot.app"
+               BlueprintName = "Sa7tot"
                ReferencedContainer = "container:dime.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -73,8 +73,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5327D282287C697400F76ADF"
-            BuildableName = "dime.app"
-            BlueprintName = "dime"
+            BuildableName = "Sa7tot.app"
+            BlueprintName = "Sa7tot"
             ReferencedContainer = "container:dime.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -109,8 +109,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5327D282287C697400F76ADF"
-            BuildableName = "dime.app"
-            BlueprintName = "dime"
+            BuildableName = "Sa7tot.app"
+            BlueprintName = "Sa7tot"
             ReferencedContainer = "container:dime.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

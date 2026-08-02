@@ -1,6 +1,6 @@
 //
 //  GetInsightsIntent.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 5/8/23.
 //
@@ -11,21 +11,21 @@ import SwiftUI
 
 @available(iOS 16.4, *)
 struct GetInsightsIntent: AppIntent {
-    static var title: LocalizedStringResource = "Get Insights"
+    static var title: LocalizedStringResource = "Mostra statistiche"
 
     static var description =
-        IntentDescription("Extracts your total expenditure or income for a particular time period")
+        IntentDescription("Mostra le tue spese o entrate totali per un periodo specifico")
 
-    @Parameter(title: "Type", description: "Type of Data", requestValueDialog: IntentDialog("Which of the following would you like to extract?"))
+    @Parameter(title: "Tipo", description: "Tipo di dati", requestValueDialog: IntentDialog("Quale dei seguenti dati vuoi visualizzare?"))
     var type: ShortcutsInsightsType
 
-    @Parameter(title: "Time Frame", description: "Time Frame of Data", requestValueDialog: IntentDialog("Over what time frame would you like to consider?"))
+    @Parameter(title: "Periodo", description: "Periodo dei dati", requestValueDialog: IntentDialog("Quale periodo vuoi considerare?"))
     var timeframe: ShortcutsInsightsTimeFrame
 
-    @Parameter(title: "Category Filters", description: "Additional Category Filters", requestValueDialog: IntentDialog("Which additional category filters do you want to impose?"))
+    @Parameter(title: "Filtri categoria", description: "Filtri categoria aggiuntivi", requestValueDialog: IntentDialog("Quali filtri categoria aggiuntivi vuoi applicare?"))
     var incomeCategories: [IncomeCategoryEntity]?
 
-    @Parameter(title: "Category Filters", description: "Additional Category Filters", requestValueDialog: IntentDialog("Which additional category filters do you want to impose?"))
+    @Parameter(title: "Filtri categoria", description: "Filtri categoria aggiuntivi", requestValueDialog: IntentDialog("Quali filtri categoria aggiuntivi vuoi applicare?"))
     var expenseCategories: [ExpenseCategoryEntity]?
 
     @MainActor
@@ -67,7 +67,7 @@ struct GetInsightsIntent: AppIntent {
 
         let result = dataController.getShortcutInsights(type: typeInt, timeframe: timeframe.rawValue, optionalIncome: optionalIncome, categories: categories)
 
-        return .result(value: result, dialog: "Here you go!") {
+        return .result(value: result, dialog: "Ecco qui!") {
             ShortcutInsightsView(amount: result, type: type, timeframe: timeframe)
         }
     }
@@ -105,15 +105,15 @@ enum ShortcutsInsightsTimeFrame: Int {
 @available(iOS 16, *)
 extension ShortcutsInsightsTimeFrame: AppEnum {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        return TypeDisplayRepresentation(name: "Time Frame")
+        return TypeDisplayRepresentation(name: "Periodo")
     }
 
     static var caseDisplayRepresentations: [ShortcutsInsightsTimeFrame: DisplayRepresentation] = [
-        .day: DisplayRepresentation(title: "today"),
-        .week: DisplayRepresentation(title: "this week"),
-        .month: DisplayRepresentation(title: "this month"),
-        .year: DisplayRepresentation(title: "this year"),
-        .all: DisplayRepresentation(title: "all time")
+        .day: DisplayRepresentation(title: "oggi"),
+        .week: DisplayRepresentation(title: "questa settimana"),
+        .month: DisplayRepresentation(title: "questo mese"),
+        .year: DisplayRepresentation(title: "quest’anno"),
+        .all: DisplayRepresentation(title: "tutto il periodo")
     ]
 }
 
@@ -124,13 +124,13 @@ enum ShortcutsInsightsType: String {
 @available(iOS 16, *)
 extension ShortcutsInsightsType: AppEnum {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        return TypeDisplayRepresentation(name: "Insights Type")
+        return TypeDisplayRepresentation(name: "Tipo di statistiche")
     }
 
     static var caseDisplayRepresentations: [ShortcutsInsightsType: DisplayRepresentation] = [
-        .net: DisplayRepresentation(title: "net total"),
-        .income: DisplayRepresentation(title: "total income"),
-        .spent: DisplayRepresentation(title: "total expenditure")
+        .net: DisplayRepresentation(title: "saldo totale"),
+        .income: DisplayRepresentation(title: "entrate totali"),
+        .spent: DisplayRepresentation(title: "spesa totale")
     ]
 }
 
@@ -139,33 +139,33 @@ struct ShortcutInsightsView: View {
     let type: ShortcutsInsightsType
     let timeframe: ShortcutsInsightsTimeFrame
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
 
     var leftText: String {
         switch type {
         case .net:
-            return "Net total"
+            return "Saldo totale"
         case .income:
-            return "Earned"
+            return "Entrate"
         case .spent:
-            return "Spent"
+            return "Speso"
         }
     }
 
     var rightText: String {
         switch timeframe {
         case .day:
-            return "today"
+            return "oggi"
         case .week:
-            return "this week"
+            return "questa settimana"
         case .month:
-            return "this month"
+            return "questo mese"
         case .year:
-            return "this year"
+            return "quest’anno"
         case .all:
-            return "all time"
+            return "tutto il periodo"
         }
     }
 

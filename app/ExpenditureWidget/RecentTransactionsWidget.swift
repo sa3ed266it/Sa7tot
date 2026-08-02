@@ -137,12 +137,12 @@ struct ExpenditureWidgetEntryView: View {
     @Environment(\.widgetFamily) var widgetFamily
     let entry: Provider.Entry
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
     var inlineSubtitleText: String {
         switch entry.duration {
@@ -354,7 +354,7 @@ struct ExpenditureWidgetEntryView: View {
                 .containerBackground(for: .widget) {
                     Color.PrimaryBackground
                 }
-                .widgetURL(entry.transactions.count < 2 ? URL(string: "dimeapp://newExpense") : nil)
+                .widgetURL(entry.transactions.count < 2 ? URL(string: "sa7totapp://newExpense") : nil)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             } else {
                 GeometryReader { proxy in
@@ -449,7 +449,7 @@ struct ExpenditureWidgetEntryView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.PrimaryBackground)
-                .widgetURL(entry.transactions.count < 2 ? URL(string: "dimeapp://newExpense") : nil)
+                .widgetURL(entry.transactions.count < 2 ? URL(string: "sa7totapp://newExpense") : nil)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
 
@@ -477,7 +477,7 @@ struct ExpenditureWidgetEntryView: View {
                                     .font(.system(size: 15, weight: .medium, design: .rounded))
                                     .foregroundColor(Color.SubtitleText)
 
-                                Link(destination: URL(string: "dimeapp://newExpense")!) {
+                                Link(destination: URL(string: "sa7totapp://newExpense")!) {
                                     HStack(spacing: 4) {
                                         Image(systemName: "plus")
                                             .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -528,7 +528,7 @@ struct ExpenditureWidgetEntryView: View {
                                 }
 
                                 if entry.transactions.count < 5 {
-                                    Link(destination: URL(string: "dimeapp://newExpense")!) {
+                                    Link(destination: URL(string: "sa7totapp://newExpense")!) {
                                         HStack(spacing: 4) {
                                             Image(systemName: "plus")
                                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -596,7 +596,7 @@ struct RecentTransactionsDollarView: View {
     var net: Bool
     var bigger: Bool = false
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

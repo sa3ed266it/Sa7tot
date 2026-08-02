@@ -16,7 +16,7 @@ import WidgetKit
 struct SettingsView: View {
   @Environment(\.dynamicTypeSize) var dynamicTypeSize
 
-  @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var colourScheme: Int = 0
   var colourSchemeString: String {
     if colourScheme == 1 {
@@ -28,7 +28,7 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("activeIcon", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("activeIcon", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var activeIcon: String = "AppIcon"
   var appIconString: String {
     if activeIcon == "AppIcon1" {
@@ -42,7 +42,7 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var firstWeekday: Int = 1
   var firstWeekdayString: String {
     if firstWeekday == 1 {
@@ -52,9 +52,9 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("showNotifications", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("showNotifications", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showNotifications: Bool = false
-  @AppStorage("notificationOption", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("notificationOption", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var option: Int = 1
   var notificationString: String {
     if showNotifications {
@@ -86,7 +86,7 @@ struct SettingsView: View {
   let featureRequestEmail = SupportEmail(
     toAddress: "rafasohhh@gmail.com", subject: "Feature Request")
 
-  @AppStorage("numberEntryType", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("numberEntryType", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var numberEntryType: Int = 2
 
   var numberEntryString: String {
@@ -97,23 +97,23 @@ struct SettingsView: View {
     }
   }
 
-  @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showCents: Bool = true
 
-  @AppStorage("animated", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var animated:
+  @AppStorage("animated", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var animated:
     Bool = true
 
-  @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency:
+  @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency:
     String = Locale.current.currencyCode!
 
-  @AppStorage("incomeTracking", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("incomeTracking", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var incomeTracking: Bool = true
     
-  @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showExpenseOrIncomeSign: Bool = true
 
   @AppStorage(
-    "showUpcomingTransactions", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+    "showUpcomingTransactions", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showUpcoming: Bool = true
 
   var upcomingString: String {
@@ -124,7 +124,7 @@ struct SettingsView: View {
     }
   }
 
-    @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+    @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     var hapticType: Int = 1
 
     var hapticString: String {
@@ -217,9 +217,9 @@ struct SettingsView: View {
                   incomeTracking.toggle()
 
                   if !incomeTracking {
-                    UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.set(
+                    UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(
                       false, forKey: "insightsViewIncomeFiltering")
-                    UserDefaults(suiteName: "group.com.rafaelsoh.dime")!.set(
+                    UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(
                       3, forKey: "logInsightsType")
                   }
                 })
@@ -425,11 +425,11 @@ struct SettingsView: View {
               }
 
               Button {
-                if let url = URL(string: "https://www.x.com/budgetwithdime") {
+                if let url = URL(string: "https://www.x.com/budgetwithsa7tot") {
                   UIApplication.shared.open(url)
                 }
               } label: {
-                SettingsRowView(systemImage: "bird.fill", title: "Follow Dime on X", colour: 128)
+                SettingsRowView(systemImage: "bird.fill", title: "Follow Sa7tot on X", colour: 128)
                   .frame(maxWidth: .infinity)
               }
 
@@ -443,6 +443,27 @@ struct SettingsView: View {
               }
             }
             .padding(10)
+            .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+          }
+          .padding(.horizontal, 20)
+          .padding(.bottom, 15)
+
+          VStack(spacing: 5) {
+            Text("ABOUT")
+              .font(.system(.footnote, design: .rounded).weight(.semibold))
+              .foregroundColor(Color.SubtitleText)
+              .padding(.horizontal, 10)
+              .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(spacing: 8) {
+              Text("Sa7tot is based on the open-source Dime project.")
+              Text("Dime is licensed under the GNU General Public License v3.0.")
+              Link("Upstream repository", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
+            }
+            .font(.system(size: 12))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(12)
             .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
           }
           .padding(.horizontal, 20)
@@ -609,7 +630,7 @@ struct TipJarAlert: View {
 
   @State private var offset: CGFloat = 0
 
-  @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var bottomEdge: Double = 15
 
   @State var opacity = 0.0
@@ -712,7 +733,7 @@ struct TipJarAlert: View {
             }
 
             Text(
-              "Hey! Dime was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Dime and want to support development, please consider a small tip."
+              "Hey! Sa7tot was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Sa7tot and want to support development, please consider a small tip."
             )
             .font(.system(.callout, design: .rounded).weight(.medium))
 
@@ -824,11 +845,11 @@ struct ProductView: View {
   }
 
   func getText(_ string: String) -> String {
-    if string == "com.rafaelsoh.dime.smalltip" {
+    if string == "com.saied.sa7tot.smalltip" {
       return String(localized: "☕ Coffee-Sized Tip")
-    } else if string == "com.rafaelsoh.dime.mediumtip" {
+    } else if string == "com.saied.sa7tot.mediumtip" {
       return String(localized: "🌮 Taco-Sized Tip")
-    } else if string == "com.rafaelsoh.dime.largetip" {
+    } else if string == "com.saied.sa7tot.largetip" {
       return String(localized: "🍕 Pizza-Sized Tip")
     } else {
       return ""

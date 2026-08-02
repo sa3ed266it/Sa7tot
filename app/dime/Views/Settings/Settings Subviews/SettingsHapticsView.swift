@@ -1,6 +1,6 @@
 //
 //  SettingsHapticsView.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 5/11/23.
 //
@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsHapticsView: View {
-    @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+    @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     var hapticType: Int = 1
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 

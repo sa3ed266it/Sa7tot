@@ -1,6 +1,6 @@
 //
 //  MainBudgetWidget.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 12/1/23.
 //
@@ -155,12 +155,12 @@ struct MainBudgetWidgetEntryView: View {
         return size > systemSmallWidgetText.widthOfRoundedString(size: 10, weight: .semibold)
     }
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
     var body: some View {
         switch widgetFamily {

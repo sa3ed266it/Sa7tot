@@ -22,11 +22,11 @@ struct LogView: View {
     @EnvironmentObject var dataController: DataController
     @Environment(\.managedObjectContext) var moc
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
     var topEdge: CGFloat
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -39,7 +39,7 @@ struct LogView: View {
     // top bar
     @State var navBarText = ""
     @State var showMenu = false
-    @AppStorage("logTimeFrame", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var logTimeFrame = 2
+    @AppStorage("logTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var logTimeFrame = 2
     let subtitleText = ["today", "this week", "this month", "this year"]
 
     // show filter menu
@@ -114,7 +114,7 @@ struct LogView: View {
                                         .opacity(progress)
                                 }
                         }
-                        .accessibilityLabel("Search")
+                        .accessibilityLabel("Cerca")
 
                         Spacer()
 
@@ -165,7 +165,7 @@ struct LogView: View {
 //                                    }
                                 }
                         }
-                        .accessibilityLabel("Filter")
+                        .accessibilityLabel("Filtra")
                         .popover(present: $showFilter, attributes: {
                             $0.position = .absolute(
                                 originAnchor: .bottomRight,
@@ -336,7 +336,7 @@ struct LogView: View {
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .foregroundColor(Color.PrimaryText.opacity(0.7))
             }
-            .accessibilityLabel("remove filter")
+                    .accessibilityLabel("rimuovi filtro")
         }
         .padding(4)
         .padding(.horizontal, 6)
@@ -352,9 +352,9 @@ struct NumberView: AnimatableModifier {
     let netTotal: Bool
     let positive: Bool
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
@@ -414,10 +414,10 @@ struct LogInsightsView: View {
     @State var showMenu1 = false
     let subtitleText = ["today", "this week", "this month", "this year", "all time"]
 
-    @AppStorage("logInsightsTimeFrame", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var timeframe = 2
-    @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var insightsType = 1
+    @AppStorage("logInsightsTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var timeframe = 2
+    @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
 
-    @AppStorage("logViewLineGraph", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var lineGraph: Bool = false
+    @AppStorage("logViewLineGraph", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var lineGraph: Bool = false
 
     var netTotal: (value: Double, positive: Bool) {
         dataController.getLogViewTotalNet(type: timeframe)
@@ -426,7 +426,7 @@ struct LogInsightsView: View {
     var range: Int {
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.rafaelsoh.dime")?.integer(forKey: "firstWeekday") ?? 0
+        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
         calendar.minimumDaysInFirstWeek = 4
 
         if timeframe == 3 {
@@ -764,7 +764,7 @@ struct TimePickerView: View {
     @Binding var timeframe: Int
     @State var holdingTimeframe = 0
 
-    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var colourScheme: Int = 0
+    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var colourScheme: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
 
@@ -837,7 +837,7 @@ struct FilterPickerView: View {
     @Binding var filterType: FilterType
     @Binding var showMenu: Bool
 
-    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var colourScheme: Int = 0
+    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var colourScheme: Int = 0
 
     @Environment(\.colorScheme) var systemColorScheme
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
@@ -911,8 +911,8 @@ struct TransactionsList: View {
     var month: Date
     var income: Bool
 
-    @AppStorage("showUpcomingTransactions", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showUpcoming: Bool = true
-    @AppStorage("showUpcomingTransactionsWhenUpcoming", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showSoon: Bool = false
+    @AppStorage("showUpcomingTransactions", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showUpcoming: Bool = true
+    @AppStorage("showUpcomingTransactionsWhenUpcoming", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showSoon: Bool = false
 
     @EnvironmentObject var dataController: DataController
 
@@ -954,17 +954,17 @@ struct TransactionsList: View {
 struct ListView: View {
     @SectionedFetchRequest<Date?, Transaction> var transactions: SectionedFetchResults<Date?, Transaction>
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
     
-    @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+    @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     var showExpenseOrIncomeSign: Bool = true
 
-    @AppStorage("swapTimeLabel", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var swapTimeLabel: Bool = false
+    @AppStorage("swapTimeLabel", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var swapTimeLabel: Bool = false
 
     @EnvironmentObject var toastPresenter: OverallToastPresenter
 
@@ -1093,17 +1093,17 @@ struct FutureListView: View {
         }
     }
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
     
-    @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+    @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     var showExpenseOrIncomeSign: Bool = true
 
-    @AppStorage("swapTimeLabel", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var swapTimeLabel: Bool = false
+    @AppStorage("swapTimeLabel", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var swapTimeLabel: Bool = false
 
     var totalString: String {
         let numberFormatter = NumberFormatter()
@@ -1340,7 +1340,7 @@ struct SingleTransactionView: View {
             }
             .offset(x: offset)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Transaction Category: \(transaction.category?.wrappedName ?? "Unknown"), Transaction made at \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
+            .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
         }
         .onChange(of: deletePopup) { _ in
             if deletePopup {
@@ -1511,7 +1511,7 @@ struct DeleteTransactionAlert: View {
 
     @Environment(\.colorScheme) var systemColorScheme
 
-    @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var bottomEdge: Double = 15
+    @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var bottomEdge: Double = 15
 
     @State private var offset: CGFloat = 0
 
@@ -1523,7 +1523,7 @@ struct DeleteTransactionAlert: View {
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 25, weight: .medium, design: .rounded))
                     .foregroundColor(.PrimaryText)
-                    .accessibilityLabel("Delete \(unwrappedToDelete.wrappedNote) transaction confirmation. This action cannot be undone.")
+                    .accessibilityLabel("Conferma eliminazione del movimento \(unwrappedToDelete.wrappedNote). Questa azione non può essere annullata.")
 
                 Text(stopRecurring ? "The transaction will no longer be automatically logged." : "This action cannot be undone.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
@@ -1704,16 +1704,16 @@ struct FilteredDateView: View {
 
     var date: Date
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @AppStorage("swapTimeLabel", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var swapTimeLabel: Bool = false
+    @AppStorage("swapTimeLabel", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var swapTimeLabel: Bool = false
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
     
-    @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+    @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     var showExpenseOrIncomeSign: Bool = true
 
     var body: some View {
@@ -2016,7 +2016,7 @@ struct DateStepperView: View {
                     date = Calendar.current.date(byAdding: .day, value: -1, to: date) ?? Date.now
                 }
             }
-            .accessibilityLabel("previous day")
+                .accessibilityLabel("giorno precedente")
 
             Spacer()
 
@@ -2024,7 +2024,7 @@ struct DateStepperView: View {
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .accessibilityLabel("showing transactions on \(dateString)")
+                .accessibilityLabel("movimenti del \(dateString)")
 
             Spacer()
 
@@ -2033,7 +2033,7 @@ struct DateStepperView: View {
                     date = Calendar.current.date(byAdding: .day, value: 1, to: date) ?? Date.now
                 }
             }
-            .accessibilityLabel("next day")
+                .accessibilityLabel("giorno successivo")
         }
         .frame(maxWidth: .infinity)
         .onAppear {
@@ -2057,7 +2057,7 @@ struct WeekStepperView: View {
             return Date.now
         } else {
             var calendar = Calendar(identifier: .gregorian)
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.rafaelsoh.dime")?.integer(forKey: "firstWeekday") ?? 0
+            calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
             calendar.minimumDaysInFirstWeek = 4
 
             let date = transactions[0].day ?? Date.now
@@ -2099,7 +2099,7 @@ struct WeekStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .day, value: -7, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("previous week")
+                .accessibilityLabel("settimana precedente")
 
             Spacer()
 
@@ -2114,13 +2114,13 @@ struct WeekStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .day, value: 7, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("next week")
+                .accessibilityLabel("settimana successiva")
         }
         .frame(maxWidth: .infinity)
         .onAppear {
             var calendar = Calendar(identifier: .gregorian)
 
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.rafaelsoh.dime")?.integer(forKey: "firstWeekday") ?? 0
+            calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
             calendar.minimumDaysInFirstWeek = 4
 
             let date = transactionsReversed[0].day ?? Date.now
@@ -2175,13 +2175,13 @@ struct MonthStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .month, value: -1, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("previous month")
+                .accessibilityLabel("mese precedente")
 
             Spacer()
 
             Text(dateString)
                 .font(.system(.title3, design: .rounded).weight(.bold))
-                .accessibilityLabel("showing transactions in \(dateString)")
+                .accessibilityLabel("movimenti di \(dateString)")
 
             Spacer()
 
@@ -2190,7 +2190,7 @@ struct MonthStepperView: View {
                     showingDate = Calendar.current.date(byAdding: .month, value: 1, to: showingDate) ?? Date.now
                 }
             }
-            .accessibilityLabel("next month")
+                .accessibilityLabel("mese successivo")
         }
         .frame(maxWidth: .infinity)
         .onAppear {

@@ -160,12 +160,12 @@ struct LockBudgetWidgetEntryView: View {
         return String(localized: "\(Int(round((entry.totalSpent / entry.budget.budgetAmount) * 100)))% spent")
     }
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
     var body: some View {
         switch widgetFamily {
@@ -174,7 +174,7 @@ struct LockBudgetWidgetEntryView: View {
                 Text("Select budget in widget options")
             } else {
                 Text("\(entry.budget.emoji) \(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle)")
-                    .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                    .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
             }
 
         case .accessoryCircular:
@@ -196,7 +196,7 @@ struct LockBudgetWidgetEntryView: View {
                         Text("\(Int(round(percent * 100)))%")
                     }
                     .gaugeStyle(AccessoryCircularGaugeStyle())
-                    .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                    .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
                     .containerBackground(for: .widget) { Color.clear }
                 }
             } else {
@@ -221,7 +221,7 @@ struct LockBudgetWidgetEntryView: View {
                             Text("\(Int(round(percent * 100)))%")
                         }
                         .gaugeStyle(AccessoryCircularGaugeStyle())
-                        .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                        .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
                     } else {
                         EmptyView()
                     }
@@ -270,7 +270,7 @@ struct LockBudgetWidgetEntryView: View {
                         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                    .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
                     .containerBackground(for: .widget) { Color.clear }
                 }
             } else {
@@ -315,7 +315,7 @@ struct LockBudgetWidgetEntryView: View {
                         .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                    .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
                 }
             }
 

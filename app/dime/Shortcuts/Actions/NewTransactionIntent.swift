@@ -1,6 +1,6 @@
 //
 //  NewTransactionIntent.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 23/7/23.
 //
@@ -11,30 +11,30 @@ import SwiftUI
 
 @available(iOS 16.4, *)
 struct NewTransactionIntent: AppIntent {
-    static var title: LocalizedStringResource = "New Transaction"
+    static var title: LocalizedStringResource = "Nuovo movimento"
 
     static var description =
-        IntentDescription("Log new transactions in a blink")
+        IntentDescription("Registra nuovi movimenti in un attimo")
 
-    @Parameter(title: "Type", description: "Type of the transaction", requestValueDialog: IntentDialog("Would you like to log an income or expense?"))
+    @Parameter(title: "Tipo", description: "Tipo di movimento", requestValueDialog: IntentDialog("Vuoi registrare un’entrata o una spesa?"))
     var income: TransactionType
 
-    @Parameter(title: "Amount", description: "Value of the transaction", controlStyle: .field, inclusiveRange: (lowerBound: 0.01, upperBound: 100_000_000), requestValueDialog: IntentDialog("How much was transacted?"))
+    @Parameter(title: "Importo", description: "Valore del movimento", controlStyle: .field, inclusiveRange: (lowerBound: 0.01, upperBound: 100_000_000), requestValueDialog: IntentDialog("Qual è l’importo del movimento?"))
     var amount: Double
 
-    @Parameter(title: "Category", description: "Category associated with the transaction", requestValueDialog: IntentDialog("What category does it come under?"))
+    @Parameter(title: "Categoria", description: "Categoria associata al movimento", requestValueDialog: IntentDialog("A quale categoria appartiene?"))
     var incomeCategory: IncomeCategoryEntity?
 
-    @Parameter(title: "Category", description: "Category associated with the transaction", requestValueDialog: IntentDialog("What category does it come under?"))
+    @Parameter(title: "Categoria", description: "Categoria associata al movimento", requestValueDialog: IntentDialog("A quale categoria appartiene?"))
     var expenseCategory: ExpenseCategoryEntity?
 
-    @Parameter(title: "Note")
+    @Parameter(title: "Nota")
     var note: String?
 
-    @Parameter(title: "Recurring Transaction", default: false)
+    @Parameter(title: "Movimento ricorrente", default: false)
     var recurringTransaction: Bool
 
-    @Parameter(title: "Recurring Frequency", default: .weekly)
+    @Parameter(title: "Frequenza di ripetizione", default: .weekly)
     var recurringType: RepeatType
 
 //    struct CategoryOptionsProvider: DynamicOptionsProvider {
@@ -101,7 +101,7 @@ struct NewTransactionIntent: AppIntent {
 
                     let transaction = dataController.newTransaction(note: note ?? "", category: category, income: false, amount: amount, date: Date.now, repeatType: repeatType, repeatCoefficient: 1, delay: false)
 
-                    return .result(dialog: "Expense successfully logged.") {
+                    return .result(dialog: "Spesa registrata con successo.") {
                         ShortcutTransactionView(transaction: transaction)
                     }
                 } else {
@@ -113,7 +113,7 @@ struct NewTransactionIntent: AppIntent {
 
                     let transaction = dataController.newTransaction(note: note ?? "", category: category, income: true, amount: amount, date: Date.now, repeatType: repeatType, repeatCoefficient: 1, delay: false)
 
-                    return .result(dialog: "Income successfully logged.") {
+                    return .result(dialog: "Entrata registrata con successo.") {
                         ShortcutTransactionView(transaction: transaction)
                     }
                 } else {
@@ -171,13 +171,13 @@ enum TransactionType: String {
 @available(iOS 16, *)
 extension TransactionType: AppEnum {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        return TypeDisplayRepresentation(name: "Type")
+        return TypeDisplayRepresentation(name: "Tipo")
     }
 
     static var caseDisplayRepresentations: [TransactionType: DisplayRepresentation] = [
-        .income: DisplayRepresentation(title: "income",
+        .income: DisplayRepresentation(title: "entrata",
                                        image: .init(systemName: "plus.square.fill")),
-        .expense: DisplayRepresentation(title: "expense",
+        .expense: DisplayRepresentation(title: "spesa",
                                         image: .init(systemName: "minus.square.fill"))
     ]
 }
@@ -189,22 +189,22 @@ enum RepeatType: String {
 @available(iOS 16, *)
 extension RepeatType: AppEnum {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        return TypeDisplayRepresentation(name: "Frequency")
+        return TypeDisplayRepresentation(name: "Frequenza")
     }
 
     static var caseDisplayRepresentations: [RepeatType: DisplayRepresentation] = [
-        .daily: DisplayRepresentation(title: "Daily"),
-        .weekly: DisplayRepresentation(title: "Weekly"),
-        .monthly: DisplayRepresentation(title: "Monthly")
+        .daily: DisplayRepresentation(title: "Ogni giorno"),
+        .weekly: DisplayRepresentation(title: "Ogni settimana"),
+        .monthly: DisplayRepresentation(title: "Ogni mese")
     ]
 }
 
 struct ShortcutTransactionView: View {
     let transaction: Transaction
 
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
 
     var transactionAmountString: String {
         let numberFormatter = NumberFormatter()

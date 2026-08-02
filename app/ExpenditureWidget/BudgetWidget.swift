@@ -1,6 +1,6 @@
 //
 //  BudgetWidget.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 17/8/22.
 //
@@ -284,7 +284,7 @@ struct BudgetWidgetEntryView: View {
                 .containerBackground(for: .widget) {
                     Color.PrimaryBackground
                 }
-                .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
             } else {
                 VStack(spacing: 12) {
                     HStack(alignment: .top) {
@@ -375,19 +375,19 @@ struct BudgetWidgetEntryView: View {
                 .padding(15)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.PrimaryBackground)
-                .widgetURL(URL(string: "dimeapp://budget?budget=\(entry.budget.name)"))
+                .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
             }
         }
     }
 }
 
 struct WidgetBudgetDollarView: View {
-    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var showCents: Bool = true
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
     var amount: Double
     var red: Bool
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }

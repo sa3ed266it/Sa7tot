@@ -8,10 +8,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.rafaelsoh.dime</string>
+			<string>com.saied.sa7tot</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>dimeapp</string>
+				<string>sa7totapp</string>
 			</array>
 		</dict>
 	</array>
@@ -30,7 +30,7 @@
 			<key>UIApplicationShortcutItemTitle</key>
 			<string>Search Entries</string>
 			<key>UIApplicationShortcutItemType</key>
-			<string>dimeapp://search</string>
+			<string>sa7totapp://search</string>
 		</dict>
 		<dict>
 			<key>UIApplicationShortcutItemIconSymbolName</key>
@@ -38,7 +38,7 @@
 			<key>UIApplicationShortcutItemTitle</key>
 			<string>Add Expense</string>
 			<key>UIApplicationShortcutItemType</key>
-			<string>dimeapp://newExpense</string>
+			<string>sa7totapp://newExpense</string>
 		</dict>
 	</array>
 	<key>UIBackgroundModes</key>

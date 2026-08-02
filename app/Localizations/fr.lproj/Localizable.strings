@@ -1,6 +1,6 @@
 /*
   Localizable.strings
-  dime
+  sa7tot
 
   Created by Rafael Soh on 6/3/23.
   
@@ -8,7 +8,7 @@
 
 // welcome sheet
 
-"dime_name" = "dime";
+"sa7tot_name" = "sa7tot";
 "welcome_header_1" = "Suivez vos finances";
 "welcome_subtitle_1" = "Ajouter de nouvelles entrées de manière simple et rapide";
 "welcome_header_2" = "Analyser vos dépenses";
@@ -219,7 +219,7 @@
 "Report Bug" = "Signaler un bug";
 "Rate on App Store" = "Noter l’application sur l'App Store";
 "Share with Friends" = "Partager avec des amis";
-"Follow Dime on Twitter" = "Suivez Dime sur Twitter";
+"Follow Sa7tot on Twitter" = "Suivez Sa7tot sur Twitter";
 "Follow Rafael on Instagram" = "Suivez Rafael sur Instagram";
 "Light" = "Mode lumineux";
 "Dark" = "Mode sombre";
@@ -259,7 +259,7 @@
 "Remember to input your expenses today." = "N'oubliez pas de saisir vos dépenses aujourd'hui.";
 "Loading" = "Chargement";
 "Unable to load tip options, please try again later 🥲" = "Impossible de charger les options de pourboire, veuillez réessayer plus tard 🥲";
-"Hey! Dime was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Dime and want to support development, please consider a small tip." = "Hey! Dime a été créé par un étudiant développeur solitaire, et est destiné à être entièrement gratuit, sans abonnement ni publicités. Si vous aimez utiliser Dime et que vous souhaitez soutenir le développement, n'hésitez pas à donner un petit pourboire.";
+"Hey! Sa7tot was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Sa7tot and want to support development, please consider a small tip." = "Hey! Sa7tot a été créé par un étudiant développeur solitaire, et est destiné à être entièrement gratuit, sans abonnement ni publicités. Si vous aimez utiliser Sa7tot et que vous souhaitez soutenir le développement, n'hésitez pas à donner un petit pourboire.";
 "Tip failed to go through, please try again!" = "Votre pourboire n'a pas abouti, veuillez réessayer!";
 "Thanks a million, %@ Rafael" = "Merci beaucoup, %@ Rafael";
 "Have a great day ahead!" = "En vous souhaitant une excellente journée!";

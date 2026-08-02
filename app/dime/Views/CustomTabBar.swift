@@ -24,8 +24,8 @@ struct CustomTabBar: View {
 
     var launchAdd: Bool
 
-    @AppStorage("confetti", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var confetti: Bool = false
-    @AppStorage("firstTransactionViewLaunch", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime")) var firstLaunch: Bool = true
+    @AppStorage("confetti", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var confetti: Bool = false
+    @AppStorage("firstTransactionViewLaunch", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstLaunch: Bool = true
 
     @State var animate = false
 
@@ -69,7 +69,7 @@ struct CustomTabBar: View {
                     }
                 }
             }
-            .accessibilityLabel("Add New Transaction")
+            .accessibilityLabel("Aggiungi movimento")
 
             TabButton(image: "Budget", zoomed: isZoomed, currentTab: $currentTab)
 

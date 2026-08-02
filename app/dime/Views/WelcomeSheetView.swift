@@ -1,6 +1,6 @@
 //
 //  WelcomeSheetView.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 22/8/22.
 //
@@ -37,13 +37,13 @@ struct WelcomeSheetView: View {
             if firstPage {
                 VStack(spacing: 50) {
                     VStack(spacing: 2) {
-                        Image("AppIcon1_EG")
+                        Image("Sa7totPlaceholder")
                             .resizable()
                             .frame(width: 70, height: 70)
                             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                             .padding(.bottom, 20)
 
-                        Text("dime_name")
+                        Text("sa7tot_name")
                             .font(.system(size: 30, weight: .medium, design: .rounded))
                             .foregroundColor(Color.PrimaryText)
 

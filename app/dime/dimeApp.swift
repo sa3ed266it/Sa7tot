@@ -1,6 +1,6 @@
 //
-//  dimeApp.swift
-//  dime
+//  sa7totApp.swift
+//  sa7tot
 //
 //  Created by Rafael Soh on 11/7/22.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct dimeApp: App {
+struct Sa7totApp: App {
     @StateObject var dataController: DataController
     @StateObject var unlockManager: UnlockManager
     @StateObject var appLockVM = AppLockViewModel()

@@ -1,6 +1,6 @@
 //
 //  UnlockManager.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 15/9/22.
 //
@@ -93,7 +93,7 @@ class UnlockManager: NSObject, ObservableObject, SKPaymentTransactionObserver, S
         self.dataController = dataController
 
         // Prepare to look for our unlock product.
-        let productIDs = Set(["com.rafaelsoh.dime.smalltip", "com.rafaelsoh.dime.mediumtip", "com.rafaelsoh.dime.largetip"])
+        let productIDs = Set(["com.saied.sa7tot.smalltip", "com.saied.sa7tot.mediumtip", "com.saied.sa7tot.largetip"])
         request = SKProductsRequest(productIdentifiers: productIDs)
 
         // This is required because we inherit from NSObject.

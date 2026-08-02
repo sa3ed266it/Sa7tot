@@ -1,6 +1,6 @@
 //
 //  SettingsCurrencyView.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 5/11/23.
 //
@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsCurrencyView: View {
-  @AppStorage("currency", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var currencyCode: String = Locale.current.currencyCode!
   @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
   @Environment(\.dynamicTypeSize) var dynamicTypeSize

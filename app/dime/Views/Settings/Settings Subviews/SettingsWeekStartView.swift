@@ -1,6 +1,6 @@
 //
 //  SettingsWeekStartView.swift
-//  dime
+//  sa7tot
 //
 //  Created by Rafael Soh on 5/11/23.
 //
@@ -9,9 +9,9 @@ import Foundation
 import SwiftUI
 
 struct SettingsWeekStartView: View {
-  @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var firstWeekday: Int = 1
-  @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.rafaelsoh.dime"))
+  @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var firstDayOfMonth: Int = 1
   @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 
