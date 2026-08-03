@@ -146,366 +146,212 @@ struct SettingsView: View {
   @EnvironmentObject var dataController: DataController
 
   var body: some View {
-    NavigationView {
-      VStack {
-        HStack {
-          Text("Settings")
-            .font(.system(.title, design: .rounded).weight(.semibold))
-
-            //                        .font(.system(size: 25, weight: .semibold, design: .rounded))
-            .accessibility(addTraits: .isHeader)
-          Spacer()
-        }
-        .padding(.horizontal, 30)
-        .padding(.top, 20)
-        .padding(.bottom, 10)
-
-        ScrollView(showsIndicators: false) {
-          VStack(spacing: 5) {
-            Text("GENERAL")
-              .font(.system(.footnote, design: .rounded).weight(.semibold))
-
-              //                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-              .foregroundColor(Color.SubtitleText)
-              .padding(.horizontal, 10)
-              .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 13) {
-
-              NavigationLink(destination: SettingsNotificationsView()) {
-                SettingsRowView(
-                  systemImage: "bell.fill", title: "Notifications", colour: 102,
-                  optionalText: notificationString)
-              }
-
-              NavigationLink(destination: SettingsCurrencyView()) {
-                SettingsRowView(
-                  systemImage: "coloncurrencysign.square.fill", title: "Currency", colour: 103,
-                  optionalText: currency)
-              }
-
-              NavigationLink(destination: AccountListView()) {
-                SettingsRowView(
-                  systemImage: "building.columns.fill", title: "Conti", colour: 107,
-                  optionalText: "Gestisci i tuoi conti")
-              }
-
-              NavigationLink(destination: WalletAutomationView()) {
-                SettingsRowView(
-                  systemImage: "wallet.pass.fill", title: "Automazione Wallet", colour: 108,
-                  optionalText: "Collega spese da Comandi Rapidi")
-              }
-
-              NavigationLink(
-                destination: SettingsNumberEntryView()
-              ) {
-                SettingsRowView(
-                  systemImage: "keyboard.fill", title: "Number Entry", colour: 104,
-                  optionalText: numberEntryString)
-              }
-
-              ToggleRow(
-                icon: "faceid", color: "105", text: "Authentication",
-                bool: appLockVM.isAppLockEnabled,
-                onTap: {
-                  appLockVM.appLockStateChange(appLockState: !appLockVM.isAppLockEnabled)
-                })
-
-              ToggleRow(
-                icon: "banknote.fill", color: "106", text: "Income Tracking", bool: incomeTracking,
-                onTap: {
-                  incomeTracking.toggle()
-
-                  if !incomeTracking {
-                    UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(
-                      false, forKey: "insightsViewIncomeFiltering")
-                    UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(
-                      3, forKey: "logInsightsType")
-                  }
-                })
-
-              NavigationLink(destination: SettingsWeekStartView()) {
-                SettingsRowView(systemImage: "calendar", title: "Time Frames", colour: 109)
-              }
-                
-            }
-            .padding(10)
-            .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-          }
-          .padding(.horizontal, 20)
-          .padding(.bottom, 25)
-          .onChange(of: currency) { _ in
-            WidgetCenter.shared.reloadAllTimelines()
-          }
-          .onChange(of: firstWeekday) { _ in
-            WidgetCenter.shared.reloadAllTimelines()
-          }
-          .onChange(of: showCents) { _ in
-            WidgetCenter.shared.reloadAllTimelines()
-          }
-
-          VStack(spacing: 5) {
-            Text("APPEARANCE")
-              .font(.system(.footnote, design: .rounded).weight(.semibold))
-
-              //                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-              .foregroundColor(Color.SubtitleText)
-              .padding(.horizontal, 10)
-              .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 13) {
-              NavigationLink(destination: SettingsAppearanceView()) {
-                SettingsRowView(
-                  systemImage: "circle.righthalf.filled", title: "Theme", colour: 100,
-                  optionalText: colourSchemeString)
-              }
-
-              NavigationLink(destination: SettingsAppIconView()) {
-                SettingsRowView(
-                  systemImage: "app.badge.fill", title: "App Icon", colour: 101,
-                  optionalText: appIconString)
-              }
-
-              ToggleRow(
-                icon: "centsign.circle.fill", color: "107", text: "Display Cents", bool: showCents,
-                onTap: {
-                  showCents.toggle()
-                })
-
-              NavigationLink(destination: SettingsUpcomingView()) {
-                SettingsRowView(
-                  systemImage: "sun.min.fill", title: "Upcoming Logs", colour: 108,
-                  optionalText: upcomingString)
-              }
-                
-              ToggleRow(
-                icon: "plusminus", color: "123", text: "Display +/- Symbol", bool: showExpenseOrIncomeSign,
-                onTap: {
-                    showExpenseOrIncomeSign.toggle()
-                })
-
-              ToggleRow(
-                icon: "hare.fill", color: "121", text: "Animated Charts", bool: animated, smaller: true,
-                onTap: {
-                  animated.toggle()
-                })
-
-            }
-            .padding(10)
-            .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-          }
-          .padding(.horizontal, 20)
-          .padding(.bottom, 25)
-          .onChange(of: currency) { _ in
-            WidgetCenter.shared.reloadAllTimelines()
-          }
-          .onChange(of: firstWeekday) { _ in
-            WidgetCenter.shared.reloadAllTimelines()
-          }
-          .onChange(of: showCents) { _ in
-            WidgetCenter.shared.reloadAllTimelines()
-          }
-
-          VStack(spacing: 5) {
-            Text("DATA")
-              .font(.system(.footnote, design: .rounded).weight(.semibold))
-
-              //                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-              .foregroundColor(Color.SubtitleText)
-              .padding(.horizontal, 10)
-              .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 13) {
-              NavigationLink(
-                destination: SettingsCategoryView()
-
-              ) {
-                SettingsRowView(
-                  systemImage: "rectangle.grid.2x2.fill", title: "Categories", colour: 110)
-              }
-
-              NavigationLink(destination: SettingsCloudView()) {
-                SettingsRowView(
-                  systemImage: "icloud.fill", title: "iCloud Sync", colour: 111,
-                  optionalText: iCloudString)
-              }
-
-              //
-              //                            NavigationLink(destination: SettingsQuickAddWidgetView()) {
-              //                                SettingsRowView(systemImage: "bolt.square.fill", title: "Quick-Add Widget", colour: 115)
-              //                            }
-
-              Button {
-                showImportGuide = true
-              } label: {
-                SettingsRowView(
-                  systemImage: "square.and.arrow.down.fill", title: "Import Data", colour: 112)
-              }
-
-              Button {
-                exportData()
-              } label: {
-                SettingsRowView(
-                  systemImage: "square.and.arrow.up.fill", title: "Export Data", colour: 113)
-              }
-
-              NavigationLink(destination: SettingsEraseView()) {
-                SettingsRowView(systemImage: "xmark.bin.fill", title: "Erase Data", colour: 114)
-              }
-            }
-            .padding(10)
-            .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-          }
-          .padding(.horizontal, 20)
-          .padding(.bottom, 25)
-
-          VStack(spacing: 5) {
-            Text("OTHERS")
-              .font(.system(.footnote, design: .rounded).weight(.semibold))
-
-              //                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-              .foregroundColor(Color.SubtitleText)
-              .padding(.horizontal, 10)
-              .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 13) {
-
-                NavigationLink(destination: SettingsHapticsView()) {
-                  SettingsRowView(
-                    systemImage: "hand.tap.fill", title: "Haptics", colour: 100,
-                    optionalText: hapticString)
-                }
-
-              NavigationLink(destination: SettingsGoofyView()) {
-                SettingsRowView(systemImage: "flame.fill", title: "Feature Lab", colour: 122)
-              }
-
-              Button {
-                showTipJarMenu = true
-              } label: {
-                SettingsRowView(systemImage: "heart.fill", title: "Tip Jar", colour: 123)
-              }
-
-              Button {
-                supportEmail.send(openURL: openURL)
-              } label: {
-                SettingsRowView(systemImage: "ladybug.fill", title: "Report Bug", colour: 124)
-              }
-
-              Button {
-                featureRequestEmail.send(openURL: openURL)
-              } label: {
-                SettingsRowView(
-                  systemImage: "hand.wave.fill", title: "Feature Request", colour: 125)
-              }
-
-              Button {
-                let url = "https://apps.apple.com/app/id1635280255?action=write-review"
-                guard let writeReviewURL = URL(string: url)
-                else { fatalError("Expected a valid URL") }
-                UIApplication.shared.open(writeReviewURL, options: [:], completionHandler: nil)
-              } label: {
-                SettingsRowView(systemImage: "star.fill", title: "Rate on App Store", colour: 126)
-              }
-
-              Button {
-                shareSheet(url: "https://apps.apple.com/app/id1635280255")
-              } label: {
-                SettingsRowView(systemImage: "shareplay", title: "Share with Friends", colour: 127)
-              }
-
-              Button {
-                if let url = URL(string: "https://www.x.com/budgetwithsa7tot") {
-                  UIApplication.shared.open(url)
-                }
-              } label: {
-                SettingsRowView(systemImage: "bird.fill", title: "Follow Sa7tot on X", colour: 128)
-                  .frame(maxWidth: .infinity)
-              }
-
-              Button {
-                if let url = URL(string: "https://www.x.com/rarfell") {
-                  UIApplication.shared.open(url)
-                }
-              } label: {
-                SettingsRowView(
-                  systemImage: "camera.fill", title: "Follow Rafael on X", colour: 129)
-              }
-            }
-            .padding(10)
-            .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-          }
-          .padding(.horizontal, 20)
-          .padding(.bottom, 15)
-
-          VStack(spacing: 5) {
-            Text("ABOUT")
-              .font(.system(.footnote, design: .rounded).weight(.semibold))
-              .foregroundColor(Color.SubtitleText)
-              .padding(.horizontal, 10)
-              .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 8) {
-              Text("Sa7tot is based on an open-source project.")
-              Text("The original project is licensed under the GNU General Public License v3.0.")
-              Link("Open-source project", destination: URL(string: "https://github.com/rafsoh")!)
-            }
-            .font(.system(size: 12))
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(12)
-            .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
-          }
-          .padding(.horizontal, 20)
-          .padding(.bottom, 15)
-
-          VStack(spacing: 5) {
-            HStack(spacing: 3) {
-              Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
-
-                //                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundColor(Color.SubtitleText)
-
-              Text("·")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
-
-                .foregroundColor(Color.SubtitleText)
-
-              Text("What's New")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
-
-                .foregroundColor(Color.PrimaryText)
-                .onTapGesture {
-                  showUpdate = true
-                }
-            }
-
-            Text("Made with ❤️ by \(makeAttributedString()) from 🇸🇬")
-              .font(.system(.footnote, design: .rounded).weight(.medium))
-
-              .foregroundColor(Color.SubtitleText)
-              .multilineTextAlignment(.center)
-          }
-          .padding(.horizontal, 25)
-          .padding(.bottom, 95)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-      }
-      .navigationBarTitle("")
-      .navigationBarHidden(true)
-      .background(Color.PrimaryBackground)
-      .fullScreenCover(isPresented: $showTipJarMenu) {
-        TipJarAlert()
-      }
-      .fullScreenCover(isPresented: $showUpdate) {
-        UpdateAlert()
-      }
-      .fullScreenCover(isPresented: $showImportGuide) {
-        ImportDataView()
+    Group {
+      if #available(iOS 16.0, *) {
+        NavigationStack { settingsList }
+      } else {
+        NavigationView { settingsList }
       }
     }
+    .fullScreenCover(isPresented: $showTipJarMenu) { TipJarAlert() }
+    .fullScreenCover(isPresented: $showUpdate) { UpdateAlert() }
+    .fullScreenCover(isPresented: $showImportGuide) { ImportDataView() }
+  }
+
+  private var settingsList: some View {
+    List {
+      Section("Generale") {
+        NavigationLink(destination: SettingsNotificationsView()) {
+          SettingsNativeRow(title: "Notifiche", systemImage: "bell.fill", tint: .yellow, value: notificationValue)
+        }
+        NavigationLink(destination: SettingsCurrencyView()) {
+          SettingsNativeRow(title: "Valuta", systemImage: "eurosign.circle.fill", tint: .green, value: currency)
+        }
+        NavigationLink(destination: AccountListView()) {
+          SettingsNativeRow(title: "Conti", systemImage: "building.columns.fill", tint: .blue, value: "Gestisci i tuoi conti")
+        }
+        NavigationLink(destination: WalletAutomationView()) {
+          SettingsNativeRow(title: "Automazione Wallet", systemImage: "wallet.pass.fill", tint: .orange, value: "Comandi Rapidi")
+        }
+        NavigationLink(destination: SettingsNumberEntryView()) {
+          SettingsNativeRow(title: "Inserimento importi", systemImage: "keyboard.fill", tint: .indigo, value: numberEntryValue)
+        }
+        NavigationLink(destination: SettingsWeekStartView()) {
+          SettingsNativeRow(title: "Intervalli temporali", systemImage: "calendar.badge.clock", tint: .red, value: firstWeekdayValue)
+        }
+      }
+
+      Section("Monitoraggio") {
+        Toggle(isOn: incomeTrackingBinding) {
+          SettingsNativeLabel(title: "Monitoraggio entrate", systemImage: "banknote.fill", tint: .green)
+        }
+      }
+
+      Section("Sicurezza") {
+        Toggle(isOn: appLockBinding) {
+          SettingsNativeLabel(title: "Autenticazione", systemImage: "faceid", tint: .blue)
+        }
+      }
+
+      Section("Aspetto") {
+        NavigationLink(destination: SettingsAppearanceView()) {
+          SettingsNativeRow(title: "Tema", systemImage: "circle.lefthalf.filled", tint: .gray, value: colourSchemeValue)
+        }
+        NavigationLink(destination: SettingsAppIconView()) {
+          SettingsNativeRow(title: "Icona app", systemImage: "app.fill", tint: .purple, value: appIconString)
+        }
+        Toggle(isOn: $showCents) {
+          SettingsNativeLabel(title: "Mostra centesimi", systemImage: "centsign.circle.fill", tint: .teal)
+        }
+        NavigationLink(destination: SettingsUpcomingView()) {
+          SettingsNativeRow(title: "Movimenti futuri", systemImage: "clock.arrow.circlepath", tint: .orange, value: upcomingValue)
+        }
+        Toggle(isOn: $showExpenseOrIncomeSign) {
+          SettingsNativeLabel(title: "Mostra simbolo +/-", systemImage: "plus.forwardslash.minus", tint: .pink)
+        }
+        Toggle(isOn: $animated) {
+          SettingsNativeLabel(title: "Grafici animati", systemImage: "hare.fill", tint: .mint)
+        }
+      }
+
+      Section("Dati") {
+        NavigationLink(destination: SettingsCategoryView()) {
+          SettingsNativeRow(title: "Categorie", systemImage: "rectangle.grid.2x2.fill", tint: .blue)
+        }
+        NavigationLink(destination: SettingsCloudView()) {
+          SettingsNativeRow(title: "iCloud", systemImage: "icloud.fill", tint: .blue, value: iCloudValue)
+        }
+        Button { showImportGuide = true } label: {
+          SettingsNativeLabel(title: "Importa dati", systemImage: "arrow.down.circle.fill", tint: .green)
+        }
+        Button { exportData() } label: {
+          SettingsNativeLabel(title: "Esporta dati", systemImage: "arrow.up.circle.fill", tint: .orange)
+        }
+        NavigationLink(destination: SettingsEraseView()) {
+          SettingsNativeLabel(title: "Elimina dati", systemImage: "trash.fill", tint: .red)
+        }
+      }
+
+      Section("Altro") {
+        NavigationLink(destination: SettingsHapticsView()) {
+          SettingsNativeRow(title: "Feedback aptico", systemImage: "hand.tap.fill", tint: .pink, value: hapticValue)
+        }
+        NavigationLink(destination: SettingsGoofyView()) {
+          SettingsNativeLabel(title: "Laboratorio funzioni", systemImage: "flame.fill", tint: .orange)
+        }
+        Button { showTipJarMenu = true } label: {
+          SettingsNativeLabel(title: "Supporta Sa7tot", systemImage: "heart.fill", tint: .red)
+        }
+        Button { supportEmail.send(openURL: openURL) } label: {
+          SettingsNativeLabel(title: "Segnala un problema", systemImage: "ladybug.fill", tint: .green)
+        }
+        Button { featureRequestEmail.send(openURL: openURL) } label: {
+          SettingsNativeLabel(title: "Suggerisci una funzione", systemImage: "hand.wave.fill", tint: .yellow)
+        }
+        Button {
+          if let url = URL(string: "https://apps.apple.com/app/id1635280255?action=write-review") {
+            UIApplication.shared.open(url)
+          }
+        } label: {
+          SettingsNativeLabel(title: "Valuta su App Store", systemImage: "star.fill", tint: .yellow)
+        }
+        Button { shareSheet(url: "https://apps.apple.com/app/id1635280255") } label: {
+          SettingsNativeLabel(title: "Condividi con amici", systemImage: "square.and.arrow.up.fill", tint: .blue)
+        }
+        Button {
+          if let url = URL(string: "https://www.x.com/budgetwithsa7tot") { UIApplication.shared.open(url) }
+        } label: {
+          SettingsNativeLabel(title: "Segui Sa7tot su X", systemImage: "bird.fill", tint: .black)
+        }
+        Button {
+          if let url = URL(string: "https://www.x.com/rarfell") { UIApplication.shared.open(url) }
+        } label: {
+          SettingsNativeLabel(title: "Segui Rafael su X", systemImage: "camera.fill", tint: .gray)
+        }
+      }
+
+      Section("Informazioni") {
+        Link(destination: URL(string: "https://github.com/rafsoh")!) {
+          SettingsNativeLabel(title: "Progetto open source", systemImage: "chevron.left.forwardslash.chevron.right", tint: .gray)
+        }
+        Link(destination: URL(string: "https://www.x.com/rarfell")!) {
+          SettingsNativeLabel(title: "Autore e supporto", systemImage: "person.fill", tint: .blue)
+        }
+        Button { showUpdate = true } label: {
+          SettingsNativeRow(title: "Versione", systemImage: "info.circle.fill", tint: .gray, value: "\(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
+        }
+      }
+    }
+    .listStyle(.insetGrouped)
+    .navigationTitle("Impostazioni")
+    .navigationBarTitleDisplayMode(.large)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility5)
+    .onChange(of: currency) { _ in WidgetCenter.shared.reloadAllTimelines() }
+    .onChange(of: firstWeekday) { _ in WidgetCenter.shared.reloadAllTimelines() }
+    .onChange(of: showCents) { _ in WidgetCenter.shared.reloadAllTimelines() }
+  }
+
+  private var notificationValue: String {
+    guard showNotifications else { return "Disattivate" }
+    switch option {
+    case 1: return "Mattina"
+    case 2: return "Sera"
+    default: return "Personalizzate"
+    }
+  }
+
+  private var numberEntryValue: String {
+    numberEntryType == 1 ? "Tipo 1" : "Tipo 2"
+  }
+
+  private var firstWeekdayValue: String {
+    firstWeekday == 1 ? "Domenica" : "Lunedì"
+  }
+
+  private var colourSchemeValue: String {
+    switch colourScheme {
+    case 1: return "Chiaro"
+    case 2: return "Scuro"
+    default: return "Sistema"
+    }
+  }
+
+  private var upcomingValue: String {
+    showUpcoming ? "Mostrati" : "Nascosti"
+  }
+
+  private var iCloudValue: String {
+    NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") ? "Attivo" : "Disattivo"
+  }
+
+  private var hapticValue: String {
+    switch hapticType {
+    case 0: return "Nessuno"
+    case 1: return "Leggero"
+    default: return "Intenso"
+    }
+  }
+
+  private var appLockBinding: Binding<Bool> {
+    Binding(
+      get: { appLockVM.isAppLockEnabled },
+      set: { appLockVM.appLockStateChange(appLockState: $0) }
+    )
+  }
+
+  private var incomeTrackingBinding: Binding<Bool> {
+    Binding(
+      get: { incomeTracking },
+      set: { newValue in
+        incomeTracking = newValue
+        if !newValue {
+          UserDefaults(suiteName: "group.com.saied.sa7tot")?.set(
+            false, forKey: "insightsViewIncomeFiltering")
+          UserDefaults(suiteName: "group.com.saied.sa7tot")?.set(
+            3, forKey: "logInsightsType")
+        }
+      }
+    )
   }
 
   @ViewBuilder
@@ -610,6 +456,72 @@ struct SettingsView: View {
     if let windowScene = scene as? UIWindowScene {
       windowScene.keyWindow?.rootViewController?.present(av, animated: true, completion: nil)
     }
+  }
+}
+
+private struct SettingsNativeLabel: View {
+  let title: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    Label {
+      Text(title)
+        .foregroundStyle(.primary)
+    } icon: {
+      SettingsNativeIcon(systemImage: systemImage, tint: tint)
+    }
+    .accessibilityLabel(title)
+  }
+}
+
+private struct SettingsNativeRow: View {
+  let title: String
+  let systemImage: String
+  let tint: Color
+  let value: String?
+
+  init(title: String, systemImage: String, tint: Color, value: String? = nil) {
+    self.title = title
+    self.systemImage = systemImage
+    self.tint = tint
+    self.value = value
+  }
+
+  var body: some View {
+    HStack(spacing: 12) {
+      SettingsNativeIcon(systemImage: systemImage, tint: tint)
+      Text(title)
+        .foregroundStyle(.primary)
+        .lineLimit(2)
+        .layoutPriority(1)
+      Spacer(minLength: 8)
+      if let value {
+        Text(value)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+          .truncationMode(.tail)
+          .multilineTextAlignment(.trailing)
+      }
+    }
+    .frame(minHeight: 44)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(title)
+    .accessibilityValue(value ?? "")
+  }
+}
+
+private struct SettingsNativeIcon: View {
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    Image(systemName: systemImage)
+      .font(.system(size: 16, weight: .semibold))
+      .foregroundStyle(.white)
+      .frame(width: 30, height: 30)
+      .background(tint, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+      .accessibilityHidden(true)
   }
 }
 
