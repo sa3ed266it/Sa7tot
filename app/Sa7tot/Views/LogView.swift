@@ -9,7 +9,6 @@ import CloudKitSyncMonitor
 import CoreData
 import Foundation
 import SwiftUIIntrospect
-import Popovers
 import SwiftUI
 
 // Shared by existing non-navigation buttons; retained when the obsolete
@@ -46,9 +45,6 @@ struct LogView: View {
 
     // top bar
     @State var navBarText = ""
-    @State var showMenu = false
-    @AppStorage("logTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var logTimeFrame = 2
-    let subtitleText = ["today", "this week", "this month", "this year"]
 
     @State var filter = FilterType.all
 
@@ -272,8 +268,7 @@ struct LogView: View {
                             }
                         }
                     } label: {
-                        Image(systemName: filter == .all ? "triangle" : "triangle.tophalf.filled")
-                            .rotationEffect(Angle(degrees: 180))
+                        Image(systemName: "line.3.horizontal.decrease")
                             .frame(width: 44, height: 44)
                     }
                     .labelStyle(.iconOnly)
@@ -387,16 +382,13 @@ struct LogInsightsView: View {
     let showCents: Bool
     let currencySymbol: String
 
-    @State var showMenu1 = false
-    let subtitleText = ["today", "this week", "this month", "this year", "all time"]
-
     @AppStorage("logInsightsTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var timeframe = 2
     @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
 
     @AppStorage("logViewLineGraph", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var lineGraph: Bool = false
 
     var netTotal: (value: Double, positive: Bool) {
-        dataController.getLogViewTotalNet(type: timeframe)
+        dataController.getLogViewTotalNet(type: 5)
     }
 
     var range: Int {
@@ -430,11 +422,11 @@ struct LogInsightsView: View {
     }
 
     var totalSpent: Double {
-        return dataController.getLogViewTotalSpent(type: timeframe)
+        return dataController.getLogViewTotalSpent(type: 5)
     }
 
     var totalIncome: Double {
-        return dataController.getLogViewTotalIncome(type: timeframe)
+        return dataController.getLogViewTotalIncome(type: 5)
     }
 
     var lineGraphData: [LineGraphDataPoint] {
@@ -469,7 +461,7 @@ struct LogInsightsView: View {
 
     var headingText: String {
         if insightsType == 1 {
-            return "Net total"
+            return "Saldo totale"
         } else if insightsType == 2 {
             return "Earned"
         } else {
@@ -484,28 +476,6 @@ struct LogInsightsView: View {
                     Text(LocalizedStringKey(headingText))
                         .font(.system(.body, design: .rounded).weight(.medium))
                         .foregroundColor(Color.PrimaryText.opacity(0.9))
-                    Button {
-                        showMenu1 = true
-                    } label: {
-                        Text(LocalizedStringKey(subtitleText[timeframe - 1]))
-                            .padding(2)
-                            .padding(.horizontal, 6)
-                            .font(.system(.body, design: .rounded).weight(.medium))
-                            .foregroundColor(Color.PrimaryText.opacity(9))
-                            .overlay(Capsule().stroke(Color.Outline, lineWidth: 1.3))
-                    }
-                    .popover(present: $showMenu1, attributes: {
-                        $0.position = .absolute(
-                            originAnchor: .bottom,
-                            popoverAnchor: .top
-                        )
-                        $0.rubberBandingMode = .none
-                        $0.sourceFrameInset = UIEdgeInsets(top: 0, left: 0, bottom: -10, right: 0)
-                        $0.presentation.animation = .easeInOut(duration: 0.2)
-                        $0.dismissal.animation = .easeInOut(duration: 0.3)
-                    }) {
-                        TimePickerView(showMenu: $showMenu1, timeframe: $timeframe)
-                    }
                 }
 
                 EmptyView()
@@ -685,82 +655,6 @@ struct FilteredSearchView: View {
         ], predicate: compound)
 
         self.searchQuery = searchQuery
-    }
-}
-
-struct TimePickerView: View {
-    @Namespace var animation
-
-    let timeframes = ["today", "this week", "this month", "this year", "all time"]
-
-    @Binding var showMenu: Bool
-    @Binding var timeframe: Int
-    @State var holdingTimeframe = 0
-
-    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var colourScheme: Int = 0
-
-    @Environment(\.colorScheme) var systemColorScheme
-
-    var darkMode: Bool {
-        (colourScheme == 0 && systemColorScheme == .dark) || colourScheme == 2
-    }
-
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            ForEach(timeframes.indices, id: \.self) { index in
-                HStack {
-                    Text(LocalizedStringKey(timeframes[index]))
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-
-                    Spacer()
-
-                    if holdingTimeframe == index + 1 {
-                        Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-//                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-//                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .padding(5)
-                .background {
-                    if holdingTimeframe == index + 1 {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if holdingTimeframe == index + 1 {
-                        showMenu = false
-                    } else {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            holdingTimeframe = index + 1
-                        }
-
-                        timeframe = index + 1
-
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                            showMenu = false
-                        }
-                    }
-                }
-                .accessibilityElement(children: .ignore)
-            }
-        }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
-        .padding(4)
-        .frame(width: dynamicTypeSize > .xxLarge ? 185 : 160)
-        .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
-        .onAppear {
-            holdingTimeframe = timeframe
-        }
     }
 }
 
