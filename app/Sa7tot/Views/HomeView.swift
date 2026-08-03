@@ -267,13 +267,13 @@ private struct TransactionEditorSheetPresentation: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 16.4, *) {
             content
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.height(600), .large])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
                 .presentationBackground(.thinMaterial)
         } else if #available(iOS 16.0, *) {
             content
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.height(600), .large])
                 .presentationDragIndicator(.visible)
         } else {
             content
