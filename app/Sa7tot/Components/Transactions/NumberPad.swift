@@ -18,7 +18,8 @@ struct NumberPad: View {
     @Binding var isEditingDecimal: Bool
     @Binding var decimalValuesAssigned: AssignedDecimal
     var showingNotePicker: Bool = false
-    var submit: () -> Void
+    var submit: () -> Void = {}
+    var editorMode: Bool = false
 
     @AppStorage("numberEntryType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var numberEntryType: Int = 1
     @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
@@ -39,7 +40,22 @@ struct NumberPad: View {
                     }
                 }
                 HStack(spacing: proxy.size.width * 0.05) {
-                    if numberEntryType == 1 {
+                    if editorMode {
+                        Button {
+                            if numberEntryType == 2 {
+                                isEditingDecimal = true
+                            }
+                        } label: {
+                            Text(",")
+                                .font(.system(size: 34, weight: .regular, design: .rounded))
+                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                                .background(Color.SecondaryBackground)
+                                .foregroundColor(Color.PrimaryText)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(NumPadButton())
+                        .accessibilityLabel("Virgola decimale")
+                    } else if numberEntryType == 1 {
                         Button {
                             deleteLastDigit()
                         } label: {
@@ -68,24 +84,38 @@ struct NumberPad: View {
 
                     NumberButton(number: 0, size: proxy.size)
 
-                    Button {
-                        submit()
-                    } label: {
-                        Group {
-                            if #available(iOS 17.0, *) {
-                                Image(systemName: "checkmark.square.fill")
-                                    .font(.system(size: 30, weight: .medium, design: .rounded))
-                                    .symbolEffect(.bounce.up.byLayer, value: price != 0 && category != nil)
-                            } else {
-                                Image(systemName: "checkmark.square.fill")
-                                    .font(.system(size: 30, weight: .medium, design: .rounded))
-                            }
+                    if editorMode {
+                        Button {
+                            deleteLastDigit()
+                        } label: {
+                            Image(systemName: "delete.left.fill")
+                                .font(.system(size: 25, weight: .medium, design: .rounded))
+                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                                .foregroundColor(Color.PrimaryText)
+                                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
-                        .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                        .foregroundColor(Color.LightIcon)
-                        .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .buttonStyle(NumPadButton())
+                        .accessibilityLabel("Cancella ultima cifra")
+                    } else {
+                        Button {
+                            submit()
+                        } label: {
+                            Group {
+                                if #available(iOS 17.0, *) {
+                                    Image(systemName: "checkmark.square.fill")
+                                        .font(.system(size: 30, weight: .medium, design: .rounded))
+                                        .symbolEffect(.bounce.up.byLayer, value: price != 0 && category != nil)
+                                } else {
+                                    Image(systemName: "checkmark.square.fill")
+                                        .font(.system(size: 30, weight: .medium, design: .rounded))
+                                }
+                            }
+                            .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                            .foregroundColor(Color.LightIcon)
+                            .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(NumPadButton())
                     }
-                    .buttonStyle(NumPadButton())
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -220,6 +250,24 @@ struct NumberPad: View {
         }
         .disabled(disabled)
         .buttonStyle(NumPadButton())
+    }
+}
+
+struct TransactionEditorKeypad: View {
+    @Binding var price: Double
+    @Binding var isEditingDecimal: Bool
+    @Binding var decimalValuesAssigned: AssignedDecimal
+    var showingNotePicker: Bool
+
+    var body: some View {
+        NumberPad(
+            price: $price,
+            category: .constant(nil),
+            isEditingDecimal: $isEditingDecimal,
+            decimalValuesAssigned: $decimalValuesAssigned,
+            showingNotePicker: showingNotePicker,
+            editorMode: true
+        )
     }
 }
 

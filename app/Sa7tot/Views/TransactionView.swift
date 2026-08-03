@@ -230,6 +230,42 @@ struct TransactionView: View {
     @State private var priceString: String = "0"
 
     var body: some View {
+        TransactionEditorShell(
+            isEditing: toEdit != nil,
+            isTransfer: $isTransfer,
+            income: $income,
+            price: $price,
+            isEditingDecimal: $isEditingDecimal,
+            decimalValuesAssigned: $decimalValuesAssigned,
+            note: $note,
+            category: $category,
+            account: $account,
+            destinationAccount: $destinationAccount,
+            date: $date,
+            repeatType: $repeatType,
+            repeatCoefficient: $repeatCoefficient,
+            currencySymbol: currencySymbol,
+            suggestedTransactions: suggestedTransactions,
+            showRecommendations: showRecommendations,
+            onSave: submit,
+            onDismiss: { dismiss() },
+            onDeleteConfirmed: { deleteTransaction() }
+        )
+        .environment(\.managedObjectContext, moc)
+        .environmentObject(dataController)
+        .onAppear {
+            guard let transaction = toEdit else { return }
+            repeatType = Int(transaction.recurringType)
+            repeatCoefficient = Int(transaction.recurringCoefficient)
+            price = transaction.wrappedAmount
+            if transaction.wrappedAmount.truncatingRemainder(dividingBy: 1) > 0 && numberEntryType == 2 {
+                isEditingDecimal = true
+                decimalValuesAssigned = .second
+            }
+        }
+    }
+
+    private var legacyBody: some View {
         GeometryReader { proxy in
             VStack(spacing: 8) {
                 // income/expense picker
@@ -1028,6 +1064,13 @@ struct TransactionView: View {
             }
         }
 
+    }
+
+    private func deleteTransaction() {
+        guard let itemToDelete = toEdit else { return }
+        moc.delete(itemToDelete)
+        dataController.save()
+        dismiss()
     }
 
     func submit() {
