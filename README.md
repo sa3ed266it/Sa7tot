@@ -1,76 +1,92 @@
 # Sa7tot
 
-Sa7tot is a private personal-finance app. It is distributed under the GNU General Public License v3.0.
+Sa7tot is a native iPhone personal-finance application written with SwiftUI. It has an Italian-first interface, local-first Core Data storage, optional iCloud/CloudKit synchronization, and is designed for private personal use.
 
-<p align="center">
-  <img src="./docs/assets/hero.png" width="451" style="max-width: 100%; height: auto;" />
-</p>
+## Features
 
-Sa7tot is a free personal finance tracker built with iOS design guidelines in mind.
+- Expenses and income
+- Financial accounts and account balances
+- Transfers between accounts
+- Budgets and recurring transactions
+- Statistics and insights
+- Multiple currencies
+- Home and Lock Screen widgets
+- Face ID and app lock
+- iCloud synchronization
+- Import/export where currently supported
+- Apple Shortcuts and App Intents
+- Merchant categorization and duplicate prevention
+- Review queue for uncertain Wallet entries
+- Italian localization
 
-## App Preview
+## Apple Wallet Automation
 
-<p align="center">
-  <img src="./docs/assets/3.png" height="300" /> 
-  <img src="./docs/assets/4.png" height="300" /> 
-  <img src="./docs/assets/5.png" height="300" />
-  <img src="./docs/assets/6.png" height="300" />
-</p>
-<p align="center">
-  <img src="./docs/assets/7.png" height="300" />
-  <img src="./docs/assets/8.png" height="300" />
-  <img src="./docs/assets/9.png" height="300" />
-</p>
+Sa7tot can receive a Wallet transaction through a user-created Apple Shortcuts Personal Automation:
 
-## Why You’ll Love Sa7tot
+```text
+Apple Wallet transaction → Personal Automation in Shortcuts → Sa7tot App Intent → local expense record
+```
 
-- 100% free forever, with no paywall or ads.
-- Beautifully iOS-centric design, with simplicity at its core.
-- Insightful expenditure breakdowns over various time periods.
-- Create budgets based on expense categories and stick to them.
-- Create recurring expenses with custom time frames.
-- Sync your expenses, categories and budgets with other devices via iCloud.
-- Custom reminders to input your expenses.
-- Biometric authentication to protect your data.
-- Home screen quick actions make capturing new expenses a breeze.
-- A gorgeous night theme for dark mode fanatics.
-- Informative home and lock screen widgets keep you updated at a glance.
+The user must configure the automation in Apple Shortcuts. Availability depends on iOS, the card, the bank, and Wallet variables. Sa7tot does not scrape notifications and does not connect directly to a bank.
 
-## How to help
+## Technology
 
-- Please feel free to raise issues for any inquiries, suggestions for improvements, or bugs you encounter.
-- You're welcome to fork the repository and propose changes through a pull request, although the decision to merge it rests with the project maintainers.
-- To follow along with app updates, follow the project maintainers on X / Twitter.
-- If you would like to discuss with the contributors, feel free to drop [Rafael](https://x.com/rarfell) or [Jeffrey](https://x.com/jefcodes) a DM!
+- Swift
+- SwiftUI
+- Core Data
+- `NSPersistentCloudKitContainer` and CloudKit
+- WidgetKit
+- App Intents and Shortcuts
+- LocalAuthentication
+- XCTest
 
-## How to build
+## Requirements
 
-### Required
+- Xcode 26.6 was used for the current project build.
+- iOS 15.0 or later for the app target.
+- An Apple Developer signing team is required for device builds and for testing iCloud, CloudKit, App Groups, and Wallet-related integrations.
+- Real Apple Wallet automation cannot be fully validated in the iOS Simulator; use a compatible physical device and Wallet configuration.
 
-- Xcode
+## Getting Started
 
-### Build Steps
+Clone the repository and open the Xcode project:
 
-- Clone this project either via Xcode or terminal:
-  `git clone <repository-url>`
-- For branch selection use:
-  `--single-branch --branch [branchname]` after `clone`
-- After completion, open `Sa7tot.xcodeproj` using Xcode.
-- Please let all dependecies update automatically but we would recommend to run
-  `File > Packages > Resolve Package Versions` to ensure, everything is updated.
+```sh
+git clone https://github.com/sa3ed266it/Sa7tot.git
+cd Sa7tot
+open app/Sa7tot.xcodeproj
+```
 
-## Third party dependencies
+In Xcode:
 
-- [Alamofire](https://github.com/Alamofire/Alamofire)
-- [CloudKitSyncMonitor](https://github.com/ggruen/CloudKitSyncMonitor)
-- [ConfettiSwiftUI](https://github.com/simibac/ConfettiSwiftUI)
-- [CrookedText](https://github.com/duemunk/CrookedText)
-- [SwiftUI Introspect](https://github.com/siteline/swiftui-introspect)
-- [IsScrolling](https://github.com/fatbobman/IsScrolling)
-- [Popovers](https://github.com/aheze/Popovers/)
-- ScrollViewStyle
-- STools
+1. Select the `Sa7tot` scheme and an Apple Development team.
+2. Allow Swift Package Manager to resolve the project dependencies. If needed, use **File > Packages > Resolve Package Versions**.
+3. Configure the App Group and CloudKit container for the selected development team when building for a device or iCloud testing.
+4. Build and run the `Sa7tot` scheme.
 
-## Licence
+The repository does not contain secrets, signing credentials, or personal team configuration.
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+## Project Structure
+
+- `app/Sa7tot` — main iPhone application, views, models, data, localization, and App Intents
+- `app/ExpenditureWidget` — WidgetKit extension
+- `app/BudgetIntent` — budget App Intent extension
+- `app/BudgetIntentUI` — budget App Intent UI extension
+- `app/MainModel.xcdatamodeld` — Core Data model
+
+## Privacy
+
+Financial data is stored locally and can synchronize through iCloud/CloudKit as implemented by the app. Sa7tot includes no advertising SDK, collects no bank credentials, and has no direct bank connection. Notification content should remain privacy-conscious when configuring Wallet automations.
+
+## Current Status
+
+Sa7tot is an active private/personal project. The native iOS interface refresh is ongoing.
+
+## Open-Source Attribution
+
+Sa7tot is based on the open-source [Dime project by Rafael Soh](https://github.com/rafsoh/dimeApp). Dime is licensed under the GNU GPL v3.0. Existing copyright notices are preserved in the source distribution.
+
+## License
+
+This derived project is distributed under GPL-3.0 where applicable. See [LICENSE](LICENSE) for the full license text.
+
