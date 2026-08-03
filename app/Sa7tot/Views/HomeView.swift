@@ -52,8 +52,6 @@ struct HomeView: View {
     @State var launchAdd: Bool = false
     @State var counter = 0
 
-    @State var showPopup = false
-
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
     @State private var addTransaction = false
     @State private var addTransactionCount = 0
@@ -73,20 +71,6 @@ struct HomeView: View {
             } else {
                 legacyTabView
             }
-
-            if showPopup {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        transactionManager.showPopup = false
-                    }
-            }
-
-            DeleteTransactionAlert()
-                .offset(y: showPopup ? 0 : 300)
-                .environmentObject(transactionManager)
 
             if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
                 AppLockView()
@@ -120,10 +104,15 @@ struct HomeView: View {
             dataController.save()
             transactionManager.toDelete = nil
         })
-        .onChange(of: transactionManager.showPopup) { newValue in
-            withAnimation {
-                showPopup = newValue
+        .alert(deleteAlertTitle, isPresented: $transactionManager.showPopup) {
+            Button(deleteAlertActionTitle, role: .destructive) {
+                confirmDeletion()
             }
+            Button("Annulla", role: .cancel) {
+                transactionManager.toDelete = nil
+            }
+        } message: {
+            Text(deleteAlertMessage)
         }
         .sheet(item: $transactionManager.toEdit, onDismiss: {
             transactionManager.toEdit = nil
@@ -197,6 +186,44 @@ struct HomeView: View {
         }
     }
 
+    private var deleteAlertIsRecurring: Bool {
+        guard let transaction = transactionManager.toDelete else { return false }
+        return transactionManager.future && transaction.wrappedDate < Date.now && transaction.recurringType > 0
+    }
+
+    private var deleteAlertTitle: String {
+        guard let transaction = transactionManager.toDelete else { return "Elimina movimento" }
+        return deleteAlertIsRecurring ? "Interrompere la ricorrenza?" : "Elimina \"\(transaction.wrappedNote)\"?"
+    }
+
+    private var deleteAlertMessage: String {
+        deleteAlertIsRecurring
+            ? "Il movimento non verrà più registrato automaticamente."
+            : "Questa azione non può essere annullata."
+    }
+
+    private var deleteAlertActionTitle: String {
+        deleteAlertIsRecurring ? "Conferma" : "Elimina"
+    }
+
+    private func confirmDeletion() {
+        guard let transaction = transactionManager.toDelete else { return }
+
+        transactionManager.showPopup = false
+
+        if deleteAlertIsRecurring {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                transaction.recurringType = 0
+                dataController.save()
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                moc.delete(transaction)
+                transactionManager.showToast = true
+            }
+        }
+    }
+
     private func presentAddMovement() {
         guard !addTransaction else { return }
         addTransactionCount = transactions.count
@@ -214,7 +241,7 @@ struct HomeView: View {
             settingsView: hosted(SettingsView()),
             searchView: hosted(SearchView(searchQuery: $searchText))
         )
-        .allowsHitTesting(showPopup ? false : true)
+        .allowsHitTesting(transactionManager.showPopup ? false : true)
     }
 
     private var legacyTabView: some View {
@@ -235,7 +262,7 @@ struct HomeView: View {
                 .tabItem { Label("Cerca", systemImage: "magnifyingglass") }
                 .tag("Search")
         }
-        .allowsHitTesting(showPopup ? false : true)
+        .allowsHitTesting(transactionManager.showPopup ? false : true)
         .environmentObject(toastPresenter)
         .environmentObject(transactionManager)
     }
