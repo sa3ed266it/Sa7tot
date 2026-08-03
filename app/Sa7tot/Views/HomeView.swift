@@ -206,7 +206,7 @@ struct HomeView: View {
                 }
             }
         }
-        .searchable(text: $searchText, prompt: "Cerca movimento per nota")
+        .searchable(text: $searchText, placement: .automatic, prompt: "Cerca movimento per nota")
         .tabViewSearchActivation(.searchTabSelection)
         .allowsHitTesting(showPopup ? false : true)
         .environmentObject(toastPresenter)
@@ -253,11 +253,22 @@ private struct SearchTabView: View {
     var body: some View {
         NavigationView {
             SearchView(searchQuery: $searchText)
-                .searchable(text: $searchText, prompt: "Cerca movimento per nota")
+                .sa7totLegacySearchable(text: $searchText)
             .navigationTitle("Cerca")
             .navigationBarTitleDisplayMode(.inline)
         }
         .navigationViewStyle(.stack)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func sa7totLegacySearchable(text: Binding<String>) -> some View {
+        if #available(iOS 26.0, *) {
+            self
+        } else {
+            searchable(text: text, placement: .automatic, prompt: "Cerca movimento per nota")
+        }
     }
 }
 
