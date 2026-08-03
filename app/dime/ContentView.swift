@@ -60,6 +60,14 @@ struct ContentView: View {
                 }
         }
         .ignoresSafeArea(.keyboard)
+        .alert("Errore migrazione conti", isPresented: Binding(
+            get: { dataController.accountMigrationErrorMessage != nil },
+            set: { if !$0 { dataController.clearAccountMigrationError() } }
+        )) {
+            Button("OK", role: .cancel) { dataController.clearAccountMigrationError() }
+        } message: {
+            Text(dataController.accountMigrationErrorMessage ?? "Impossibile completare la migrazione dei conti.")
+        }
         .onAppear {
 //            UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(false, forKey: "newTransactionAdded")
 //            WidgetCenter.shared.reloadTimelines(ofKind: "TemplateTransactions")

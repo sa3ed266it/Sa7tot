@@ -32,6 +32,7 @@ struct AccountListView: View {
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)])
     private var transactions: FetchedResults<Transaction>
     @State private var showingEditor = false
+    @State private var errorMessage: String?
 
     var body: some View {
         List {
@@ -57,7 +58,11 @@ struct AccountListView: View {
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button {
                         account.isArchived.toggle()
-                        dataController.save()
+                        do {
+                            try dataController.saveAccountChanges()
+                        } catch {
+                            errorMessage = error.localizedDescription
+                        }
                     } label: {
                         Label(account.isArchived ? "Riattiva" : "Archivia", systemImage: account.isArchived ? "arrow.uturn.backward" : "archivebox")
                     }
@@ -65,7 +70,11 @@ struct AccountListView: View {
                     if account.canDelete {
                         Button(role: .destructive) {
                             moc.delete(account)
-                            dataController.save()
+                            do {
+                                try dataController.saveAccountChanges()
+                            } catch {
+                                errorMessage = error.localizedDescription
+                            }
                         } label: { Label("Elimina", systemImage: "trash") }
                     }
                 }
@@ -79,6 +88,11 @@ struct AccountListView: View {
         }
         .sheet(isPresented: $showingEditor) {
             NavigationView { AccountEditorView(account: nil) }
+        }
+        .alert("Errore", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Impossibile salvare le modifiche.")
         }
     }
 
@@ -99,6 +113,7 @@ struct AccountEditorView: View {
     @State private var iconName: String
     @State private var colour: String
     @State private var isArchived: Bool
+    @State private var errorMessage: String?
 
     init(account: Account?) {
         self.account = account
@@ -109,6 +124,7 @@ struct AccountEditorView: View {
         _iconName = State(initialValue: account?.iconName ?? "building.columns.fill")
         _colour = State(initialValue: account?.wrappedColour ?? "#5E7CE2")
         _isArchived = State(initialValue: account?.isArchived ?? false)
+        _errorMessage = State(initialValue: nil)
     }
 
     var body: some View {
@@ -132,6 +148,10 @@ struct AccountEditorView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Salva") {
+                    if let account, account.currencyCode != currencyCode, !account.canChangeCurrency {
+                        errorMessage = "La valuta non può essere cambiata dopo la registrazione di movimenti o modelli."
+                        return
+                    }
                     let target = account ?? Account(context: moc)
                     target.id = target.id ?? UUID()
                     target.name = name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Conto principale" : name
@@ -143,10 +163,19 @@ struct AccountEditorView: View {
                     target.isArchived = isArchived
                     target.createdAt = target.createdAt ?? Date()
                     if account == nil { target.order = Int32((try? moc.count(for: Account.fetchRequest())) ?? 1) }
-                    dataController.save()
-                    dismiss()
+                    do {
+                        try dataController.saveAccountChanges()
+                        dismiss()
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
                 }
             }
+        }
+        .alert("Errore", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Impossibile salvare le modifiche.")
         }
     }
 }

@@ -1061,7 +1061,13 @@ struct TransactionView: View {
                         editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
                     }
 
-                    dataController.save()
+                    do {
+                        try dataController.saveAccountChanges()
+                    } catch {
+                        toastTitle = error.localizedDescription
+                        toastImage = "exclamationmark.triangle"
+                        showToast = true
+                    }
                 }
             }
 
@@ -1104,7 +1110,14 @@ struct TransactionView: View {
             dataController.updateRecurringTransaction(transaction: transaction)
         }
 
-        try? moc.save()
+        do {
+            try dataController.saveAccountChanges()
+        } catch {
+            toastTitle = error.localizedDescription
+            toastImage = "exclamationmark.triangle"
+            showToast = true
+            return
+        }
 
         dismiss()
     }

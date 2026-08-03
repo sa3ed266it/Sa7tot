@@ -692,7 +692,13 @@ struct TemplateTransactionView: View {
             editedTransaction.recurringType = Int16(repeatType)
             editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
 
-            dataController.save()
+            do {
+                try dataController.saveAccountChanges()
+            } catch {
+                toastTitle = error.localizedDescription
+                toastImage = "exclamationmark.triangle"
+                showToast = true
+            }
 
             dismiss()
 
@@ -718,7 +724,13 @@ struct TemplateTransactionView: View {
             transaction.recurringType = Int16(repeatType)
             transaction.recurringCoefficient = Int16(repeatCoefficient)
 
-            dataController.save()
+            do {
+                try dataController.saveAccountChanges()
+            } catch {
+                toastTitle = error.localizedDescription
+                toastImage = "exclamationmark.triangle"
+                showToast = true
+            }
 
             dismiss()
         }

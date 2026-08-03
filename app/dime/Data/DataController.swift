@@ -31,6 +31,7 @@ class DataController: ObservableObject {
     static let shared = DataController()
 
     @Published private(set) var accountMigrationError: Error?
+    @Published private(set) var accountMigrationErrorMessage: String?
 
     var container = NSPersistentCloudKitContainer(name: "MainModel")
 
@@ -79,6 +80,7 @@ class DataController: ObservableObject {
                     in: self.container.viewContext, currencyCode: currency, defaults: sharedDefaults)
             } catch {
                 self.accountMigrationError = error
+                self.accountMigrationErrorMessage = error.localizedDescription
             }
         }
 
@@ -144,6 +146,22 @@ class DataController: ObservableObject {
             try? container.viewContext.save()
             WidgetCenter.shared.reloadAllTimelines()
         }
+    }
+
+    func saveAccountChanges() throws {
+        guard container.viewContext.hasChanges else { return }
+        do {
+            try container.viewContext.save()
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            container.viewContext.rollback()
+            throw AccountSaveError.persistence(error)
+        }
+    }
+
+    func clearAccountMigrationError() {
+        accountMigrationError = nil
+        accountMigrationErrorMessage = nil
     }
 
     func updateRecurringTransaction(transaction: Transaction) {
@@ -262,7 +280,7 @@ class DataController: ObservableObject {
             transaction.category = unwrappedCategory
         }
 
-        transaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: container.viewContext)
+        transaction.account = account ?? AccountAssignmentService.assignDefault(to: transaction, in: container.viewContext)
 
         transaction.amount = amount
         transaction.date = date
@@ -291,7 +309,7 @@ class DataController: ObservableObject {
     func newTemplateTransaction(order: Int) {
         if let match = getTemplateTransaction(order: order) {
             if let unwrappedCategory = match.category {
-                _ = newTransaction(note: match.note ?? "", category: unwrappedCategory, account: match.account ?? AccountMigrationService.defaultActiveAccount(in: container.viewContext), income: match.income, amount: match.amount, date: Date.now, repeatType: Int(match.recurringType), repeatCoefficient: Int(match.recurringCoefficient), delay: false)
+                _ = newTransaction(note: match.note ?? "", category: unwrappedCategory, account: AccountAssignmentService.inheritedAccount(from: match), income: match.income, amount: match.amount, date: Date.now, repeatType: Int(match.recurringType), repeatCoefficient: Int(match.recurringCoefficient), delay: false)
 
                 addedTransaction = true
             }

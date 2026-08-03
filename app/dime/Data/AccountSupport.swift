@@ -36,17 +36,34 @@ enum AccountMigrationError: LocalizedError {
         switch self {
         case .noAccountCreated: return "Impossibile creare il conto principale."
         case let .verificationFailed(expected, actual):
-            return "Migrazione conti incompleta: attesi (expected) movimenti, trovati (actual)."
-        case let .saveFailed(error): return "Impossibile salvare la migrazione dei conti: (error.localizedDescription)"
+            return "Migrazione conti incompleta: attesi \(expected) movimenti, trovati \(actual)."
+        case let .saveFailed(error): return "Impossibile salvare la migrazione dei conti: \(error.localizedDescription)"
         }
     }
+}
+
+enum AccountSaveError: LocalizedError {
+    case persistence(Error)
+
+    var errorDescription: String? {
+        switch self {
+        case let .persistence(error): return "Impossibile salvare le modifiche al conto: \(error.localizedDescription)"
+        }
+    }
+}
+
+struct AccountMigrationHooks {
+    var save: ((NSManagedObjectContext) throws -> Void)?
+    var verify: ((NSManagedObjectContext) throws -> Void)?
+
+    static let production = AccountMigrationHooks(save: nil, verify: nil)
 }
 
 enum AccountMigrationService {
     static let markerKey = "accountsMigrationV1Complete"
     static let defaultAccountName = "Conto principale"
 
-    static func migrateIfNeeded(in context: NSManagedObjectContext, currencyCode: String, defaults: UserDefaults) throws {
+    static func migrateIfNeeded(in context: NSManagedObjectContext, currencyCode: String, defaults: UserDefaults, hooks: AccountMigrationHooks = .production) throws {
         guard !defaults.bool(forKey: markerKey) else { return }
 
         try context.performAndWait {
@@ -84,10 +101,18 @@ enum AccountMigrationService {
             templates.filter { $0.account == nil }.forEach { $0.account = account }
 
             do {
-                try context.save()
+                if let save = hooks.save {
+                    try save(context)
+                } else {
+                    try context.save()
+                }
             } catch {
                 context.rollback()
                 throw AccountMigrationError.saveFailed(error)
+            }
+
+            if let verify = hooks.verify {
+                try verify(context)
             }
 
             let verifyRequest = Transaction.fetchRequest()
@@ -110,20 +135,35 @@ enum AccountMigrationService {
     }
 }
 
+enum AccountAssignmentService {
+    static func assignDefault(to transaction: Transaction, in context: NSManagedObjectContext) -> Account? {
+        let account = AccountMigrationService.defaultActiveAccount(in: context)
+        transaction.account = account
+        return account
+    }
+
+    static func inheritedAccount(from template: TemplateTransaction, replacement: Account? = nil) -> Account? {
+        template.account ?? replacement
+    }
+}
+
 enum AccountBalanceService {
     static func balance(openingBalance: Double, type: AccountType, income: Double, expenses: Double) -> Double {
-        openingBalance + income - expenses
+        type.isCredit ? openingBalance + expenses - income : openingBalance + income - expenses
     }
 
     static func balance(for account: Account, transactions: some Sequence<Transaction>) -> Double {
-        let movementTotal = transactions.reduce(0) { result, transaction in
-            guard transaction.account == account else { return result }
-            if AccountType(rawValue: account.typeRawValue ?? "") == .creditCard {
-                return result + (transaction.income ? transaction.amount : -transaction.amount)
+        var incomeTotal = 0.0
+        var expenseTotal = 0.0
+        for transaction in transactions {
+            guard transaction.account == account else { continue }
+            if transaction.income {
+                incomeTotal += transaction.amount
+            } else {
+                expenseTotal += transaction.amount
             }
-            return result + (transaction.income ? transaction.amount : -transaction.amount)
         }
-        return balance(openingBalance: account.openingBalance, type: account.wrappedType, income: movementTotal > 0 ? movementTotal : 0, expenses: movementTotal < 0 ? -movementTotal : 0)
+        return balance(openingBalance: account.openingBalance, type: account.wrappedType, income: incomeTotal, expenses: expenseTotal)
     }
 
     static func label(for account: Account) -> String {
@@ -137,4 +177,5 @@ extension Account {
     var transactionSet: Set<Transaction> { transactions as? Set<Transaction> ?? [] }
     var templateSet: Set<TemplateTransaction> { templateTransactions as? Set<TemplateTransaction> ?? [] }
     var canDelete: Bool { transactionSet.isEmpty && templateSet.isEmpty }
+    var canChangeCurrency: Bool { canDelete }
 }
