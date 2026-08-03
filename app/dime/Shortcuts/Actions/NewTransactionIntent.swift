@@ -268,3 +268,51 @@ struct ShortcutTransactionView: View {
         .padding(.horizontal, 20)
     }
 }
+
+@available(iOS 16.4, *)
+struct LogWalletExpenseIntent: AppIntent {
+    static var title: LocalizedStringResource = "Registra spesa da Wallet"
+    static var description = IntentDescription("Registra in Sa7tot una spesa ricevuta da una transazione Apple Wallet.")
+    static var openAppWhenRun: Bool = false
+
+    @Parameter(title: "Importo", description: "Importo ricevuto da Wallet come testo")
+    var amount: String
+
+    @Parameter(title: "Esercente", default: "")
+    var merchant: String
+
+    @Parameter(title: "Data")
+    var date: Date?
+
+    @Parameter(title: "Etichetta carta/conto Wallet", default: "")
+    var walletAccountLabel: String
+
+    @Parameter(title: "Nota", default: "")
+    var note: String
+
+    @Parameter(title: "Riferimento esterno", default: "")
+    var externalReference: String
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        do {
+            try await DataController.shared.waitForStore()
+            let transaction = try DataController.shared.newWalletExpense(
+                amountRaw: amount,
+                merchant: merchant,
+                date: date,
+                walletAccountLabel: walletAccountLabel,
+                note: note,
+                externalReference: externalReference
+            )
+            let formatted = NumberFormatter.localizedString(from: NSNumber(value: transaction.amount), number: .currency)
+            if transaction.wrappedReviewStatus == .needsReview {
+                return .result(dialog: "Spesa registrata, ma da controllare: \(formatted) da \(merchant.isEmpty ? "Wallet" : merchant).")
+            }
+            return .result(dialog: "Spesa registrata: \(formatted) da \(merchant.isEmpty ? "Wallet" : merchant).")
+        } catch let error as LocalizedError {
+            throw error
+        } catch {
+            throw WalletAutomationError.persistence
+        }
+    }
+}

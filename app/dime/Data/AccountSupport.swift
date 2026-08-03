@@ -1,5 +1,6 @@
 import CoreData
 import Foundation
+import UserNotifications
 
 enum AccountType: String, CaseIterable, Identifiable {
     case cash
@@ -184,6 +185,249 @@ extension Account {
     var templateSet: Set<TemplateTransaction> { templateTransactions as? Set<TemplateTransaction> ?? [] }
     var canDelete: Bool { transactionSet.isEmpty && templateSet.isEmpty }
     var canChangeCurrency: Bool { canDelete }
+
+    var normalizedWalletLabel: String? {
+        WalletTextNormalizer.normalize(walletLabel)
+    }
+}
+
+enum TransactionOrigin: String {
+    case manual
+    case shortcut
+    case walletShortcut
+    case importFile
+}
+
+enum TransactionReviewStatus: String {
+    case confirmed
+    case needsReview
+}
+
+extension Transaction {
+    var wrappedOrigin: TransactionOrigin {
+        TransactionOrigin(rawValue: originRawValue ?? "") ?? .manual
+    }
+
+    var wrappedReviewStatus: TransactionReviewStatus {
+        TransactionReviewStatus(rawValue: reviewStatusRawValue ?? "") ?? .confirmed
+    }
+
+    var wrappedMerchant: String { merchant ?? "" }
+}
+
+enum WalletTextNormalizer {
+    static func normalize(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let folded = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
+        let cleaned = folded.unicodeScalars.map { scalar -> String in
+            let value = String(scalar)
+            return value.rangeOfCharacter(from: .alphanumerics) != nil ? value : " "
+        }.joined()
+        let result = cleaned.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        return result.isEmpty ? nil : result
+    }
+}
+
+enum WalletAmountParserError: LocalizedError, Equatable {
+    case empty
+    case malformed
+    case nonPositive
+
+    var errorDescription: String? {
+        switch self {
+        case .empty: return "Importo non valido: inserisci un importo."
+        case .malformed: return "Importo non valido: formato non riconosciuto."
+        case .nonPositive: return "Importo non valido: deve essere maggiore di zero."
+        }
+    }
+}
+
+enum WalletAmountParser {
+    static func parse(_ raw: String) throws -> Decimal {
+        var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { throw WalletAmountParserError.empty }
+        guard !value.contains("-") else { throw WalletAmountParserError.nonPositive }
+
+        value = value.replacingOccurrences(of: "€", with: "")
+        value = value.replacingOccurrences(of: "EUR", with: "", options: .caseInsensitive)
+        value = value.replacingOccurrences(of: " ", with: "")
+        guard !value.isEmpty, value.range(of: "^[0-9.,]+$", options: .regularExpression) != nil else {
+            throw WalletAmountParserError.malformed
+        }
+
+        let commaCount = value.filter { $0 == "," }.count
+        let dotCount = value.filter { $0 == "." }.count
+        let normalized: String
+
+        if commaCount > 1 || dotCount > 1 {
+            throw WalletAmountParserError.malformed
+        } else if commaCount == 1 && dotCount == 1 {
+            guard let comma = value.lastIndex(of: ","), let dot = value.lastIndex(of: ".") else {
+                throw WalletAmountParserError.malformed
+            }
+            let decimalSeparator = comma > dot ? "," : "."
+            let groupingSeparator = decimalSeparator == "," ? "." : ","
+            let parts = value.split(separator: Character(decimalSeparator), omittingEmptySubsequences: false)
+            guard parts.count == 2, parts[1].count == 1 || parts[1].count == 2 else {
+                throw WalletAmountParserError.malformed
+            }
+            normalized = String(parts[0]).replacingOccurrences(of: groupingSeparator, with: "") + "." + String(parts[1])
+        } else if commaCount == 1 || dotCount == 1 {
+            let separator: Character = commaCount == 1 ? "," : "."
+            let parts = value.split(separator: separator, omittingEmptySubsequences: false)
+            guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else {
+                throw WalletAmountParserError.malformed
+            }
+            if parts[1].count == 3 {
+                normalized = String(parts[0]) + String(parts[1])
+            } else if parts[1].count <= 2 {
+                normalized = String(parts[0]) + "." + String(parts[1])
+            } else {
+                throw WalletAmountParserError.malformed
+            }
+        } else {
+            normalized = value
+        }
+
+        guard let decimal = Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX")), decimal > 0 else {
+            throw WalletAmountParserError.nonPositive
+        }
+        return decimal
+    }
+}
+
+enum WalletAccountResolutionError: LocalizedError, Equatable {
+    case unmapped(String)
+    case noFallback
+    case archived
+    case duplicate
+
+    var errorDescription: String? {
+        switch self {
+        case let .unmapped(label): return "Nessun conto è collegato alla carta “(label)”."
+        case .noFallback: return "Nessun conto Wallet configurato come fallback."
+        case .archived: return "Il conto Wallet configurato è archiviato."
+        case .duplicate: return "Questa etichetta Wallet è già collegata a un altro conto attivo."
+        }
+    }
+}
+
+enum WalletAccountResolver {
+    static func resolve(label: String?, accounts: [Account], fallback: Account? = nil) throws -> Account {
+        if let normalized = WalletTextNormalizer.normalize(label) {
+            let matches = accounts.filter { !$0.isArchived && $0.normalizedWalletLabel == normalized }
+            guard matches.count == 1 else {
+                if matches.count > 1 { throw WalletAccountResolutionError.duplicate }
+                throw WalletAccountResolutionError.unmapped(label?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+            }
+            return matches[0]
+        }
+        guard let fallback else { throw WalletAccountResolutionError.noFallback }
+        guard !fallback.isArchived else { throw WalletAccountResolutionError.archived }
+        return fallback
+    }
+
+    static func validateUnique(label: String?, account: Account, accounts: [Account]) throws {
+        guard let normalized = WalletTextNormalizer.normalize(label) else { return }
+        let duplicate = accounts.contains { other in
+            other != account && !other.isArchived && other.normalizedWalletLabel == normalized
+        }
+        if duplicate { throw WalletAccountResolutionError.duplicate }
+    }
+}
+
+enum MerchantCategorizationResult {
+    case matched(Category)
+    case needsReview(Category?)
+}
+
+enum MerchantCategorizationService {
+    private static let rules: [(keywords: [String], categoryNames: [String])] = [
+        (["esselunga", "lidl", "carrefour", "conad", "aldi"], ["Alimentari", "Cibo"]),
+        (["mcdonald", "burger king", "kfc", "ristorante", "restaurant"], ["Ristoranti", "Cibo"]),
+        (["trenitalia", "italo", "atm milano", "metro", "taxi"], ["Trasporti"]),
+        (["amazon", "zara", "h&m", "apple store"], ["Shopping"]),
+        (["netflix", "spotify", "cinema"], ["Intrattenimento"]),
+        (["farmacia"], ["Salute"]),
+        (["ikea", "leroy merlin"], ["Casa"]),
+        (["enel", "a2a", "tim", "vodafone"], ["Bollette"]),
+        (["ryanair", "easyjet", "booking"], ["Viaggi"])
+    ]
+
+    static func result(merchant: String?, categories: [Category]) -> MerchantCategorizationResult {
+        let normalized = WalletTextNormalizer.normalize(merchant) ?? ""
+        let fallback = categories.first
+        guard !normalized.isEmpty else { return .needsReview(fallback) }
+
+        for rule in rules where rule.keywords.contains(where: { normalized.contains($0) }) {
+            if let category = rule.categoryNames.compactMap({ name in
+                categories.first(where: { WalletTextNormalizer.normalize($0.name) == WalletTextNormalizer.normalize(name) })
+            }).first {
+                return .matched(category)
+            }
+            return .needsReview(fallback)
+        }
+        return .needsReview(fallback)
+    }
+}
+
+struct WalletFingerprint: Hashable {
+    let accountID: UUID
+    let merchant: String
+    let amount: Decimal
+    let bucket: Int
+    let origin: TransactionOrigin
+}
+
+enum WalletDuplicateDetector {
+    static func isDuplicate(amount: Decimal, merchant: String?, account: Account, date: Date, externalReference: String?, transactions: some Sequence<Transaction>) -> Bool {
+        let normalizedMerchant = WalletTextNormalizer.normalize(merchant) ?? ""
+        let origin = TransactionOrigin.walletShortcut.rawValue
+        if let reference = externalReference?.trimmingCharacters(in: .whitespacesAndNewlines), !reference.isEmpty {
+            return transactions.contains { $0.wrappedOrigin == .walletShortcut && $0.externalReference == reference }
+        }
+        return transactions.contains { transaction in
+            guard transaction.wrappedOrigin.rawValue == origin,
+                  transaction.account == account,
+                  transaction.amount == NSDecimalNumber(decimal: amount).doubleValue,
+                  WalletTextNormalizer.normalize(transaction.merchant) == normalizedMerchant,
+                  let transactionDate = transaction.date else { return false }
+            return abs(transactionDate.timeIntervalSince(date)) <= 600
+        }
+    }
+}
+
+enum WalletAutomationError: LocalizedError {
+    case invalidAmount(String)
+    case unmappedAccount(String)
+    case duplicate
+    case persistence
+
+    var errorDescription: String? {
+        switch self {
+        case let .invalidAmount(message): return message
+        case let .unmappedAccount(message): return message
+        case .duplicate: return "Questa spesa risulta già registrata."
+        case .persistence: return "Impossibile registrare la spesa. Controlla l’automazione Wallet e riprova."
+        }
+    }
+}
+
+enum WalletNotificationService {
+    static func requestPermission() async {
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+    }
+
+    static func notify(title: String, body: String, identifier: String) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
+    }
 }
 
 enum TransactionType: String, CaseIterable {

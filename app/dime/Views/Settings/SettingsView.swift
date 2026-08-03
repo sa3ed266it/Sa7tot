@@ -192,6 +192,12 @@ struct SettingsView: View {
                   optionalText: "Gestisci i tuoi conti")
               }
 
+              NavigationLink(destination: WalletAutomationView()) {
+                SettingsRowView(
+                  systemImage: "wallet.pass.fill", title: "Automazione Wallet", colour: 108,
+                  optionalText: "Collega spese da Comandi Rapidi")
+              }
+
               NavigationLink(
                 destination: SettingsNumberEntryView()
                   .onAppear {

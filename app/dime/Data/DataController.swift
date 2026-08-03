@@ -30,6 +30,10 @@ enum CustomError: Swift.Error, CustomLocalizedStringResourceConvertible {
 class DataController: ObservableObject {
     static let shared = DataController()
 
+    private let storeStateLock = NSLock()
+    private var storeReady = false
+    private var storeLoadError: Error?
+
     @Published private(set) var accountMigrationError: Error?
     @Published private(set) var accountMigrationErrorMessage: String?
 
@@ -68,7 +72,11 @@ class DataController: ObservableObject {
         container.loadPersistentStores { description, error in
 
             if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo) for \(description)")
+                self.storeStateLock.lock()
+                self.storeLoadError = error
+                self.storeReady = true
+                self.storeStateLock.unlock()
+                return
             }
 
             self.container.viewContext.automaticallyMergesChangesFromParent = true
@@ -84,6 +92,9 @@ class DataController: ObservableObject {
                 self.accountMigrationError = error
                 self.accountMigrationErrorMessage = error.localizedDescription
             }
+            self.storeStateLock.lock()
+            self.storeReady = true
+            self.storeStateLock.unlock()
         }
 
 //        #if DEBUG
@@ -164,6 +175,21 @@ class DataController: ObservableObject {
     func clearAccountMigrationError() {
         accountMigrationError = nil
         accountMigrationErrorMessage = nil
+    }
+
+    func waitForStore() async throws {
+        for _ in 0..<200 {
+            storeStateLock.lock()
+            let ready = storeReady
+            let loadError = storeLoadError
+            storeStateLock.unlock()
+            if ready {
+                if let loadError { throw loadError }
+                return
+            }
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        throw WalletAutomationError.persistence
     }
 
     func updateRecurringTransaction(transaction: Transaction) {
@@ -282,6 +308,9 @@ class DataController: ObservableObject {
         }
 
         transaction.wrappedType = income ? .income : .expense
+        transaction.originRawValue = TransactionOrigin.manual.rawValue
+        transaction.reviewStatusRawValue = TransactionReviewStatus.confirmed.rawValue
+        transaction.createdAt = Date()
 
         if let unwrappedCategory = category {
             transaction.category = unwrappedCategory
@@ -310,6 +339,86 @@ class DataController: ObservableObject {
 
         save()
 
+        return transaction
+    }
+
+    @discardableResult
+    func newWalletExpense(amountRaw: String, merchant: String?, date: Date?, walletAccountLabel: String?, note: String?, externalReference: String?) throws -> Transaction {
+        let decimal: Decimal
+        do {
+            decimal = try WalletAmountParser.parse(amountRaw)
+        } catch let error as WalletAmountParserError {
+            throw WalletAutomationError.invalidAmount(error.localizedDescription)
+        }
+
+        let accounts = results(for: Account.fetchRequest())
+        let fallbackID = UserDefaults(suiteName: "group.com.saied.sa7tot")?.string(forKey: "walletFallbackAccountID")
+            .flatMap(UUID.init(uuidString:))
+        let fallback = fallbackID.flatMap { id in accounts.first(where: { $0.id == id }) }
+        let account: Account
+        do {
+            account = try WalletAccountResolver.resolve(label: walletAccountLabel, accounts: accounts, fallback: fallback)
+        } catch let error as LocalizedError {
+            throw WalletAutomationError.unmappedAccount(error.localizedDescription)
+        }
+
+        let effectiveDate = date ?? Date()
+        let existing = results(for: Transaction.fetchRequest())
+        if WalletDuplicateDetector.isDuplicate(amount: decimal, merchant: merchant, account: account, date: effectiveDate, externalReference: externalReference, transactions: existing) {
+            throw WalletAutomationError.duplicate
+        }
+
+        let categories = getAllCategories(income: false)
+        let categorization = MerchantCategorizationService.result(merchant: merchant, categories: categories)
+        let transaction = Transaction(context: container.viewContext)
+        transaction.id = UUID()
+        transaction.amount = NSDecimalNumber(decimal: decimal).doubleValue
+        transaction.date = effectiveDate
+        transaction.day = Calendar(identifier: .gregorian).date(bySettingHour: 0, minute: 0, second: 0, of: effectiveDate) ?? effectiveDate
+        let components = Calendar(identifier: .gregorian).dateComponents([.month, .year], from: effectiveDate)
+        transaction.month = Calendar(identifier: .gregorian).date(from: components) ?? effectiveDate
+        transaction.income = false
+        transaction.wrappedType = .expense
+        transaction.account = account
+        transaction.merchant = merchant?.trimmingCharacters(in: .whitespacesAndNewlines)
+        transaction.normalizedMerchant = WalletTextNormalizer.normalize(merchant)
+        transaction.walletAccountLabel = walletAccountLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
+        transaction.externalReference = externalReference?.trimmingCharacters(in: .whitespacesAndNewlines)
+        transaction.note = (note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? note?.trimmingCharacters(in: .whitespacesAndNewlines) : merchant) ?? "Spesa Wallet"
+        transaction.originRawValue = TransactionOrigin.walletShortcut.rawValue
+        transaction.createdAt = Date()
+        switch categorization {
+        case let .matched(category):
+            transaction.category = category
+            transaction.reviewStatusRawValue = TransactionReviewStatus.confirmed.rawValue
+        case let .needsReview(category):
+            transaction.category = category
+            transaction.reviewStatusRawValue = TransactionReviewStatus.needsReview.rawValue
+        }
+
+        do {
+            try saveAccountChanges()
+        } catch {
+            container.viewContext.delete(transaction)
+            throw WalletAutomationError.persistence
+        }
+
+        let formattedAmount = String(format: "%.2f", transaction.amount)
+        let merchantName = transaction.wrappedMerchant.isEmpty ? "Wallet" : transaction.wrappedMerchant
+        let accountName = account.name ?? "conto"
+        let notificationBody: String
+        if transaction.wrappedReviewStatus == .confirmed {
+            notificationBody = formattedAmount + " € da " + merchantName + " è stata aggiunta a " + accountName + "."
+        } else {
+            notificationBody = formattedAmount + " € è stata registrata, ma la categoria deve essere verificata."
+        }
+        Task {
+            await WalletNotificationService.notify(
+                title: transaction.wrappedReviewStatus == .confirmed ? "Spesa registrata" : "Spesa da controllare",
+                body: notificationBody,
+                identifier: "wallet-expense-\(transaction.id?.uuidString ?? UUID().uuidString)"
+            )
+        }
         return transaction
     }
 

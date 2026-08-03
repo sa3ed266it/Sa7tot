@@ -26,5 +26,14 @@ struct Sa7totShortcuts: AppShortcutsProvider {
             phrases: ["Mostra lo stato dei miei budget in \(.applicationName)"],
             systemImageName: "circle.grid.2x2.fill"
         )
+        AppShortcut(
+            intent: LogWalletExpenseIntent(),
+            phrases: [
+                "Registra una spesa in \(.applicationName)",
+                "Registra spesa da Wallet in \(.applicationName)",
+                "Aggiungi un pagamento Wallet a \(.applicationName)"
+            ],
+            systemImageName: "wallet.pass.fill"
+        )
     }
 }

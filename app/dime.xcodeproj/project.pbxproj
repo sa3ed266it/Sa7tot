@@ -313,6 +313,7 @@
 		53BC2A502A8B21920019E4A8 /* Sa7totTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Sa7totTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		53BC2A462A8B21920019E4A8 /* MainModel 3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 3.xcdatamodel"; sourceTree = "<group>"; };
 		F4A000000000000000000004 /* MainModel 4.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 4.xcdatamodel"; sourceTree = "<group>"; };
+		F4A000000000000000000005 /* MainModel 5.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 5.xcdatamodel"; sourceTree = "<group>"; };
 		53BC2A412A8B21920019E4A8 /* MainModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MainModel.xcdatamodel; sourceTree = "<group>"; };
 		53D0297F28C5BC0300443F2B /* Currency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Currency.swift; sourceTree = "<group>"; };
 		53D2506F2AA6331600016013 /* TemplateTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateTransactionView.swift; sourceTree = "<group>"; };
@@ -1736,12 +1737,13 @@
 		53BC2A3F2A8B21920019E4A8 /* MainModel.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
+				F4A000000000000000000005 /* MainModel 5.xcdatamodel */,
 				F4A000000000000000000004 /* MainModel 4.xcdatamodel */,
 				53BC2A462A8B21920019E4A8 /* MainModel 3.xcdatamodel */,
 				53BC2A402A8B21920019E4A8 /* MainModel 2.xcdatamodel */,
 				53BC2A412A8B21920019E4A8 /* MainModel.xcdatamodel */,
 			);
-			currentVersion = F4A000000000000000000004 /* MainModel 4.xcdatamodel */;
+			currentVersion = F4A000000000000000000005 /* MainModel 5.xcdatamodel */;
 			path = MainModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

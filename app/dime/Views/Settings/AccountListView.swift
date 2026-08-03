@@ -205,3 +205,166 @@ struct AccountEditorView: View {
         }
     }
 }
+
+struct WalletAutomationView: View {
+    @EnvironmentObject private var dataController: DataController
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)]) private var accounts: FetchedResults<Account>
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)]) private var reviewTransactions: FetchedResults<Transaction>
+    @State private var fallbackID = ""
+    @State private var errorMessage: String?
+    @State private var testMessage: String?
+    @State private var showTestConfirmation = false
+
+    private var activeAccounts: [Account] { accounts.filter { !$0.isArchived } }
+    private var reviewCount: Int { reviewTransactions.filter { $0.wrappedReviewStatus == .needsReview }.count }
+    private var mappedAccounts: [Transaction] { [] }
+
+    var body: some View {
+        Form {
+            Section("Automazione Wallet") {
+                Text("Sa7tot non legge le notifiche di altre app. Collega manualmente un’automazione Transazione di Comandi Rapidi all’azione “Registra spesa da Wallet”.")
+                    .font(.footnote)
+                NavigationLink("Guida di configurazione") { WalletSetupGuideView() }
+                NavigationLink("Da controllare (\(reviewCount))") { WalletReviewView() }
+            }
+
+            Section("Conto fallback") {
+                Picker("Usa se Wallet non invia l’etichetta", selection: $fallbackID) {
+                    Text("Nessun fallback").tag("")
+                    ForEach(activeAccounts) { account in
+                        Text(account.name ?? "Conto").tag(account.id?.uuidString ?? "")
+                    }
+                }
+                .onChange(of: fallbackID) { value in
+                    UserDefaults(suiteName: "group.com.saied.sa7tot")?.set(value.isEmpty ? nil : value, forKey: "walletFallbackAccountID")
+                }
+            }
+
+            Section("Etichette Wallet") {
+                ForEach(accounts) { account in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(account.name ?? "Conto")
+                            .font(.headline)
+                        TextField("Es. Revolut, PostePay, Intesa Sanpaolo", text: Binding(
+                            get: { account.walletLabel ?? "" },
+                            set: { account.walletLabel = $0 }
+                        ), onCommit: { saveMapping(account) })
+                        .disabled(account.isArchived)
+                        if account.isArchived {
+                            Text("Conto archiviato: non riceverà nuove spese Wallet.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+
+            Section("Prova automazione") {
+                Button("Prova automazione") { showTestConfirmation = true }
+                    .disabled(activeAccounts.first(where: { $0.normalizedWalletLabel != nil }) == nil)
+                Text("La prova usa gli stessi parser, mapping, categorizzazione, deduplica e notifiche dell’azione Shortcuts.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .navigationTitle("Automazione Wallet")
+        .onAppear {
+            fallbackID = UserDefaults(suiteName: "group.com.saied.sa7tot")?.string(forKey: "walletFallbackAccountID") ?? ""
+            Task { await WalletNotificationService.requestPermission() }
+        }
+        .alert("Confermi la prova?", isPresented: $showTestConfirmation) {
+            Button("Registra prova", role: .destructive) { runTest() }
+            Button("Annulla", role: .cancel) {}
+        } message: {
+            Text("Verrà registrata una spesa locale di prova da Esselunga per 12,50 €. Puoi eliminarla dall’app.")
+        }
+        .alert("Automazione Wallet", isPresented: Binding(get: { errorMessage != nil || testMessage != nil }, set: { if !$0 { errorMessage = nil; testMessage = nil } })) {
+            Button("OK", role: .cancel) { errorMessage = nil; testMessage = nil }
+        } message: {
+            Text(errorMessage ?? testMessage ?? "")
+        }
+    }
+
+    private func saveMapping(_ account: Account) {
+        do {
+            try WalletAccountResolver.validateUnique(label: account.walletLabel, account: account, accounts: Array(accounts))
+            try dataController.saveAccountChanges()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? "Etichetta Wallet non valida."
+        }
+    }
+
+    private func runTest() {
+        guard let account = activeAccounts.first(where: { $0.normalizedWalletLabel != nil }), let label = account.walletLabel else {
+            errorMessage = "Collega prima un’etichetta Wallet a un conto attivo."
+            return
+        }
+        do {
+            _ = try dataController.newWalletExpense(amountRaw: "12,50", merchant: "Esselunga", date: Date(), walletAccountLabel: label, note: "Prova automazione Wallet", externalReference: "sa7tot-wallet-test-\(Int(Date().timeIntervalSince1970))")
+            testMessage = "Spesa di prova registrata."
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? "Impossibile eseguire la prova."
+        }
+    }
+}
+
+struct WalletSetupGuideView: View {
+    var body: some View {
+        List {
+            Section("Configurazione manuale") {
+                Text("1. Apri Comandi Rapidi.")
+                Text("2. Vai su Automazione e tocca Nuova automazione.")
+                Text("3. Scegli Transazione e seleziona la carta.")
+                Text("4. Seleziona Esegui immediatamente.")
+                Text("5. Aggiungi l’azione “Registra spesa da Wallet” di Sa7tot.")
+                Text("6. Collega Importo, Esercente, Data e Carta ai parametri dell’azione.")
+                Text("7. Salva l’automazione.")
+            }
+            Section {
+                Text("Le variabili disponibili possono cambiare in base alla versione di iOS, alla carta e alla banca. Sa7tot non legge notifiche bancarie e non si collega direttamente al conto.")
+                    .font(.footnote)
+            }
+        }
+        .navigationTitle("Guida Wallet")
+    }
+}
+
+struct WalletReviewView: View {
+    @EnvironmentObject private var dataController: DataController
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)],
+        predicate: NSPredicate(format: "reviewStatusRawValue == %@", TransactionReviewStatus.needsReview.rawValue)
+    ) private var transactions: FetchedResults<Transaction>
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)], predicate: NSPredicate(format: "income = NO")) private var categories: FetchedResults<Category>
+
+    var body: some View {
+        List {
+            if transactions.isEmpty {
+                Text("Nessuna spesa da controllare.").foregroundColor(.secondary)
+            }
+            ForEach(transactions) { transaction in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(transaction.amount, format: .currency(code: transaction.account?.currencyCode ?? "EUR"))
+                        .font(.headline)
+                    TextField("Esercente", text: Binding(get: { transaction.merchant ?? "" }, set: { transaction.merchant = $0 }))
+                    Text(transaction.account?.name ?? "Conto non disponibile")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Menu("Categoria: \(transaction.category?.wrappedName ?? "Da scegliere")") {
+                        ForEach(categories) { category in
+                            Button(category.wrappedName) { transaction.category = category }
+                        }
+                    }
+                    Button("Conferma movimento") {
+                        transaction.normalizedMerchant = WalletTextNormalizer.normalize(transaction.merchant)
+                        transaction.reviewStatusRawValue = TransactionReviewStatus.confirmed.rawValue
+                        try? dataController.saveAccountChanges()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.vertical, 6)
+            }
+        }
+        .navigationTitle("Da controllare")
+    }
+}

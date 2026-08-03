@@ -5,7 +5,7 @@ final class AccountTests: XCTestCase {
     private var contexts: [NSManagedObjectContext] = []
     private static let testModel: NSManagedObjectModel = {
         let bundle = Bundle(for: AccountTests.self)
-        guard let modelURL = bundle.url(forResource: "MainModel 4", withExtension: "mom", subdirectory: "MainModel.momd"),
+        guard let modelURL = bundle.url(forResource: "MainModel 5", withExtension: "mom", subdirectory: "MainModel.momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             fatalError("Test model not bundled")
         }
@@ -366,6 +366,73 @@ final class AccountTests: XCTestCase {
         malformed.destinationAccount = nil
         XCTAssertEqual(AccountBalanceService.balance(for: source, transactions: [malformed]), 5)
         XCTAssertTrue(TransactionSearchService.matches(malformed, query: ""))
+    }
+
+    func testWalletAmountParserAcceptsItalianEnglishAndCurrencyForms() throws {
+        XCTAssertEqual(try WalletAmountParser.parse("12,50"), Decimal(string: "12.50"))
+        XCTAssertEqual(try WalletAmountParser.parse("12.50"), Decimal(string: "12.50"))
+        XCTAssertEqual(try WalletAmountParser.parse("€12,50"), Decimal(string: "12.50"))
+        XCTAssertEqual(try WalletAmountParser.parse("12,50 €"), Decimal(string: "12.50"))
+        XCTAssertEqual(try WalletAmountParser.parse("EUR 12.50"), Decimal(string: "12.50"))
+        XCTAssertEqual(try WalletAmountParser.parse("1.234,56"), Decimal(string: "1234.56"))
+        XCTAssertEqual(try WalletAmountParser.parse("1,234.56"), Decimal(string: "1234.56"))
+    }
+
+    func testWalletAmountParserRejectsEmptyZeroNegativeAndMalformed() {
+        for input in ["", "0", "0,00", "-1", "12,3,4", "EUR"] {
+            XCTAssertThrowsError(try WalletAmountParser.parse(input), input)
+        }
+    }
+
+    func testWalletAccountMappingNormalizesAndRejectsDuplicatesAndArchivedAccounts() throws {
+        let context = makeContext()
+        let revolut = makeAccount(in: context, type: .bank)
+        let other = makeAccount(in: context, type: .cash)
+        revolut.walletLabel = "  Revolút  "
+        XCTAssertEqual(try WalletAccountResolver.resolve(label: "revolut", accounts: [revolut, other]), revolut)
+        other.walletLabel = "REVOLUT"
+        XCTAssertThrowsError(try WalletAccountResolver.validateUnique(label: other.walletLabel, account: other, accounts: [revolut, other]))
+        other.walletLabel = nil
+        revolut.isArchived = true
+        XCTAssertThrowsError(try WalletAccountResolver.resolve(label: "Revolut", accounts: [revolut, other]))
+    }
+
+    func testWalletMappingWithoutLabelRequiresExplicitFallback() {
+        let account = makeAccount(type: .bank)
+        XCTAssertThrowsError(try WalletAccountResolver.resolve(label: nil, accounts: [account]))
+        XCTAssertEqual(try? WalletAccountResolver.resolve(label: nil, accounts: [account], fallback: account), account)
+    }
+
+    func testMerchantCategorizationKnownGroceryAndUnknownNeedsReview() {
+        let context = makeContext()
+        let grocery = makeCategory(in: context, name: "Alimentari")
+        let unknown = MerchantCategorizationService.result(merchant: "Esselunga Milano", categories: [grocery])
+        if case let .matched(category) = unknown { XCTAssertEqual(category, grocery) } else { XCTFail("Known merchant should be categorized") }
+        if case .needsReview = MerchantCategorizationService.result(merchant: "Negozio sconosciuto", categories: [grocery]) {} else { XCTFail("Unknown merchant needs review") }
+    }
+
+    func testWalletDuplicateDetectorUsesReferenceAndTenMinuteFingerprint() {
+        let context = makeContext()
+        let account = makeAccount(in: context, type: .bank)
+        let transaction = makeTransaction(in: context, account: account, amount: 12.5)
+        transaction.originRawValue = TransactionOrigin.walletShortcut.rawValue
+        transaction.merchant = "Esselunga"
+        transaction.externalReference = "wallet-1"
+        XCTAssertTrue(WalletDuplicateDetector.isDuplicate(amount: Decimal(string: "12.5")!, merchant: "Altro", account: account, date: Date(), externalReference: "wallet-1", transactions: [transaction]))
+        transaction.externalReference = nil
+        XCTAssertTrue(WalletDuplicateDetector.isDuplicate(amount: Decimal(string: "12.5")!, merchant: "esselunga", account: account, date: Date().addingTimeInterval(300), externalReference: nil, transactions: [transaction]))
+        XCTAssertFalse(WalletDuplicateDetector.isDuplicate(amount: Decimal(string: "12.5")!, merchant: "esselunga", account: account, date: Date().addingTimeInterval(601), externalReference: nil, transactions: [transaction]))
+    }
+
+    private func makeCategory(in context: NSManagedObjectContext, name: String, income: Bool = false) -> Category {
+        let category = Category(context: context)
+        category.id = UUID()
+        category.name = name
+        category.income = income
+        category.emoji = "🧾"
+        category.colour = "#5E7CE2"
+        category.dateCreated = Date()
+        return category
     }
 
     private func makeContext() -> NSManagedObjectContext {
