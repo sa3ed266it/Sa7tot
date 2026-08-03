@@ -88,19 +88,17 @@ struct ActualBudgetView: View {
 //                        .font(.system(size: 25, weight: .semibold, design: .rounded))
                         .accessibility(addTraits: .isHeader)
 
+                    Spacer()
+
                     Button {
                         newBudget = true
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-//                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color.SubtitleText)
-                            .padding(4)
-                            .background(Color.SecondaryBackground, in: Circle())
-                            .contentShape(Circle())
                     }
-
-                    Spacer()
+                    .budgetAddButtonBorderShape()
+                    .budgetAddButtonStyle()
+                    .frame(width: 44, height: 44)
+                    .accessibilityLabel("Add budget")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 20)
@@ -160,9 +158,9 @@ struct ActualBudgetView: View {
                 } else {
                     VStack(spacing: 5) {
                         Spacer()
-                        Text("🙈")
-                            .font(.system(.largeTitle, design: .rounded))
-//                            .font(.system(size: 45))
+                        Sa7totIcon(systemName: "chart.pie.fill", role: .status, tint: .secondary)
+                            .font(.system(size: 56, weight: .medium))
+                            .frame(width: 75, height: 75)
                             .padding(.bottom, 9)
 
                         Text("No Budgets Found")
@@ -210,6 +208,26 @@ struct ActualBudgetView: View {
                     refreshID = UUID().uuidString
                 }
             }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func budgetAddButtonBorderShape() -> some View {
+        if #available(iOS 17.0, *) {
+            buttonBorderShape(.circle)
+        } else {
+            buttonBorderShape(.roundedRectangle)
+        }
+    }
+
+    @ViewBuilder
+    func budgetAddButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glass)
+        } else {
+            buttonStyle(.bordered)
         }
     }
 }
