@@ -69,11 +69,11 @@ struct LogView: View {
 
     @State var progress = 0.0
     @State private var balanceCollapseProgress: CGFloat = 0
-    @State private var expandedBalanceHeaderHeight: CGFloat = 210
+    @State private var expandedBalanceHeaderHeight: CGFloat = 175
     private let compactBalanceHeaderHeight: CGFloat = 54
 
-    private var compactHeaderVisibilityProgress: CGFloat {
-        min(max((balanceCollapseProgress - 0.55) / 0.45, 0), 1)
+    private var balanceHandoff: CGFloat {
+        min(max((balanceCollapseProgress - 0.50) / 0.28, 0), 1)
     }
 
     var body: some View {
@@ -110,58 +110,48 @@ struct LogView: View {
 
         } else {
             VStack(spacing: 0) {
-                VStack(spacing: 18) {
-                    HStack {
-                        Spacer()
+                if filter != .all && filter != .recurring && filter != .upcoming {
+                    VStack(spacing: 18) {
+                        HStack {
+                            Spacer()
 
-                        switch filter {
-                        case .all:
-//                            Text(navBarText)
-//                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-//                            .opacity(0)
-                            EmptyView()
-                        case .category:
-                            filterTagView(text: "filter-tag-category")
-                        case .day:
-                            filterTagView(text: "filter-tag-day")
-                        case .week:
-                            filterTagView(text: "filter-tag-week")
-                        case .month:
-                            filterTagView(text: "filter-tag-month")
-                        case .recurring:
-                            filterTagView(text: "filter-tag-recurring")
-                        case .type:
-                            filterTagView(text: "filter-tag-type")
-                        case .upcoming:
-                            filterTagView(text: "filter-tag-upcoming")
+                            switch filter {
+                            case .category:
+                                filterTagView(text: "filter-tag-category")
+                            case .day:
+                                filterTagView(text: "filter-tag-day")
+                            case .week:
+                                filterTagView(text: "filter-tag-week")
+                            case .month:
+                                filterTagView(text: "filter-tag-month")
+                            case .type:
+                                filterTagView(text: "filter-tag-type")
+                            case .all, .recurring, .upcoming:
+                                EmptyView()
+                            }
+
+                            Spacer()
                         }
 
-                        Spacer()
-
+                        switch filter {
+                        case .category:
+                            CategoryStepperView(categoryFilter: $categoryFilter)
+                        case .day:
+                            DateStepperView(date: $dateFilter)
+                        case .week:
+                            WeekStepperView(showingDate: $weekFilter)
+                        case .month:
+                            MonthStepperView(showingDate: $monthFilter)
+                        case .type:
+                            IncomeFilterToggleView(income: $income)
+                        case .all, .recurring, .upcoming:
+                            EmptyView()
+                        }
                     }
-
-                    switch filter {
-                    case .all:
-                        EmptyView()
-                    case .category:
-                        CategoryStepperView(categoryFilter: $categoryFilter)
-                    case .day:
-                        DateStepperView(date: $dateFilter)
-                    case .week:
-                        WeekStepperView(showingDate: $weekFilter)
-                    case .month:
-                        MonthStepperView(showingDate: $monthFilter)
-                    case .recurring:
-                        EmptyView()
-                    case .type:
-                        IncomeFilterToggleView(income: $income)
-                    case .upcoming:
-                        EmptyView()
-                    }
+                    .padding(.horizontal, 25)
+                    .frame(height: 110, alignment: .top)
+                    .padding(.top, 10)
                 }
-                .padding(.horizontal, 25)
-                .frame(height: (filter == .all || filter == .recurring || filter == .upcoming) ? 50 : 110, alignment: .top)
-                .padding(.top, 10)
 
                 ZStack(alignment: .top) {
                     ScrollView(showsIndicators: false) {
@@ -171,8 +161,10 @@ struct LogView: View {
                                     navBarText: $navBarText,
                                     showCents: showCents,
                                     currencySymbol: currencySymbol,
-                                    collapseProgress: balanceCollapseProgress
+                                    collapseProgress: balanceCollapseProgress,
+                                    handoff: balanceHandoff
                                 )
+                                .opacity(1 - balanceHandoff)
                                 .overlay(alignment: .top) {
                                     GeometryReader { proxy in
                                         Color.clear
@@ -216,11 +208,11 @@ struct LogView: View {
                             currencySymbol: currencySymbol
                         )
                         .padding(.top, 8)
-                        .opacity(compactHeaderVisibilityProgress)
-                        .offset(y: -8 * (1 - compactHeaderVisibilityProgress))
+                        .opacity(balanceHandoff)
+                        .offset(y: -8 * (1 - balanceHandoff))
                         .zIndex(1)
                         .allowsHitTesting(false)
-                        .accessibilityHidden(compactHeaderVisibilityProgress < 1)
+                        .accessibilityHidden(balanceHandoff < 0.5)
                     }
 
                     if #unavailable(iOS 26.0) {
@@ -545,6 +537,7 @@ struct LogInsightsView: View {
     let showCents: Bool
     let currencySymbol: String
     var collapseProgress: CGFloat = 0
+    var handoff: CGFloat = 0
 
     @AppStorage("logInsightsTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var timeframe = 2
     @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
@@ -740,8 +733,8 @@ struct LogInsightsView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .frame(height: lineGraph ? 240 : 210)
-        .accessibilityHidden(collapseProgress > 0.5)
+        .frame(minHeight: lineGraph ? 190 : 175)
+        .accessibilityHidden(handoff >= 0.5)
     }
 
     func formatNumber(showCents: Bool, number: Double) -> String {
@@ -753,7 +746,7 @@ struct LogInsightsView: View {
     }
 
     private var incomeExpenseOpacity: CGFloat {
-        1 - min(max((collapseProgress - 0.35) / 0.35, 0), 1)
+        1 - min(max((collapseProgress - 0.30) / 0.25, 0), 1)
     }
 }
 
