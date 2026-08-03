@@ -164,18 +164,19 @@ struct LogView: View {
                 }
 
                 ScrollView(showsIndicators: false) {
-                    GeometryReader { proxy in
-                        Color.clear
-                            .preference(
-                                key: LogScrollOffsetKey.self,
-                                value: proxy.frame(in: .named("LogScroll")).minY
-                            )
-                    }
-                    .frame(height: 0)
-
                     TransactionsList(filter: filter, category: categoryFilter, date: dateFilter, week: weekFilter, month: monthFilter, income: income)
                         .zIndex(0)
                         .padding(.horizontal, 20)
+                        .background {
+                            GeometryReader { proxy in
+                                Color.clear
+                                    .preference(
+                                        key: LogScrollOffsetKey.self,
+                                        value: proxy.frame(in: .named("LogScroll")).minY
+                                    )
+                            }
+                            .allowsHitTesting(false)
+                        }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .coordinateSpace(name: "LogScroll")
