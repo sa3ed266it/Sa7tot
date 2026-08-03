@@ -45,52 +45,29 @@ struct HomeView: View {
     @State var fromURL4: Bool = false
 
     @State var launchAdd: Bool = false
-    @State var launchSearch: Bool = false
-
     @State var counter = 0
-
-    @EnvironmentObject var tabBarManager: TabBarManager
 
     @State var showPopup = false
 
-    // Hiding Native TabBar...
+    @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
+    @State private var addTransaction = false
+    @State private var addTransactionCount = 0
+
+    @AppStorage("confetti", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var confetti = false
+    @AppStorage("firstTransactionViewLaunch", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var firstTransactionViewLaunch = true
+
     init(topEdge: CGFloat, bottomEdge: CGFloat) {
-        UITabBar.appearance().isHidden = true
         self.topEdge = topEdge
         self.bottomEdge = bottomEdge
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: $currentTab) {
-                LogView(topEdge: topEdge, bottomEdge: bottomEdge, launchSearch: launchSearch)
-                    .ignoresSafeArea(.all)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .tag("Log")
-
-                InsightsView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .tag("Insights")
-
-                BudgetView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .tag("Budget")
-
-                SettingsView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .tag("Settings")
+        ZStack {
+            if #available(iOS 26.0, *) {
+                modernTabView
+            } else {
+                legacyTabView
             }
-            .allowsHitTesting(showPopup ? false : true)
-            .environmentObject(toastPresenter)
-            .environmentObject(transactionManager)
-
-            NativeFloatingTabBar(
-                currentTab: $currentTab,
-                bottomEdge: bottomEdge,
-                counter: $counter,
-                launchAdd: launchAdd,
-                isVisible: !tabBarManager.hideTab && !(appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked)
-            )
 
             if showPopup {
                 Rectangle()
@@ -147,6 +124,16 @@ struct HomeView: View {
         }) { transaction in
             TransactionView(toEdit: transaction)
         }
+        .fullScreenCover(isPresented: $addTransaction, onDismiss: {
+            if confetti && addTransactionCount != transactions.count {
+                counter += 1
+            }
+            if firstTransactionViewLaunch {
+                firstTransactionViewLaunch = false
+            }
+        }) {
+            TransactionView(toEdit: nil)
+        }
         .confettiCannon(counter: $counter, num: 50, openingAngle: Angle(degrees: 0), closingAngle: Angle(degrees: 360), radius: 200)
         .onAppear {
             if appLockVM.isAppLockEnabled && fromURL1 {
@@ -158,12 +145,7 @@ struct HomeView: View {
             }
 
             if appLockVM.isAppLockEnabled && fromURL2 {
-                currentTab = "Log"
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    launchSearch.toggle()
-                }
-
+                currentTab = "Search"
                 fromURL2 = false
             }
 
@@ -176,8 +158,18 @@ struct HomeView: View {
             }
         }
         .onOpenURL { url in
-            if url.host == "search" {
-                currentTab = "Log"
+            if url.host == "newExpense" {
+                if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
+                    fromURL1 = true
+                } else {
+                    presentAddMovement()
+                }
+            } else if url.host == "search" {
+                if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
+                    fromURL2 = true
+                } else {
+                    currentTab = "Search"
+                }
             } else if url.host == "insights" {
                 currentTab = "Insights"
             } else if url.host == "budget" {
@@ -185,62 +177,83 @@ struct HomeView: View {
             }
         }
     }
-}
-
-private struct NativeFloatingTabBar: View {
-    @Binding var currentTab: String
-    var bottomEdge: CGFloat
-    @Binding var counter: Int
-    var launchAdd: Bool
-    var isVisible: Bool
-
-    @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
-    @State private var addTransaction = false
-    @State private var count = 0
-
-    @AppStorage("confetti", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var confetti = false
-    @AppStorage("firstTransactionViewLaunch", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var firstLaunch = true
-
-    var body: some View {
-        NativeFloatingTabBarRepresentable(
-            currentTab: $currentTab,
-            isVisible: isVisible,
-            onAdd: presentAddMovement
-        )
-        .frame(height: 76)
-        .padding(.horizontal, 16)
-        .padding(.bottom, max(8, bottomEdge - 8))
-        .fullScreenCover(isPresented: $addTransaction, onDismiss: {
-            if confetti && count != transactions.count {
-                counter += 1
-            }
-            if firstLaunch {
-                firstLaunch = false
-            }
-        }) {
-            TransactionView(toEdit: nil)
-        }
-        .onChange(of: launchAdd) { newValue in
-            if newValue {
-                presentAddMovement()
-            }
-        }
-        .onOpenURL { url in
-            if url.host == "newExpense" {
-                presentAddMovement()
-            }
-        }
-        .onChange(of: addTransaction) { newValue in
-            if newValue {
-                count = transactions.count
-            }
-        }
-    }
 
     private func presentAddMovement() {
         guard !addTransaction else { return }
-        count = transactions.count
+        addTransactionCount = transactions.count
         addTransaction = true
+    }
+
+    @available(iOS 26.0, *)
+    private var modernTabView: some View {
+        TabView(selection: $currentTab) {
+            Tab("Movimenti", systemImage: "list.bullet.rectangle", value: "Log", role: nil) {
+                logTabContent
+            }
+            Tab("Statistiche", systemImage: "chart.bar.xaxis", value: "Insights", role: nil) {
+                InsightsView()
+            }
+            Tab("Budget", systemImage: "chart.pie.fill", value: "Budget", role: nil) {
+                BudgetView()
+            }
+            Tab("Impostazioni", systemImage: "gearshape", value: "Settings", role: nil) {
+                SettingsView()
+            }
+            Tab(value: "Search", role: .search) {
+                SearchTabView(currentTab: $currentTab)
+            }
+        }
+        .allowsHitTesting(showPopup ? false : true)
+        .environmentObject(toastPresenter)
+        .environmentObject(transactionManager)
+    }
+
+    private var legacyTabView: some View {
+        TabView(selection: $currentTab) {
+            logTabContent
+                .tabItem { Label("Movimenti", systemImage: "list.bullet.rectangle") }
+                .tag("Log")
+            InsightsView()
+                .tabItem { Label("Statistiche", systemImage: "chart.bar.xaxis") }
+                .tag("Insights")
+            BudgetView()
+                .tabItem { Label("Budget", systemImage: "chart.pie.fill") }
+                .tag("Budget")
+            SettingsView()
+                .tabItem { Label("Impostazioni", systemImage: "gearshape") }
+                .tag("Settings")
+            SearchTabView(currentTab: $currentTab)
+                .tabItem { Label("Cerca", systemImage: "magnifyingglass") }
+                .tag("Search")
+        }
+        .allowsHitTesting(showPopup ? false : true)
+        .environmentObject(toastPresenter)
+        .environmentObject(transactionManager)
+    }
+
+    private var logTabContent: some View {
+        LogView(
+            topEdge: topEdge,
+            bottomEdge: bottomEdge,
+            launchAdd: launchAdd,
+            onAdd: presentAddMovement
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct SearchTabView: View {
+    @Binding var currentTab: String
+
+    var body: some View {
+        NavigationView {
+            SearchView {
+                currentTab = "Log"
+            }
+            .navigationTitle("Cerca")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .navigationViewStyle(.stack)
     }
 }
 

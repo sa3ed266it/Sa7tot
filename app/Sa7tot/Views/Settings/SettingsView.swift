@@ -143,8 +143,6 @@ struct SettingsView: View {
   @State var showImportGuide = false
   @State var showUpdate: Bool = false
 
-  @EnvironmentObject var tabBarManager: TabBarManager
-
   @EnvironmentObject var dataController: DataController
 
   var body: some View {
@@ -200,16 +198,6 @@ struct SettingsView: View {
 
               NavigationLink(
                 destination: SettingsNumberEntryView()
-                  .onAppear {
-                    withAnimation(.easeOut.speed(1.5)) {
-                      tabBarManager.navigationHideTab()
-                    }
-                  }
-                  .onDisappear {
-                    withAnimation(.easeOut.speed(1.5)) {
-                      tabBarManager.navigationShowTab()
-                    }
-                  }
               ) {
                 SettingsRowView(
                   systemImage: "keyboard.fill", title: "Number Entry", colour: 104,
@@ -330,16 +318,6 @@ struct SettingsView: View {
             VStack(spacing: 13) {
               NavigationLink(
                 destination: SettingsCategoryView()
-                  .onAppear {
-                    withAnimation(.easeOut.speed(1.5)) {
-                      tabBarManager.navigationHideTab()
-                    }
-                  }
-                  .onDisappear {
-                    withAnimation(.easeOut.speed(1.5)) {
-                      tabBarManager.navigationShowTab()
-                    }
-                  }
 
               ) {
                 SettingsRowView(

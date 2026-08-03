@@ -12,6 +12,19 @@ import SwiftUIIntrospect
 import Popovers
 import SwiftUI
 
+// Shared by existing non-navigation buttons; retained when the obsolete
+// custom tab-bar file was removed.
+struct BouncyButton: ButtonStyle {
+    var duration: Double
+    var scale: Double
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .animation(.easeOut(duration: duration), value: configuration.isPressed)
+    }
+}
+
 struct LogView: View {
     @ObservedObject var syncMonitor = SyncMonitor.shared
 
@@ -31,11 +44,6 @@ struct LogView: View {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @State var addTransaction = false
-
-    // searching
-    @State var searchMode = false
-
     // top bar
     @State var navBarText = ""
     @State var showMenu = false
@@ -53,9 +61,9 @@ struct LogView: View {
     @State var monthFilter = Date.now
     @State var income = false
 
-    // to show/hide tab bar
     var bottomEdge: CGFloat
-    var launchSearch: Bool
+    var launchAdd: Bool
+    var onAdd: () -> Void
 
     // drag to open
 //    enum PullToReach {
@@ -68,6 +76,8 @@ struct LogView: View {
     @State var progress = 0.0
 
     var body: some View {
+        NavigationView {
+            Group {
         if transactions.isEmpty {
             VStack(spacing: 5) {
                 Image("dropbox")
@@ -97,25 +107,6 @@ struct LogView: View {
             VStack(spacing: 0) {
                 VStack(spacing: 18) {
                     HStack {
-                        Button {
-                            searchMode = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-//                                .font(.system(size: 23, weight: .regular))
-                                .font(.system(.title2, design: .rounded).weight(.regular))
-                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                .foregroundColor(Color.DarkIcon)
-                                .padding(5)
-                                .contentShape(Rectangle())
-                                .background {
-                                    RoundedRectangle(cornerRadius: 7)
-                                        .fill(Color.SecondaryBackground)
-                                        .scaleEffect(progress == 1 ? 1.5 : 1.0)
-                                        .opacity(progress)
-                                }
-                        }
-                        .accessibilityLabel("Cerca")
-
                         Spacer()
 
                         switch filter {
@@ -142,42 +133,6 @@ struct LogView: View {
 
                         Spacer()
 
-                        Button {
-                            showFilter = true
-                        } label: {
-                            Image(systemName: filter == .all ? "triangle" : "triangle.tophalf.filled")
-                                .font(.system(.title2, design: .rounded).weight(.regular))
-                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                .foregroundColor(Color.DarkIcon)
-                                .rotationEffect(Angle(degrees: 180))
-                                .padding(5)
-                                .contentShape(Rectangle())
-                                .background {
-                                    if showFilter {
-                                        RoundedRectangle(cornerRadius: 7)
-                                            .fill(Color.SecondaryBackground)
-                                    }
-//                                    if pullStatus == .filter || showFilter {
-//                                        RoundedRectangle(cornerRadius: 7)
-//                                            .fill(Color.SecondaryBackground)
-//                                            .scaleEffect(released == .filter ? 1.2 : 1.0)
-//                                            .opacity(released  == .filter ? 0.5 : 1.0)
-//                                    }
-                                }
-                        }
-                        .accessibilityLabel("Filtra")
-                        .popover(present: $showFilter, attributes: {
-                            $0.position = .absolute(
-                                originAnchor: .bottomRight,
-                                popoverAnchor: .topRight
-                            )
-                            $0.rubberBandingMode = .none
-                            $0.sourceFrameInset = UIEdgeInsets(top: 0, left: 0, bottom: -10, right: 0)
-                            $0.presentation.animation = .easeInOut(duration: 0.2)
-                            $0.dismissal.animation = .easeInOut(duration: 0.3)
-                        }) {
-                            FilterPickerView(filterType: $filter, showMenu: $showFilter)
-                        }
                     }
 
                     switch filter {
@@ -201,7 +156,7 @@ struct LogView: View {
                 }
                 .padding(.horizontal, 25)
                 .frame(height: (filter == .all || filter == .recurring || filter == .upcoming) ? 50 : 110, alignment: .top)
-                .padding(.top, topEdge + 10)
+                .padding(.top, 10)
 
                 ScrollView(showsIndicators: false) {
                     if filter == .all {
@@ -211,7 +166,6 @@ struct LogView: View {
                     TransactionsList(filter: filter, category: categoryFilter, date: dateFilter, week: weekFilter, month: monthFilter, income: income)
                         .zIndex(0)
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 70 + bottomEdge)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -263,9 +217,6 @@ struct LogView: View {
 //            .onAppear(perform: scrollDelegate.addGesture)
 //            .onDisappear(perform: scrollDelegate.removeGesture)
             .background(Color.PrimaryBackground)
-            .fullScreenCover(isPresented: $searchMode) {
-                SearchView()
-            }
             .onChange(of: syncMonitor.syncStateSummary) { newState in
                 if newState == .succeeded && !updatedRecurring {
                     dataController.updateRecurringTransactions()
@@ -288,9 +239,6 @@ struct LogView: View {
                     dataController.updateRecurringTransactions()
                 }
             }
-            .onChange(of: launchSearch) { _ in
-                searchMode = true
-            }
             .onAppear {
                 if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
                     dataController.updateRecurringTransactions()
@@ -308,13 +256,46 @@ struct LogView: View {
 //                    released = .none
 //                }
 //            }
-            .onOpenURL { url in
-                guard url.host == "search" else {
-                    return
+        }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: onAdd) {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Aggiungi movimento")
                 }
-                searchMode = true
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showFilter = true
+                    } label: {
+                        Image(systemName: filter == .all ? "triangle" : "triangle.tophalf.filled")
+                            .rotationEffect(Angle(degrees: 180))
+                    }
+                    .accessibilityLabel("Filtra")
+                    .popover(present: $showFilter, attributes: {
+                        $0.position = .absolute(
+                            originAnchor: .bottomRight,
+                            popoverAnchor: .topRight
+                        )
+                        $0.rubberBandingMode = .none
+                        $0.sourceFrameInset = UIEdgeInsets(top: 0, left: 0, bottom: -10, right: 0)
+                        $0.presentation.animation = .easeInOut(duration: 0.2)
+                        $0.dismissal.animation = .easeInOut(duration: 0.3)
+                    }) {
+                        FilterPickerView(filterType: $filter, showMenu: $showFilter)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: launchAdd) { newValue in
+                if newValue {
+                    onAdd()
+                }
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     @ViewBuilder
@@ -634,6 +615,7 @@ struct LogInsightsView: View {
 
 struct SearchView: View {
     @Environment(\.dismiss) var dismiss
+    var onCancel: (() -> Void)? = nil
 
     @State var searchQuery = ""
 
@@ -673,8 +655,12 @@ struct SearchView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 8))
 
-                Button {
-                    dismiss()
+                    Button {
+                    if let onCancel {
+                        onCancel()
+                    } else {
+                        dismiss()
+                    }
                 } label: {
                     Text("Cancel")
                         .foregroundColor(Color.PrimaryText)
