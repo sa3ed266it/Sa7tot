@@ -70,7 +70,7 @@ struct LogView: View {
     @State var progress = 0.0
     @State private var balanceCollapseProgress: CGFloat = 0
     @State private var expandedBalanceHeaderHeight: CGFloat = 210
-    private let compactBalanceHeaderHeight: CGFloat = 76
+    private let compactBalanceHeaderHeight: CGFloat = 54
 
     private var compactHeaderVisibilityProgress: CGFloat {
         min(max((balanceCollapseProgress - 0.55) / 0.45, 0), 1)
@@ -211,16 +211,27 @@ struct LogView: View {
                     })
 
                     if filter == .all {
-                        CompactLogInsightsView(
+                        CollapsedBalanceTitleView(
                             showCents: showCents,
                             currencySymbol: currencySymbol
                         )
+                        .padding(.top, 8)
                         .opacity(compactHeaderVisibilityProgress)
                         .offset(y: -8 * (1 - compactHeaderVisibilityProgress))
-                        .scaleEffect(0.96 + (0.04 * compactHeaderVisibilityProgress))
                         .zIndex(1)
                         .allowsHitTesting(false)
                         .accessibilityHidden(compactHeaderVisibilityProgress < 1)
+                    }
+
+                    if #unavailable(iOS 26.0) {
+                        LinearGradient(
+                            colors: [Color.PrimaryBackground.opacity(0.82), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 28)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -408,18 +419,24 @@ private struct HomeScrollProgressModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if #available(iOS 18.0, *) {
-            content.onScrollGeometryChange(for: CGFloat.self, of: { geometry in
+            let trackedContent = content.onScrollGeometryChange(for: CGFloat.self, of: { geometry in
                 geometry.contentOffset.y
             }, action: { _, offset in
                 onOffsetChange(offset)
             })
+
+            if #available(iOS 26.0, *) {
+                trackedContent.scrollEdgeEffectStyle(.soft, for: .top)
+            } else {
+                trackedContent
+            }
         } else {
             content
         }
     }
 }
 
-struct CompactLogInsightsView: View {
+struct CollapsedBalanceTitleView: View {
     @EnvironmentObject var dataController: DataController
 
     let showCents: Bool
@@ -436,7 +453,7 @@ struct CompactLogInsightsView: View {
     var body: some View {
         VStack(spacing: 2) {
             Text("Saldo totale")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
+                .font(.system(.caption, design: .rounded).weight(.medium))
                 .foregroundColor(Color.SubtitleText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -447,22 +464,14 @@ struct CompactLogInsightsView: View {
                     .foregroundColor(Color.SubtitleText)
 
                 Text(formattedAmount)
-                    .font(.system(.title2, design: .rounded).weight(.semibold))
+                    .font(.system(.title3, design: .rounded).weight(.semibold))
                     .foregroundColor(Color.PrimaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
             }
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 12)
-        .frame(minWidth: 240, maxWidth: 280)
+        .lineLimit(1)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(Color.white.opacity(0.12), lineWidth: 0.75)
-                .allowsHitTesting(false)
-        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Saldo totale, \(netTotal.positive ? currencySymbol : "-\(currencySymbol)")\(formattedAmount)")
     }
@@ -502,7 +511,7 @@ struct NumberView: AnimatableModifier {
         default:
             baseSize = 84
         }
-        return baseSize - ((baseSize - 42) * collapseProgress)
+        return baseSize - ((baseSize - 28) * collapseProgress)
     }
     var animatableData: Double {
         get { number }
@@ -716,6 +725,9 @@ struct LogInsightsView: View {
 //                    }
                 }
                 .padding(.top, 8)
+                .opacity(incomeExpenseOpacity)
+                .frame(height: 31 * incomeExpenseOpacity)
+                .clipped()
             }
 
             if lineGraph {
@@ -738,6 +750,10 @@ struct LogInsightsView: View {
         } else {
             return String(format: "%d", Int(floor(number)))
         }
+    }
+
+    private var incomeExpenseOpacity: CGFloat {
+        1 - min(max((collapseProgress - 0.35) / 0.35, 0), 1)
     }
 }
 
