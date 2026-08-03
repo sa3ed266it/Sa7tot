@@ -274,8 +274,10 @@ struct LogView: View {
                     } label: {
                         Image(systemName: filter == .all ? "triangle" : "triangle.tophalf.filled")
                             .rotationEffect(Angle(degrees: 180))
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(width: 44, height: 44)
                     }
+                    .labelStyle(.iconOnly)
+                    .sa7totFilterButtonBorderShape()
                     .accessibilityLabel("Filtra")
                     .accessibilityValue(filter.italianTitle)
                 }
@@ -807,6 +809,17 @@ struct TimePickerView: View {
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
         .onAppear {
             holdingTimeframe = timeframe
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func sa7totFilterButtonBorderShape() -> some View {
+        if #available(iOS 17.0, *) {
+            buttonBorderShape(.circle)
+        } else {
+            buttonBorderShape(.roundedRectangle)
         }
     }
 }
