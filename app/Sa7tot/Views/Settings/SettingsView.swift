@@ -467,6 +467,7 @@ private struct SettingsNativeLabel: View {
   var body: some View {
     Label {
       Text(title)
+        .font(.callout)
         .foregroundStyle(.primary)
     } icon: {
       SettingsNativeIcon(systemImage: systemImage, tint: tint)
@@ -492,12 +493,14 @@ private struct SettingsNativeRow: View {
     HStack(spacing: 12) {
       SettingsNativeIcon(systemImage: systemImage, tint: tint)
       Text(title)
+        .font(.callout)
         .foregroundStyle(.primary)
         .lineLimit(2)
         .layoutPriority(1)
       Spacer(minLength: 8)
       if let value {
         Text(value)
+          .font(.callout)
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.tail)
@@ -517,10 +520,10 @@ private struct SettingsNativeIcon: View {
 
   var body: some View {
     Image(systemName: systemImage)
-      .font(.system(size: 16, weight: .semibold))
+      .font(.system(size: 14, weight: .semibold))
       .foregroundStyle(.white)
-      .frame(width: 30, height: 30)
-      .background(tint, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+      .frame(width: 26, height: 26)
+      .background(tint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
       .accessibilityHidden(true)
   }
 }
