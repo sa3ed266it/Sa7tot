@@ -8,6 +8,7 @@
 import ConfettiSwiftUI
 import Foundation
 import SwiftUI
+import UIKit
 
 class OverallToastPresenter: ObservableObject {
     @Published var showToast: Bool = false
@@ -28,6 +29,7 @@ class OverallTransactionManager: ObservableObject {
 
 struct HomeView: View {
     @EnvironmentObject var appLockVM: AppLockViewModel
+    @EnvironmentObject var unlockManager: UnlockManager
 
     @StateObject var toastPresenter = OverallToastPresenter()
     @StateObject var transactionManager = OverallTransactionManager()
@@ -201,27 +203,16 @@ struct HomeView: View {
 
     @available(iOS 26.0, *)
     private var modernTabView: some View {
-        TabView(selection: $currentTab) {
-            Tab("Movimenti", systemImage: "list.bullet.rectangle", value: "Log", role: nil) {
-                logTabContent
-            }
-            Tab("Statistiche", systemImage: "chart.bar.xaxis", value: "Insights", role: nil) {
-                InsightsView()
-            }
-            Tab("Budget", systemImage: "chart.pie.fill", value: "Budget", role: nil) {
-                BudgetView()
-            }
-            Tab("Impostazioni", systemImage: "gearshape", value: "Settings", role: nil) {
-                SettingsView()
-            }
-            Tab(value: "Search", role: .search) {
-                searchTabContent
-            }
-        }
-        .modifier(ConditionalSearchActivation(isActive: currentTab == "Search" && !suppressInitialSearchActivation))
+        NativeSearchTabView(
+            selection: $currentTab,
+            searchText: $searchText,
+            logView: hosted(logTabContent),
+            insightsView: hosted(InsightsView()),
+            budgetView: hosted(BudgetView()),
+            settingsView: hosted(SettingsView()),
+            searchView: hosted(SearchView(searchQuery: $searchText))
+        )
         .allowsHitTesting(showPopup ? false : true)
-        .environmentObject(toastPresenter)
-        .environmentObject(transactionManager)
     }
 
     private var legacyTabView: some View {
@@ -257,29 +248,105 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    @available(iOS 16.0, *)
-    @ViewBuilder
-    private var searchTabContent: some View {
-        NavigationStack {
-            if currentTab == "Search" && !suppressInitialSearchActivation {
-                SearchView(searchQuery: $searchText)
-                    .searchable(text: $searchText, prompt: "Cerca movimento per nota")
-            } else {
-                SearchView(searchQuery: $searchText)
-            }
-        }
+    private func hosted<V: View>(_ view: V) -> AnyView {
+        AnyView(
+            view
+                .environment(\.managedObjectContext, moc)
+                .environmentObject(appLockVM)
+                .environmentObject(unlockManager)
+                .environmentObject(dataController)
+                .environmentObject(toastPresenter)
+                .environmentObject(transactionManager)
+        )
     }
 }
 
 @available(iOS 26.0, *)
-private struct ConditionalSearchActivation: ViewModifier {
-    let isActive: Bool
+private final class InitialSelectionTabBarController: UITabBarController {
+    private var didApplyInitialSelection = false
 
-    func body(content: Content) -> some View {
-        if isActive {
-            content.tabViewSearchActivation(.searchTabSelection)
-        } else {
-            content
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !didApplyInitialSelection,
+              let tab = tab(forIdentifier: "Log") else { return }
+        didApplyInitialSelection = true
+        selectedTab = tab
+    }
+}
+
+@available(iOS 26.0, *)
+private struct NativeSearchTabView: UIViewControllerRepresentable {
+    @Binding var selection: String
+    @Binding var searchText: String
+    let logView: AnyView
+    let insightsView: AnyView
+    let budgetView: AnyView
+    let settingsView: AnyView
+    let searchView: AnyView
+
+    func makeCoordinator() -> Coordinator { Coordinator(selection: $selection, searchText: $searchText) }
+
+    func makeUIViewController(context: Context) -> InitialSelectionTabBarController {
+        let coordinator = context.coordinator
+        let tabs: [UITab] = [
+            UITab(title: "Movimenti", image: UIImage(systemName: "list.bullet.rectangle"), identifier: "Log") { _ in coordinator.host(logView) },
+            UITab(title: "Statistiche", image: UIImage(systemName: "chart.bar.xaxis"), identifier: "Insights") { _ in coordinator.host(insightsView) },
+            UITab(title: "Budget", image: UIImage(systemName: "chart.pie.fill"), identifier: "Budget") { _ in coordinator.host(budgetView) },
+            UITab(title: "Impostazioni", image: UIImage(systemName: "gearshape"), identifier: "Settings") { _ in coordinator.host(settingsView) }
+        ]
+        let searchTab = UISearchTab { _ in coordinator.searchHost(searchView) }
+        searchTab.automaticallyActivatesSearch = true
+        let controller = InitialSelectionTabBarController(tabs: tabs + [searchTab])
+        controller.delegate = coordinator
+        controller.selectedTab = controller.tab(forIdentifier: "Log")
+        return controller
+    }
+
+    func updateUIViewController(_ controller: InitialSelectionTabBarController, context: Context) {
+        context.coordinator.searchText = $searchText
+        guard controller.selectedTab?.identifier != selection,
+              let tab = controller.tab(forIdentifier: selection) else { return }
+        controller.selectedTab = tab
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UITabBarControllerDelegate, UISearchResultsUpdating, UISearchBarDelegate {
+        var selection: Binding<String>
+        var searchText: Binding<String>
+        private var searchController: UISearchController?
+
+        init(selection: Binding<String>, searchText: Binding<String>) {
+            self.selection = selection
+            self.searchText = searchText
+        }
+
+        func host(_ view: AnyView) -> UIViewController { UIHostingController(rootView: view) }
+
+        func searchHost(_ view: AnyView) -> UIViewController {
+            let host = UIHostingController(rootView: view)
+            let controller = UISearchController()
+            controller.searchResultsUpdater = self
+            controller.searchBar.delegate = self
+            controller.searchBar.placeholder = "Cerca movimento per nota"
+            controller.obscuresBackgroundDuringPresentation = false
+            host.navigationItem.searchController = controller
+            host.navigationItem.hidesSearchBarWhenScrolling = false
+            host.definesPresentationContext = true
+            searchController = controller
+            return UINavigationController(rootViewController: host)
+        }
+
+        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            if let identifier = viewController.tab?.identifier { selection.wrappedValue = identifier }
+        }
+
+        func updateSearchResults(for searchController: UISearchController) {
+            let text = searchController.searchBar.text ?? ""
+            if self.searchText.wrappedValue != text { self.searchText.wrappedValue = text }
+        }
+
+        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+            if self.searchText.wrappedValue != searchText { self.searchText.wrappedValue = searchText }
         }
     }
 }
