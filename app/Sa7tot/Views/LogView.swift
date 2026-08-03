@@ -50,8 +50,6 @@ struct LogView: View {
     @AppStorage("logTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var logTimeFrame = 2
     let subtitleText = ["today", "this week", "this month", "this year"]
 
-    // show filter menu
-    @State var showFilter = false
     @State var filter = FilterType.all
 
     // filters
@@ -267,25 +265,19 @@ struct LogView: View {
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showFilter = true
+                    Menu {
+                        Picker("Filtro", selection: $filter) {
+                            ForEach(FilterType.allCases, id: \.self) { option in
+                                Text(option.italianTitle).tag(option)
+                            }
+                        }
                     } label: {
                         Image(systemName: filter == .all ? "triangle" : "triangle.tophalf.filled")
                             .rotationEffect(Angle(degrees: 180))
+                            .frame(minWidth: 44, minHeight: 44)
                     }
                     .accessibilityLabel("Filtra")
-                    .popover(present: $showFilter, attributes: {
-                        $0.position = .absolute(
-                            originAnchor: .bottomRight,
-                            popoverAnchor: .topRight
-                        )
-                        $0.rubberBandingMode = .none
-                        $0.sourceFrameInset = UIEdgeInsets(top: 0, left: 0, bottom: -10, right: 0)
-                        $0.presentation.animation = .easeInOut(duration: 0.2)
-                        $0.dismissal.animation = .easeInOut(duration: 0.3)
-                    }) {
-                        FilterPickerView(filterType: $filter, showMenu: $showFilter)
-                    }
+                    .accessibilityValue(filter.italianTitle)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -816,78 +808,6 @@ struct TimePickerView: View {
         .onAppear {
             holdingTimeframe = timeframe
         }
-    }
-}
-
-struct FilterPickerView: View {
-    @Namespace var animation
-    @Namespace var animation1
-    @Binding var filterType: FilterType
-    @Binding var showMenu: Bool
-
-    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var colourScheme: Int = 0
-
-    @Environment(\.colorScheme) var systemColorScheme
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
-    var darkMode: Bool {
-        (colourScheme == 0 && systemColorScheme == .dark) || colourScheme == 2
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            ForEach(FilterType.allCases, id: \.self) { filter in
-                HStack {
-                    Image(systemName: FilterType.imageDictionary[filter] ?? "")
-//                        .font(.system(size: 16))
-                        .font(.system(.callout, design: .rounded).weight(.regular))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .frame(width: 20)
-                    Text(LocalizedStringKey(filter.rawValue))
-//                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .lineLimit(1)
-                    Spacer()
-
-                    if filterType == filter {
-                        Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-//                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(5)
-                .background {
-                    if filterType == filter {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if filterType == filter {
-                        showMenu = false
-                    } else {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            filterType = filter
-                        }
-
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            showMenu = false
-                        }
-                    }
-                }
-                .accessibilityElement(children: .ignore)
-            }
-        }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
-        .padding(4)
-        .frame(width: dynamicTypeSize > .xLarge ? 220 : 190)
-        .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
     }
 }
 
