@@ -1273,7 +1273,7 @@ struct EmojiLogView: View {
             }
 
             Image(systemName: CategoryIconPresentation.symbol(for: categoryName ?? emoji))
-                .symbolRenderingMode(.hierarchical)
+                .symbolRenderingMode(.monochrome)
                 .font(.system(huge ? .title : .title3, design: .rounded).weight(.semibold))
                 .foregroundStyle(CategoryIconPresentation.foreground(for: colour))
                 // future ? .caption :
@@ -1655,7 +1655,7 @@ struct CategoryStepperView: View {
                         ForEach(categories, id: \.self) { item in
                             HStack(spacing: 5) {
                                 Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
-                                    .symbolRenderingMode(.hierarchical)
+                                    .symbolRenderingMode(.monochrome)
                                     .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
                                     .font(.system(.footnote, design: .rounded).weight(.medium))
                                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)

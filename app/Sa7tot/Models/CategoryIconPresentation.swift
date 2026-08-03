@@ -32,7 +32,7 @@ struct CategoryIconPresentation {
     }
 
     static func foreground(for storedColour: String) -> Color {
-        Color(hex: storedColour)
+        .primary
     }
 
     static func background(for storedColour: String) -> Color {

@@ -19,7 +19,7 @@ struct TransactionCategoryMenu: View {
                                 .lineLimit(1)
                         } icon: {
                             Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
-                                .symbolRenderingMode(.hierarchical)
+                                .symbolRenderingMode(.monochrome)
                                 .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
                                 .foregroundStyle(.primary)
                         }
@@ -48,7 +48,7 @@ struct TransactionCategoryMenu: View {
                 if let category {
                     HStack(spacing: 5) {
                         Image(systemName: CategoryIconPresentation.symbol(for: category.wrappedName))
-                            .symbolRenderingMode(.hierarchical)
+                            .symbolRenderingMode(.monochrome)
                         Text(category.wrappedName)
                             .lineLimit(1)
                     }
@@ -94,7 +94,7 @@ struct NewCategoryPickerView: View {
                         } label: {
                             HStack(spacing: 12) {
                         Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
-                            .symbolRenderingMode(.hierarchical)
+                            .symbolRenderingMode(.monochrome)
                             .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
                             .font(.title3)
                                     .frame(width: 32)

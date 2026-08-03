@@ -493,8 +493,8 @@ private struct TransactionEditorCategoryCarousel: View {
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(.primary)
                     .accessibilityHidden(true)
                 Text(item.wrappedName)
                     .foregroundStyle(.primary)
