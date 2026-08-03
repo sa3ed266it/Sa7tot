@@ -105,6 +105,7 @@ struct AccountEditorView: View {
     @Environment(\.managedObjectContext) private var moc
     @EnvironmentObject private var dataController: DataController
     @Environment(\.dismiss) private var dismiss
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)]) private var history: FetchedResults<Transaction>
     let account: Account?
     @State private var name: String
     @State private var type: AccountType
@@ -142,6 +143,31 @@ struct AccountEditorView: View {
             }
             if let account, !account.canDelete {
                 Section { Text("Questo conto contiene movimenti o modelli e non può essere eliminato. Puoi archiviarlo.").font(.footnote).foregroundColor(.secondary) }
+            }
+            if let account {
+                let accountHistory = history.filter { $0.account == account || $0.destinationAccount == account }
+                Section("Movimenti") {
+                    if accountHistory.isEmpty {
+                        Text("Nessun movimento")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(accountHistory) { transaction in
+                            HStack {
+                                Image(systemName: transaction.isTransfer ? "arrow.left.arrow.right" : (transaction.income ? "plus" : "minus"))
+                                VStack(alignment: .leading) {
+                                    Text(transaction.isTransfer ? "Trasferimento" : transaction.wrappedNote)
+                                    if transaction.isTransfer {
+                                        Text(transaction.account == account ? "A \(transaction.destinationAccount?.name ?? "Conto")" : "Da \(transaction.account?.name ?? "Conto")")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                Text(transaction.amount, format: .currency(code: account.currencyCode ?? "EUR"))
+                            }
+                        }
+                    }
+                }
             }
         }
         .navigationTitle(account == nil ? "Nuovo conto" : "Modifica conto")

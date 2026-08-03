@@ -38,6 +38,8 @@ struct TransactionView: View {
     @State private var showRecurring = false
     @State var income = false
     @State private var account: Account?
+    @State private var isTransfer = false
+    @State private var destinationAccount: Account?
 
     var transactionTypeString: String {
         if income {
@@ -385,10 +387,28 @@ struct TransactionView: View {
                         } background: {
                             backgroundColor.opacity(0.6)
                         }
+                        .disabled(isTransfer)
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .padding(.top, topEdge)
+
+                Button {
+                    guard toEdit == nil else { return }
+                    isTransfer.toggle()
+                    category = nil
+                    repeatType = 0
+                    repeatCoefficient = 1
+                    destinationAccount = isTransfer ? nil : accounts.first(where: { $0 != account && !$0.isArchived })
+                } label: {
+                    Label(isTransfer ? "Trasferimento" : "Aggiungi trasferimento", systemImage: "arrow.left.arrow.right")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(isTransfer ? Color.PrimaryText : Color.SubtitleText)
+                        .padding(.vertical, 7)
+                        .padding(.horizontal, 11)
+                        .background(isTransfer ? Color.SecondaryBackground : Color.clear, in: Capsule())
+                }
+                .accessibilityLabel("Trasferimento")
 
                 ZStack {
                     // swipe to change between income and expense
@@ -698,9 +718,28 @@ struct TransactionView: View {
                         }
                     }
                     .padding(.bottom, 5)
+                    .opacity(isTransfer ? 0 : 1)
+                    .disabled(isTransfer)
                 }
 
-                AccountMenuView(accounts: Array(accounts), account: $account)
+                if isTransfer {
+                    HStack(spacing: 8) {
+                        AccountMenuView(accounts: Array(accounts), account: $account)
+                        Image(systemName: "arrow.right")
+                            .foregroundColor(Color.SubtitleText)
+                        AccountMenuView(accounts: Array(accounts), account: $destinationAccount)
+                    }
+                    .onChange(of: account) { newSource in
+                        if newSource == destinationAccount {
+                            destinationAccount = accounts.first(where: { $0 != newSource && !$0.isArchived })
+                        }
+                    }
+                    .onChange(of: destinationAccount) { newDestination in
+                        if newDestination == account { destinationAccount = nil }
+                    }
+                } else {
+                    AccountMenuView(accounts: Array(accounts), account: $account)
+                }
 
                 // date and category picker
 
@@ -994,6 +1033,31 @@ struct TransactionView: View {
     func submit() {
         let generator = UINotificationFeedbackGenerator()
 
+        if isTransfer {
+            do {
+                if let validationError = TransferValidationService.validate(amount: price, source: account, destination: destinationAccount, isCreating: toEdit == nil) {
+                    throw validationError
+                }
+                guard let source = account, let destination = destinationAccount else {
+                    throw TransferValidationError.missingDestination
+                }
+                if let editedTransaction = toEdit {
+                    TransferService.configure(editedTransaction, amount: price, source: source, destination: destination, note: note, date: date)
+                    try dataController.saveAccountChanges()
+                } else {
+                    _ = try dataController.newTransfer(note: note, source: source, destination: destination, amount: price, date: date)
+                }
+                generator.notificationOccurred(.success)
+                dismiss()
+            } catch {
+                toastImage = "exclamationmark.triangle"
+                toastTitle = error.localizedDescription
+                showToast = true
+                generator.notificationOccurred(.error)
+            }
+            return
+        }
+
         if price == 0 && category == nil {
             toastImage = "questionmark.app"
             toastTitle = "Incomplete Entry"
@@ -1038,7 +1102,7 @@ struct TransactionView: View {
                 withAnimation(.easeInOut(duration: 0.5)) {
                     editedTransaction.amount = price
                     editedTransaction.date = date
-                    editedTransaction.income = income
+                    editedTransaction.wrappedType = income ? .income : .expense
 
                     let calendar = Calendar(identifier: .gregorian)
 
@@ -1084,7 +1148,7 @@ struct TransactionView: View {
             transaction.note = note.trimmingCharacters(in: .whitespaces)
         }
 
-        transaction.income = income
+        transaction.wrappedType = income ? .income : .expense
 
         if let unwrappedCategory = category {
             transaction.category = unwrappedCategory
@@ -1133,6 +1197,9 @@ struct TransactionView: View {
             _account = State(initialValue: transaction.account)
 
             _income = State(initialValue: transaction.income)
+
+            _isTransfer = State(initialValue: transaction.wrappedType == .transfer)
+            _destinationAccount = State(initialValue: transaction.destinationAccount)
 
             if transaction.income {
                 _swipingOffset = State(initialValue: 100)

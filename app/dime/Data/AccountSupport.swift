@@ -153,17 +153,23 @@ enum AccountBalanceService {
     }
 
     static func balance(for account: Account, transactions: some Sequence<Transaction>) -> Double {
-        var incomeTotal = 0.0
-        var expenseTotal = 0.0
+        var total = account.openingBalance
         for transaction in transactions {
-            guard transaction.account == account else { continue }
-            if transaction.income {
-                incomeTotal += transaction.amount
-            } else {
-                expenseTotal += transaction.amount
+            guard transaction.account == account || transaction.destinationAccount == account else { continue }
+            switch transaction.wrappedType {
+            case .expense:
+                total += account.wrappedType.isCredit ? transaction.amount : -transaction.amount
+            case .income:
+                total += account.wrappedType.isCredit ? -transaction.amount : transaction.amount
+            case .transfer:
+                if transaction.account == account {
+                    total += account.wrappedType.isCredit ? transaction.amount : -transaction.amount
+                } else if transaction.destinationAccount == account {
+                    total += account.wrappedType.isCredit ? -transaction.amount : transaction.amount
+                }
             }
         }
-        return balance(openingBalance: account.openingBalance, type: account.wrappedType, income: incomeTotal, expenses: expenseTotal)
+        return total
     }
 
     static func label(for account: Account) -> String {
@@ -178,4 +184,153 @@ extension Account {
     var templateSet: Set<TemplateTransaction> { templateTransactions as? Set<TemplateTransaction> ?? [] }
     var canDelete: Bool { transactionSet.isEmpty && templateSet.isEmpty }
     var canChangeCurrency: Bool { canDelete }
+}
+
+enum TransactionType: String, CaseIterable {
+    case expense
+    case income
+    case transfer
+}
+
+enum TransferValidationError: LocalizedError, Equatable {
+    case missingSource
+    case missingDestination
+    case sameAccount
+    case amountMustBePositive
+    case amountMustBeFinite
+    case mixedCurrencies
+    case sourceArchived
+    case destinationArchived
+
+    var errorDescription: String? {
+        switch self {
+        case .missingSource: return "Seleziona il conto di origine."
+        case .missingDestination: return "Seleziona il conto di destinazione."
+        case .sameAccount: return "Il conto di origine e quello di destinazione devono essere diversi."
+        case .amountMustBePositive: return "L'importo del trasferimento deve essere maggiore di zero."
+        case .amountMustBeFinite: return "Inserisci un importo valido."
+        case .mixedCurrencies: return "I trasferimenti tra valute diverse non sono ancora supportati."
+        case .sourceArchived: return "Il conto di origine è archiviato e non può ricevere nuovi trasferimenti."
+        case .destinationArchived: return "Il conto di destinazione è archiviato e non può ricevere nuovi trasferimenti."
+        }
+    }
+}
+
+enum TransferValidationService {
+    static func validate(amount: Double, source: Account?, destination: Account?, isCreating: Bool) -> TransferValidationError? {
+        guard source != nil else { return .missingSource }
+        guard destination != nil else { return .missingDestination }
+        guard amount.isFinite else { return .amountMustBeFinite }
+        guard amount > 0 else { return .amountMustBePositive }
+        guard source != destination else { return .sameAccount }
+        guard source?.currencyCode == destination?.currencyCode else { return .mixedCurrencies }
+        if isCreating {
+            if source?.isArchived == true { return .sourceArchived }
+            if destination?.isArchived == true { return .destinationArchived }
+        }
+        return nil
+    }
+}
+
+enum TransferService {
+    static func configure(_ transaction: Transaction, amount: Double, source: Account, destination: Account, note: String?, date: Date) {
+        transaction.typeRawValue = TransactionType.transfer.rawValue
+        transaction.income = false
+        transaction.amount = amount
+        transaction.account = source
+        transaction.destinationAccount = destination
+        transaction.category = nil
+        transaction.note = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        transaction.date = date
+        transaction.day = Calendar.current.date(bySettingHour: 0, minute: 0, second: 0, of: date)
+        let components = Calendar.current.dateComponents([.month, .year], from: date)
+        transaction.month = Calendar.current.date(from: components)
+        transaction.recurringType = 0
+        transaction.recurringCoefficient = 0
+        transaction.onceRecurring = false
+    }
+}
+
+enum TransactionTypeMigrationError: LocalizedError {
+    case saveFailed(Error)
+    case verificationFailed(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case let .saveFailed(error): return "Impossibile salvare la migrazione dei tipi di movimento: \(error.localizedDescription)"
+        case let .verificationFailed(count): return "Migrazione dei tipi di movimento incompleta: \(count) movimenti senza tipo."
+        }
+    }
+}
+
+struct TransactionTypeMigrationHooks {
+    var save: ((NSManagedObjectContext) throws -> Void)?
+    static let production = TransactionTypeMigrationHooks(save: nil)
+}
+
+enum TransactionTypeMigrationService {
+    static let markerKey = "transactionTypeMigrationV1Complete"
+
+    static func migrateIfNeeded(in context: NSManagedObjectContext, defaults: UserDefaults, hooks: TransactionTypeMigrationHooks = .production) throws {
+        guard !defaults.bool(forKey: markerKey) else { return }
+        try context.performAndWait {
+            let request = Transaction.fetchRequest()
+            let transactions = try context.fetch(request)
+            transactions.filter { $0.typeRawValue == nil }.forEach { transaction in
+                transaction.typeRawValue = transaction.income ? TransactionType.income.rawValue : TransactionType.expense.rawValue
+            }
+            do {
+                if let save = hooks.save { try save(context) } else { try context.save() }
+            } catch {
+                context.rollback()
+                throw TransactionTypeMigrationError.saveFailed(error)
+            }
+            let remaining = try context.fetch(request).filter { $0.typeRawValue == nil }.count
+            guard remaining == 0 else { throw TransactionTypeMigrationError.verificationFailed(remaining) }
+        }
+        defaults.set(true, forKey: markerKey)
+    }
+}
+
+extension Transaction {
+    var wrappedType: TransactionType {
+        get {
+            if let raw = typeRawValue, let type = TransactionType(rawValue: raw) { return type }
+            return income ? .income : .expense
+        }
+        set {
+            typeRawValue = newValue.rawValue
+            income = newValue == .income
+        }
+    }
+
+    var isTransfer: Bool { wrappedType == .transfer }
+}
+
+enum TransactionTotalsService {
+    static func expenseTotal(_ transactions: some Sequence<Transaction>) -> Double {
+        transactions.reduce(0) { $1.wrappedType == .expense ? $0 + $1.amount : $0 }
+    }
+
+    static func incomeTotal(_ transactions: some Sequence<Transaction>) -> Double {
+        transactions.reduce(0) { $1.wrappedType == .income ? $0 + $1.amount : $0 }
+    }
+
+    static func categoryTotal(_ category: Category, transactions: some Sequence<Transaction>) -> Double {
+        transactions.reduce(0) { total, transaction in
+            total + (transaction.wrappedType == .expense && transaction.category == category ? transaction.amount : 0)
+        }
+    }
+}
+
+enum TransactionSearchService {
+    static func matches(_ transaction: Transaction, query: String) -> Bool {
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
+        guard !normalizedQuery.isEmpty else { return true }
+        return [
+            transaction.note ?? "",
+            transaction.account?.name ?? "",
+            transaction.destinationAccount?.name ?? ""
+        ].contains { $0.localizedLowercase.contains(normalizedQuery) }
+    }
 }

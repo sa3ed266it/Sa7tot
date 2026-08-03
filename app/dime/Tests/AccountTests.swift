@@ -5,7 +5,7 @@ final class AccountTests: XCTestCase {
     private var contexts: [NSManagedObjectContext] = []
     private static let testModel: NSManagedObjectModel = {
         let bundle = Bundle(for: AccountTests.self)
-        guard let modelURL = bundle.url(forResource: "MainModel 3", withExtension: "mom", subdirectory: "MainModel.momd"),
+        guard let modelURL = bundle.url(forResource: "MainModel 4", withExtension: "mom", subdirectory: "MainModel.momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             fatalError("Test model not bundled")
         }
@@ -204,6 +204,170 @@ final class AccountTests: XCTestCase {
         XCTAssertFalse(message.contains("1000"))
     }
 
+    func testExistingExpenseAndIncomeBackfillToStableTypes() throws {
+        let context = makeContext()
+        let expense = makeTransaction(in: context, account: nil, amount: 10, income: false)
+        let income = makeTransaction(in: context, account: nil, amount: 20, income: true)
+        try TransactionTypeMigrationService.migrateIfNeeded(in: context, defaults: makeDefaults())
+        XCTAssertEqual(expense.wrappedType, .expense)
+        XCTAssertEqual(income.wrappedType, .income)
+    }
+
+    func testTransactionTypeMigrationIsIdempotent() throws {
+        let context = makeContext()
+        let defaults = makeDefaults()
+        let transaction = makeTransaction(in: context, account: nil, amount: 10)
+        let id = transaction.id
+        try TransactionTypeMigrationService.migrateIfNeeded(in: context, defaults: defaults)
+        try TransactionTypeMigrationService.migrateIfNeeded(in: context, defaults: defaults)
+        XCTAssertTrue(defaults.bool(forKey: TransactionTypeMigrationService.markerKey))
+        XCTAssertEqual(try context.count(for: Transaction.fetchRequest()), 1)
+        XCTAssertEqual(transaction.id, id)
+        XCTAssertEqual(transaction.typeRawValue, TransactionType.expense.rawValue)
+    }
+
+    func testTransactionTypeMigrationFailureLeavesMarkerUnsetAndRetrySucceeds() throws {
+        let context = makeContext()
+        let defaults = makeDefaults()
+        _ = makeTransaction(in: context, account: nil, amount: 10)
+        let hooks = TransactionTypeMigrationHooks(save: { _ in throw TestError.injected })
+        XCTAssertThrowsError(try TransactionTypeMigrationService.migrateIfNeeded(in: context, defaults: defaults, hooks: hooks))
+        XCTAssertFalse(defaults.bool(forKey: TransactionTypeMigrationService.markerKey))
+        try TransactionTypeMigrationService.migrateIfNeeded(in: context, defaults: defaults)
+        XCTAssertTrue(defaults.bool(forKey: TransactionTypeMigrationService.markerKey))
+        XCTAssertEqual(try context.fetch(Transaction.fetchRequest()).filter { $0.typeRawValue == nil }.count, 0)
+    }
+
+    func testValidSameCurrencyTransferSavesAsOneNeutralTransaction() throws {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank, openingBalance: 500)
+        let destination = makeAccount(in: context, type: .cash, openingBalance: 20)
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 100)
+        XCTAssertEqual(transfer.wrappedType, .transfer)
+        XCTAssertFalse(transfer.income)
+        XCTAssertNil(transfer.category)
+        XCTAssertEqual(transfer.account, source)
+        XCTAssertEqual(transfer.destinationAccount, destination)
+    }
+
+    func testTransferValidationRejectsInvalidAmountIdentityCurrencyAndArchivedAccounts() {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank)
+        let destination = makeAccount(in: context, type: .cash)
+        XCTAssertEqual(TransferValidationService.validate(amount: 0, source: source, destination: destination, isCreating: true), .amountMustBePositive)
+        XCTAssertEqual(TransferValidationService.validate(amount: -1, source: source, destination: destination, isCreating: true), .amountMustBePositive)
+        XCTAssertEqual(TransferValidationService.validate(amount: .infinity, source: source, destination: destination, isCreating: true), .amountMustBeFinite)
+        XCTAssertEqual(TransferValidationService.validate(amount: 1, source: source, destination: source, isCreating: true), .sameAccount)
+        destination.currencyCode = "USD"
+        XCTAssertEqual(TransferValidationService.validate(amount: 1, source: source, destination: destination, isCreating: true), .mixedCurrencies)
+        destination.currencyCode = "EUR"
+        source.isArchived = true
+        XCTAssertEqual(TransferValidationService.validate(amount: 1, source: source, destination: destination, isCreating: true), .sourceArchived)
+        source.isArchived = false
+        destination.isArchived = true
+        XCTAssertEqual(TransferValidationService.validate(amount: 1, source: source, destination: destination, isCreating: true), .destinationArchived)
+    }
+
+    func testAssetTransfersChangeSourceAndDestinationBalances() {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank, openingBalance: 500)
+        let destination = makeAccount(in: context, type: .cash, openingBalance: 20)
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 100)
+        XCTAssertEqual(AccountBalanceService.balance(for: source, transactions: [transfer]), 400)
+        XCTAssertEqual(AccountBalanceService.balance(for: destination, transactions: [transfer]), 120)
+    }
+
+    func testCreditCardTransferConvention() {
+        let context = makeContext()
+        let bank = makeAccount(in: context, type: .bank, openingBalance: 1000)
+        let card = makeAccount(in: context, type: .creditCard, openingBalance: 500)
+        let payment = makeTransfer(in: context, source: bank, destination: card, amount: 200)
+        XCTAssertEqual(AccountBalanceService.balance(for: card, transactions: [payment]), 300)
+        let outgoing = makeTransfer(in: context, source: card, destination: bank, amount: 50)
+        XCTAssertEqual(AccountBalanceService.balance(for: card, transactions: [payment, outgoing]), 350)
+        XCTAssertEqual(AccountBalanceService.label(for: card), "Utilizzato")
+    }
+
+    func testTransferTotalsBudgetsAndCategoriesAreNeutral() {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank)
+        let destination = makeAccount(in: context, type: .cash)
+        let expense = makeTransaction(in: context, account: source, amount: 30)
+        let income = makeTransaction(in: context, account: destination, amount: 40, income: true)
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 100)
+        let transactions = [expense, income, transfer]
+        XCTAssertEqual(TransactionTotalsService.expenseTotal(transactions), 30)
+        XCTAssertEqual(TransactionTotalsService.incomeTotal(transactions), 40)
+        XCTAssertFalse(transfer.isTransfer == false)
+        XCTAssertNil(transfer.category)
+    }
+
+    func testEditingTransferKeepsUUIDAndUpdatesAllBalanceEffects() {
+        let context = makeContext()
+        let sourceA = makeAccount(in: context, type: .bank, openingBalance: 500)
+        let sourceB = makeAccount(in: context, type: .cash, openingBalance: 100)
+        let destinationA = makeAccount(in: context, type: .bank, openingBalance: 0)
+        let destinationB = makeAccount(in: context, type: .prepaidCard, openingBalance: 0)
+        let transfer = makeTransfer(in: context, source: sourceA, destination: destinationA, amount: 100)
+        let id = transfer.id
+        TransferService.configure(transfer, amount: 40, source: sourceB, destination: destinationB, note: "Modificato", date: Date())
+        XCTAssertEqual(transfer.id, id)
+        XCTAssertEqual(AccountBalanceService.balance(for: sourceA, transactions: [transfer]), 500)
+        XCTAssertEqual(AccountBalanceService.balance(for: sourceB, transactions: [transfer]), 60)
+        XCTAssertEqual(AccountBalanceService.balance(for: destinationA, transactions: [transfer]), 0)
+        XCTAssertEqual(AccountBalanceService.balance(for: destinationB, transactions: [transfer]), 40)
+    }
+
+    func testDeletingTransferRemovesBothBalanceEffects() {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank, openingBalance: 100)
+        let destination = makeAccount(in: context, type: .cash, openingBalance: 0)
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 25)
+        context.delete(transfer)
+        XCTAssertEqual(AccountBalanceService.balance(for: source, transactions: []), 100)
+        XCTAssertEqual(AccountBalanceService.balance(for: destination, transactions: []), 0)
+    }
+
+    func testTransferSearchMatchesSourceDestinationAndNote() {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank)
+        source.name = "Revolut"
+        let destination = makeAccount(in: context, type: .cash)
+        destination.name = "Contanti"
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 25, note: "Ricarica")
+        XCTAssertTrue(TransactionSearchService.matches(transfer, query: "Revolut"))
+        XCTAssertTrue(TransactionSearchService.matches(transfer, query: "Contanti"))
+        XCTAssertTrue(TransactionSearchService.matches(transfer, query: "Ricarica"))
+    }
+
+    func testTransferCannotBecomeRecurringAndRecurringGeneratorNeverCopiesIt() {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank)
+        let destination = makeAccount(in: context, type: .cash)
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 10)
+        transfer.recurringType = 3
+        TransferService.configure(transfer, amount: 10, source: source, destination: destination, note: nil, date: Date())
+        XCTAssertEqual(transfer.recurringType, 0)
+        XCTAssertEqual(transfer.wrappedType, .transfer)
+    }
+
+    func testManualAndIntentExpenseIncomeSetStableTypes() {
+        let expense = makeTransaction(account: makeAccount(type: .bank), amount: 1, income: false)
+        let income = makeTransaction(account: makeAccount(type: .bank), amount: 1, income: true)
+        XCTAssertEqual(expense.wrappedType, .expense)
+        XCTAssertEqual(income.wrappedType, .income)
+    }
+
+    func testMalformedHistoricalTransferDoesNotCrashBalanceOrSearch() {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank, openingBalance: 10)
+        let malformed = makeTransaction(in: context, account: source, amount: 5)
+        malformed.typeRawValue = TransactionType.transfer.rawValue
+        malformed.destinationAccount = nil
+        XCTAssertEqual(AccountBalanceService.balance(for: source, transactions: [malformed]), 5)
+        XCTAssertTrue(TransactionSearchService.matches(malformed, query: ""))
+    }
+
     private func makeContext() -> NSManagedObjectContext {
         let container = NSPersistentContainer(name: "AccountTests", managedObjectModel: Self.testModel)
         let description = NSPersistentStoreDescription()
@@ -253,6 +417,13 @@ final class AccountTests: XCTestCase {
         transaction.date = Date()
         transaction.day = Date()
         transaction.month = Date()
+        return transaction
+    }
+
+    private func makeTransfer(in context: NSManagedObjectContext, source: Account, destination: Account, amount: Double, note: String? = nil) -> Transaction {
+        let transaction = Transaction(context: context)
+        transaction.id = UUID()
+        TransferService.configure(transaction, amount: amount, source: source, destination: destination, note: note, date: Date())
         return transaction
     }
 

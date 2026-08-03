@@ -735,15 +735,17 @@ struct FilteredSearchView: View {
         let beginPredicate = NSPredicate(format: "%K BEGINSWITH[cd] %@", #keyPath(Transaction.note), searchQuery)
         let containPredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.note), searchQuery)
         let containPredicate1 = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.category.name), searchQuery)
+        let sourcePredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.account.name), searchQuery)
+        let destinationPredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.destinationAccount.name), searchQuery)
 
         let compound: NSCompoundPredicate
 
         // allow searching by amount too
         if let amount = Double(searchQuery) {
             let amountPredicate = NSPredicate(format: "amount == %@", NSNumber(value: amount))
-            compound = NSCompoundPredicate(orPredicateWithSubpredicates: [beginPredicate, containPredicate, containPredicate1, amountPredicate])
+            compound = NSCompoundPredicate(orPredicateWithSubpredicates: [beginPredicate, containPredicate, containPredicate1, sourcePredicate, destinationPredicate, amountPredicate])
         } else {
-            compound = NSCompoundPredicate(orPredicateWithSubpredicates: [beginPredicate, containPredicate, containPredicate1])
+            compound = NSCompoundPredicate(orPredicateWithSubpredicates: [beginPredicate, containPredicate, containPredicate1, sourcePredicate, destinationPredicate])
         }
 
         _transactions = SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
@@ -1119,9 +1121,9 @@ struct FutureListView: View {
         var total = 0.0
 
         transactions.forEach { transaction in
-            if transaction.income {
+            if transaction.wrappedType == .income {
                 total += transaction.amount
-            } else {
+            } else if transaction.wrappedType == .expense {
                 total -= transaction.amount
             }
         }
@@ -1254,10 +1256,17 @@ struct SingleTransactionView: View {
                 .offset(x: max(-80, offset))
 
             HStack(spacing: 12) {
-                EmojiLogView(emoji: (transaction.category?.wrappedEmoji ?? ""),
-                             colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future)
-                    .fixedSize(horizontal: true, vertical: true)
-                    .overlay(alignment: .bottomTrailing) {
+                if transaction.isTransfer {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color.PrimaryText)
+                        .frame(width: 34, height: 34)
+                        .background(Color.SecondaryBackground, in: Circle())
+                } else {
+                    EmojiLogView(emoji: (transaction.category?.wrappedEmoji ?? ""),
+                                 colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future)
+                        .fixedSize(horizontal: true, vertical: true)
+                        .overlay(alignment: .bottomTrailing) {
                         if transaction.recurringType > 0 {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 12, weight: .medium))
@@ -1267,6 +1276,7 @@ struct SingleTransactionView: View {
                                 .offset(x: 5, y: 5)
                         }
                     }
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(transaction.wrappedNote)
@@ -1283,7 +1293,14 @@ struct SingleTransactionView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if transaction.income {
+                if transaction.isTransfer {
+                    Text(transactionAmountString)
+                        .font(.system(.title3, design: .rounded).weight(.medium))
+                        .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                } else if transaction.income {
                     Text(showExpenseOrIncomeSign ? "+\(transactionAmountString)" : transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -1429,6 +1446,9 @@ struct SingleTransactionView: View {
     }
 
     func getSubtitle() -> String {
+        if transaction.isTransfer {
+            return "Trasferimento: \(transaction.account?.name ?? "Conto") → \(transaction.destinationAccount?.name ?? "Conto")"
+        }
         if future {
             if transaction.wrappedDate > Date.now {
                 return dateFormatter(date: transaction.wrappedDate)
@@ -2264,9 +2284,9 @@ func dayTotal(dayTransaction: [Transaction]) -> Double {
     var total = 0.0
 
     dayTransaction.forEach { transaction in
-        if transaction.income {
+        if transaction.wrappedType == .income {
             total += transaction.amount
-        } else {
+        } else if transaction.wrappedType == .expense {
             total -= transaction.amount
         }
     }

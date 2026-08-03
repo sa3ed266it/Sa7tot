@@ -17,7 +17,7 @@ struct NewTransactionIntent: AppIntent {
         IntentDescription("Registra nuovi movimenti in un attimo")
 
     @Parameter(title: "Tipo", description: "Tipo di movimento", requestValueDialog: IntentDialog("Vuoi registrare un’entrata o una spesa?"))
-    var income: TransactionType
+    var income: ShortcutTransactionType
 
     @Parameter(title: "Importo", description: "Valore del movimento", controlStyle: .field, inclusiveRange: (lowerBound: 0.01, upperBound: 100_000_000), requestValueDialog: IntentDialog("Qual è l’importo del movimento?"))
     var amount: Double
@@ -125,7 +125,7 @@ struct NewTransactionIntent: AppIntent {
 
     static var parameterSummary: some ParameterSummary {
         Switch(\NewTransactionIntent.$income) {
-            Case(TransactionType.expense) {
+            Case(ShortcutTransactionType.expense) {
                 When(\NewTransactionIntent.$recurringTransaction, .equalTo, true, {
                     Summary("Log an \(\.$income) of \(\.$amount) under \(\.$expenseCategory)") {
                         \.$note
@@ -139,7 +139,7 @@ struct NewTransactionIntent: AppIntent {
                     }
                 })
             }
-            Case(TransactionType.income) {
+            Case(ShortcutTransactionType.income) {
                 When(\NewTransactionIntent.$recurringTransaction, .equalTo, true, {
                     Summary("Log an \(\.$income) of \(\.$amount) under \(\.$incomeCategory)") {
                         \.$note
@@ -164,17 +164,17 @@ struct NewTransactionIntent: AppIntent {
 
 // income or expense
 
-enum TransactionType: String {
+enum ShortcutTransactionType: String {
     case income, expense
 }
 
 @available(iOS 16, *)
-extension TransactionType: AppEnum {
+extension ShortcutTransactionType: AppEnum {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         return TypeDisplayRepresentation(name: "Tipo")
     }
 
-    static var caseDisplayRepresentations: [TransactionType: DisplayRepresentation] = [
+    static var caseDisplayRepresentations: [ShortcutTransactionType: DisplayRepresentation] = [
         .income: DisplayRepresentation(title: "entrata",
                                        image: .init(systemName: "plus.square.fill")),
         .expense: DisplayRepresentation(title: "spesa",

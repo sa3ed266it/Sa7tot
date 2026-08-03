@@ -78,6 +78,8 @@ class DataController: ObservableObject {
             do {
                 try AccountMigrationService.migrateIfNeeded(
                     in: self.container.viewContext, currencyCode: currency, defaults: sharedDefaults)
+                try TransactionTypeMigrationService.migrateIfNeeded(
+                    in: self.container.viewContext, defaults: sharedDefaults)
             } catch {
                 self.accountMigrationError = error
                 self.accountMigrationErrorMessage = error.localizedDescription
@@ -165,6 +167,11 @@ class DataController: ObservableObject {
     }
 
     func updateRecurringTransaction(transaction: Transaction) {
+        guard transaction.wrappedType != .transfer else {
+            transaction.recurringType = 0
+            transaction.recurringCoefficient = 0
+            return
+        }
         if transaction.nextTransactionDate < Calendar.current.startOfDay(for: Date.now) {
             var holdingDate = transaction.nextTransactionDate
 
@@ -176,7 +183,7 @@ class DataController: ObservableObject {
                 newTransaction.amount = transaction.wrappedAmount
                 newTransaction.date = holdingDate
                 newTransaction.id = UUID()
-                newTransaction.income = transaction.income
+                newTransaction.wrappedType = transaction.wrappedType
                 newTransaction.day = holdingDate
 
                 let calendar = Calendar(identifier: .gregorian)
@@ -219,7 +226,7 @@ class DataController: ObservableObject {
             newTransaction.amount = transaction.wrappedAmount
             newTransaction.date = transaction.nextTransactionDate
             newTransaction.id = UUID()
-            newTransaction.income = transaction.income
+            newTransaction.wrappedType = transaction.wrappedType
             newTransaction.day = transaction.nextTransactionDate
 
             let calendar = Calendar(identifier: .gregorian)
@@ -274,7 +281,7 @@ class DataController: ObservableObject {
             transaction.note = note.trimmingCharacters(in: .whitespaces)
         }
 
-        transaction.income = income
+        transaction.wrappedType = income ? .income : .expense
 
         if let unwrappedCategory = category {
             transaction.category = unwrappedCategory
@@ -306,6 +313,24 @@ class DataController: ObservableObject {
         return transaction
     }
 
+    func newTransfer(note: String, source: Account?, destination: Account?, amount: Double, date: Date) throws -> Transaction {
+        if let validationError = TransferValidationService.validate(amount: amount, source: source, destination: destination, isCreating: true) {
+            throw validationError
+        }
+        guard let source, let destination else { throw TransferValidationError.missingSource }
+
+        let transaction = Transaction(context: container.viewContext)
+        transaction.id = UUID()
+        TransferService.configure(transaction, amount: amount, source: source, destination: destination, note: note, date: date)
+        do {
+            try saveAccountChanges()
+        } catch {
+            container.viewContext.delete(transaction)
+            throw error
+        }
+        return transaction
+    }
+
     func newTemplateTransaction(order: Int) {
         if let match = getTemplateTransaction(order: order) {
             if let unwrappedCategory = match.category {
@@ -320,7 +345,10 @@ class DataController: ObservableObject {
 
     func fetchRequestForRecurringTransactions() -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
-        itemRequest.predicate = NSPredicate(format: "%K > %i", #keyPath(Transaction.recurringType), 0)
+        itemRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "%K > %i", #keyPath(Transaction.recurringType), 0),
+            NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+        ])
         return itemRequest
     }
 
@@ -435,6 +463,7 @@ class DataController: ObservableObject {
     func fetchRequestForExport() -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
         itemRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+        itemRequest.predicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
         return itemRequest
     }
 
@@ -474,15 +503,16 @@ class DataController: ObservableObject {
         let compound = NSCompoundPredicate(orPredicateWithSubpredicates: [beginPredicate, containPredicate])
 
         let incomePredicate = NSPredicate(format: "income = %d", income)
+        let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
 
         if let unwrappedCategory = category {
             let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), unwrappedCategory)
 
-            let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [compound, categoryPredicate, incomePredicate])
+            let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [compound, categoryPredicate, incomePredicate, nonTransferPredicate])
 
             itemRequest.predicate = andPredicate
         } else {
-            let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [compound, incomePredicate])
+            let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [compound, incomePredicate, nonTransferPredicate])
             itemRequest.predicate = andPredicate
         }
 
@@ -677,6 +707,7 @@ class DataController: ObservableObject {
 
     func fetchRequestForLogView(type: Int, optionalIncome: Bool?, categoryFilters: [Category] = []) -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
+        let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
 
         var calendar = Calendar(identifier: .gregorian)
 
@@ -701,7 +732,7 @@ class DataController: ObservableObject {
             if let income = optionalIncome {
                 let incomePredicate = NSPredicate(format: "income = %d", income)
 
-                andPredicate = NSCompoundPredicate(type: .and, subpredicates: [incomePredicate, dateCapPredicate])
+                andPredicate = NSCompoundPredicate(type: .and, subpredicates: [incomePredicate, dateCapPredicate, nonTransferPredicate])
 
                 superPredicate = NSCompoundPredicate(type: .and, subpredicates: [andPredicate, categoryCompoundPredicate])
             } else {
@@ -752,7 +783,7 @@ class DataController: ObservableObject {
             if let income = optionalIncome {
                 let incomePredicate = NSPredicate(format: "income = %d", income)
 
-                andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, incomePredicate, dateCapPredicate])
+                andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, incomePredicate, dateCapPredicate, nonTransferPredicate])
 
                 superPredicate = NSCompoundPredicate(type: .and, subpredicates: [andPredicate, categoryCompoundPredicate])
             } else {
@@ -780,7 +811,8 @@ class DataController: ObservableObject {
             var total = 0.0
 
             allTransactions.forEach { transaction in
-                if transaction.income {
+                guard transaction.wrappedType != .transfer else { return }
+                if transaction.wrappedType == .income {
                     total += transaction.amount
                 } else {
                     total -= transaction.amount
@@ -792,6 +824,7 @@ class DataController: ObservableObject {
             var total = 0.0
 
             allTransactions.forEach { transaction in
+                guard transaction.wrappedType != .transfer else { return }
                 total += transaction.amount
             }
 
@@ -806,6 +839,7 @@ class DataController: ObservableObject {
         var total = 0.0
 
         allTransactions.forEach { transaction in
+            guard transaction.wrappedType == .expense else { return }
             total += transaction.amount
         }
 
@@ -819,6 +853,7 @@ class DataController: ObservableObject {
         var total = 0.0
 
         allTransactions.forEach { transaction in
+            guard transaction.wrappedType == .income else { return }
             total += transaction.amount
         }
 
@@ -832,9 +867,9 @@ class DataController: ObservableObject {
         var total = 0.0
 
         allTransactions.forEach { transaction in
-            if transaction.income {
+            if transaction.wrappedType == .income {
                 total += transaction.amount
-            } else {
+            } else if transaction.wrappedType == .expense {
                 total -= transaction.amount
             }
         }
@@ -1177,8 +1212,9 @@ class DataController: ObservableObject {
         let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), budget.startDate! as CVarArg)
         let endPredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
         let incomePredicate = NSPredicate(format: "income = %d", false)
+        let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, incomePredicate])
+        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, incomePredicate, nonTransferPredicate])
 
         itemRequest.predicate = andPredicate
 
@@ -1192,8 +1228,9 @@ class DataController: ObservableObject {
         let endPredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
         let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), budget.category!)
         let incomePredicate = NSPredicate(format: "income = %d", false)
+        let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, categoryPredicate, incomePredicate])
+        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, categoryPredicate, incomePredicate, nonTransferPredicate])
 
         itemRequest.predicate = andPredicate
 
@@ -1203,18 +1240,23 @@ class DataController: ObservableObject {
     func fetchRequestForLineGraph(optionalIncome: Bool?) -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
         itemRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Transaction.date, ascending: true)]
+        let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
 
         if let income = optionalIncome {
-            itemRequest.predicate = NSPredicate(format: "income = %d", income)
+            itemRequest.predicate = NSCompoundPredicate(type: .and, subpredicates: [NSPredicate(format: "income = %d", income), nonTransferPredicate])
             return itemRequest
         } else {
+            itemRequest.predicate = nonTransferPredicate
             return itemRequest
         }
     }
 
     func fetchRequestForLogViewCategoryFilter(income: Bool) -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
-        itemRequest.predicate = NSPredicate(format: "income = %d", income)
+        itemRequest.predicate = NSCompoundPredicate(type: .and, subpredicates: [
+            NSPredicate(format: "income = %d", income),
+            NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+        ])
         return itemRequest
     }
 
@@ -1450,10 +1492,12 @@ class DataController: ObservableObject {
 
         if let unwrappedIncome = income {
             let incomePredicate = NSPredicate(format: "income = %d", unwrappedIncome)
+            let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
 
-            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, incomePredicate, endPredicate])
+            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, incomePredicate, endPredicate, nonTransferPredicate])
         } else {
-            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate])
+            let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, nonTransferPredicate])
         }
 
         itemRequest.predicate = andPredicate
@@ -1571,7 +1615,8 @@ class DataController: ObservableObject {
             startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
         }
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, incomePredicate])
+        let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, incomePredicate, nonTransferPredicate])
 
         itemRequest.predicate = andPredicate
         itemRequest.sortDescriptors = [
