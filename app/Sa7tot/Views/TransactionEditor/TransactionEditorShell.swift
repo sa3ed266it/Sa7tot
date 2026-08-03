@@ -556,5 +556,23 @@ private struct TransactionEditorCustomRecurrenceSheet: View {
             unit = repeatType == 0 ? 1 : repeatType
             coefficient = max(1, repeatCoefficient)
         }
+        .modifier(TransactionEditorCustomRecurrencePresentation())
+    }
+}
+
+private struct TransactionEditorCustomRecurrencePresentation: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.4, *) {
+            content
+                .presentationDetents([.height(280)])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.regularMaterial)
+        } else if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.height(280)])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
+        }
     }
 }
