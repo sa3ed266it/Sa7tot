@@ -75,7 +75,8 @@ struct LogView: View {
         NavigationView {
             Group {
         if transactions.isEmpty {
-            VStack(spacing: 5) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 5) {
                 Sa7totIcon(systemName: "tray.full.fill", role: .status, tint: .secondary)
                     .font(.system(size: 56, weight: .medium))
                     .frame(width: 75, height: 75)
@@ -97,6 +98,9 @@ struct LogView: View {
             .padding(.horizontal, 30)
             .frame(height: 250, alignment: .top)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .padding(.vertical, 24)
+                .frame(maxWidth: .infinity, minHeight: 250)
             .background(Color.PrimaryBackground)
 
         } else {
@@ -161,7 +165,8 @@ struct LogView: View {
                                 LogInsightsView(
                                     navBarText: $navBarText,
                                     showCents: showCents,
-                                    currencySymbol: currencySymbol
+                                    currencySymbol: currencySymbol,
+                                    collapseProgress: balanceCollapseProgress
                                 )
                                 .background {
                                     GeometryReader { proxy in
@@ -186,7 +191,7 @@ struct LogView: View {
                                 // enough legal travel for the balance header to collapse.
                                 // The system bottom safe-area inset remains the only tab-bar inset.
                                 Color.clear
-                                    .frame(height: 120)
+                                    .frame(height: 180)
                                     .allowsHitTesting(false)
                             }
                         }
@@ -209,14 +214,25 @@ struct LogView: View {
                         .frame(height: compactBalanceHeaderHeight)
                         .background(.regularMaterial)
                         .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .fill(Color.Outline.opacity(0.35))
-                                .frame(height: 0.5)
+                            VStack(spacing: 0) {
+                                LinearGradient(
+                                    colors: [Color.PrimaryBackground.opacity(0.72), .clear],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                .frame(height: 14)
+                                .offset(y: 14)
+
+                                Rectangle()
+                                    .fill(Color.Outline.opacity(0.35))
+                                    .frame(height: 0.5)
+                            }
                                 .allowsHitTesting(false)
                         }
                         .opacity(balanceCollapseProgress)
                         .offset(y: -8 * (1 - balanceCollapseProgress))
                         .allowsHitTesting(false)
+                        .accessibilityHidden(balanceCollapseProgress < 0.5)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -446,7 +462,7 @@ struct CompactLogInsightsView: View {
                     .foregroundColor(Color.SubtitleText)
 
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text(insightsType == 1 ? (netTotal.positive ? "+\(currencySymbol)" : "-\(currencySymbol)") : currencySymbol)
+                    Text(insightsType == 1 ? (netTotal.positive ? currencySymbol : "-\(currencySymbol)") : currencySymbol)
                         .font(.system(.caption, design: .rounded))
                         .foregroundColor(Color.SubtitleText)
 
@@ -502,23 +518,23 @@ struct NumberView: AnimatableModifier {
         let baseSize: CGFloat
         switch dynamicTypeSize {
         case .xSmall:
-            baseSize = 46
+            baseSize = 72
         case .small:
-            baseSize = 47
+            baseSize = 76
         case .medium:
-            baseSize = 48
+            baseSize = 80
         case .large:
-            baseSize = 50
+            baseSize = 84
         case .xLarge:
-            baseSize = 56
+            baseSize = 88
         case .xxLarge:
-            baseSize = 58
+            baseSize = 92
         case .xxxLarge:
-            baseSize = 62
+            baseSize = 96
         default:
-            baseSize = 50
+            baseSize = 84
         }
-        return baseSize * (1 - (0.34 * collapseProgress))
+        return baseSize - ((baseSize - 42) * collapseProgress)
     }
     var animatableData: Double {
         get { number }
@@ -528,7 +544,7 @@ struct NumberView: AnimatableModifier {
     func body(content _: Content) -> some View {
         HStack(alignment: .lastTextBaseline, spacing: 2) {
             Group {
-                Text(netTotal ? (positive ? "+\(currencySymbol)" : "-\(currencySymbol)") : currencySymbol)
+                Text(netTotal ? (positive ? currencySymbol : "-\(currencySymbol)") : currencySymbol)
                     .font(.system(size: 34 - (8 * collapseProgress), design: .rounded))
                     .foregroundColor(Color.SubtitleText) +
 
@@ -641,11 +657,11 @@ struct LogInsightsView: View {
     }
 
     var body: some View {
-        VStack(spacing: -3) {
-            VStack(spacing: 2 - collapseProgress) {
+        VStack(spacing: 0) {
+            VStack(spacing: max(0, 6 - (4 * collapseProgress))) {
                 HStack(spacing: 4) {
                     Text(LocalizedStringKey(headingText))
-                        .font(.system(size: 17 - (3 * collapseProgress), design: .rounded).weight(.medium))
+                        .font(.system(size: 19 - (4 * collapseProgress), design: .rounded).weight(.medium))
                         .foregroundColor(Color.PrimaryText.opacity(0.9))
                 }
 
@@ -658,12 +674,7 @@ struct LogInsightsView: View {
                         collapseProgress: collapseProgress
                     ))
             }
-            .padding(EdgeInsets(
-                top: 7 - (4 * collapseProgress),
-                leading: 7,
-                bottom: 7 - (4 * collapseProgress),
-                trailing: 7
-            ))
+            .padding(.top, 16 - (10 * collapseProgress))
             .contentShape(Rectangle())
             .contextMenu {
                 if insightsType != 3 {
@@ -706,7 +717,7 @@ struct LogInsightsView: View {
 //                    }
 
                     Text("+\(formatNumber(showCents: showCents, number: totalIncome))")
-                        .font(.system(size: 22 - (4 * collapseProgress), design: .rounded).weight(.medium))
+                        .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.IncomeGreen)
@@ -718,7 +729,7 @@ struct LogInsightsView: View {
                         .foregroundColor(Color.Outline)
 
                     Text("-\(formatNumber(showCents: showCents, number: totalSpent))")
-                        .font(.system(size: 22 - (4 * collapseProgress), design: .rounded).weight(.medium))
+                        .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.AlertRed)
@@ -736,7 +747,7 @@ struct LogInsightsView: View {
 //                            .lineLimit(1)
 //                    }
                 }
-                .padding(.bottom, 13 - (7 * collapseProgress))
+                .padding(.top, 8)
             }
 
             if lineGraph {
@@ -746,9 +757,11 @@ struct LogInsightsView: View {
                     .padding(.top, 16)
             }
         }
-        .padding([.bottom, .horizontal], 20)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .frame(height: (lineGraph ? 240 : 170) - ((lineGraph ? 162 : 92) * collapseProgress))
+        .frame(height: lineGraph ? 240 : 210)
+        .accessibilityHidden(collapseProgress > 0.5)
     }
 
     func formatNumber(showCents: Bool, number: Double) -> String {
@@ -1145,39 +1158,8 @@ struct SingleTransactionView: View {
     let future: Bool
     let showExpenseOrIncomeSign: Bool
 
-    @State var refreshID = UUID()
-
-    @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
     @EnvironmentObject var transactionManager: OverallTransactionManager
-
-    // delete mode
-//    @State private var toDelete: Transaction?
-//    @State var deleteMode = false
-//
-//    // edit mode
-//    @State private var toEdit: Transaction?
-
-    @State private var offset: CGFloat = 0
-    @State private var deleted: Bool = false
-    var deletePopup: Bool {
-        return abs(offset) > UIScreen.main.bounds.width * 0.2
-    }
-
-    var deleteConfirm: Bool {
-        return abs(offset) > UIScreen.main.bounds.width * 0.42
-    }
-
-    @GestureState var isDragging = false
-
-    var imageSize: Double {
-        let scale = min(1.5, 1 + (abs(offset + 40) / 100))
-        return scale * 10 as Double
-    }
-
-    var imageScale: Double {
-        return min(1, 1 + (abs(Double(offset) + 40) / 100))
-    }
 
     var transactionAmountString: String {
         let numberFormatter = NumberFormatter()
@@ -1194,22 +1176,6 @@ struct SingleTransactionView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            Image(systemName: "xmark")
-//                .font(.system(size: 13, weight: .bold))
-                .font(.system(.caption, design: .rounded).weight(.bold))
-                .dynamicTypeSize(...DynamicTypeSize.xLarge)
-                .foregroundColor(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
-                .padding(5)
-                .background(deleteConfirm ? Color.AlertRed.opacity(0.23) : Color.SecondaryBackground, in: Circle())
-//                .scaleEffect(imageScale)
-                .scaleEffect(deleteConfirm ? 1.1 : 1)
-                .contentShape(Circle())
-                .opacity(deleted ? 0 : 1)
-                .padding(.horizontal, 10)
-                .offset(x: 80)
-                .offset(x: max(-80, offset))
-
             HStack(spacing: 12) {
                 if transaction.isTransfer {
                     Image(systemName: "arrow.left.arrow.right")
@@ -1275,7 +1241,6 @@ struct SingleTransactionView: View {
                         .layoutPriority(1)
                 }
             }
-            .id(refreshID)
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
             .contentShape(RoundedRectangle(cornerRadius: 10))
@@ -1311,95 +1276,8 @@ struct SingleTransactionView: View {
                     }
                 }
             }
-            .offset(x: offset)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
-        }
-        .onChange(of: deletePopup) { _ in
-            if deletePopup {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
-        }
-        .onChange(of: deleteConfirm) { _ in
-            if deleteConfirm {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-        }
-        .animation(.easeInOut, value: deletePopup)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 10)
-                .updating($isDragging, body: { value, state, _ in
-                    state = abs(value.translation.width) > abs(value.translation.height)
-                })
-                .onChanged { value in
-                    let isHorizontalSwipe = abs(value.translation.width) > abs(value.translation.height)
-                    if isHorizontalSwipe && value.translation.width < 0 {
-                        withAnimation {
-                            offset = value.translation.width
-                        }
-                    }
-                }
-                .onEnded { _ in
-                    if deleteConfirm {
-                        deleted = true
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            offset -= UIScreen.main.bounds.width
-                        }
-
-                        if future, transaction.wrappedDate < Date.now, transaction.recurringType > 0 {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                withAnimation(.easeInOut(duration: 0.5)) {
-                                    transaction.recurringType = 0
-                                    dataController.save()
-                                }
-                            }
-                        } else {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                withAnimation {
-                                    moc.delete(transaction)
-                                    transactionManager.showToast = true
-                                    transactionManager.toDelete = transaction
-//                                    transactionManager.future = future
-//                                    transactionManager.toDelete = transaction
-//                                    transactionManager.deletionType = .instant
-                                }
-                            }
-                        }
-
-                    } else if deletePopup {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            offset = 0
-                        }
-
-                        transactionManager.future = future
-                        transactionManager.toDelete = transaction
-                        transactionManager.showPopup = true
-//
-//                        toDelete = transaction
-//                        deleteMode = true
-                    } else {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            offset = 0
-                        }
-                    }
-                }
-        )
-        .onChange(of: isDragging) { _ in
-            if !isDragging && !deleted {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    offset = 0
-                }
-            }
-        }
-        .onChange(of: transactionManager.toDelete) { newValue in
-            if newValue == nil {
-                deleted = false
-                offset = 0
-//                withAnimation(.easeInOut(duration: 0.3)){
-//                   offset = 0
-//                }
-            }
-        }
     }
 
     func getSubtitle() -> String {
