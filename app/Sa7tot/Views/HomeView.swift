@@ -36,6 +36,8 @@ struct HomeView: View {
 
     @State var currentTab = "Log"
     @State private var searchText = ""
+    @State private var suppressInitialSearchActivation = true
+    @State private var launchedFromSearchURL = false
 
     var topEdge: CGFloat
     var bottomEdge: CGFloat
@@ -92,6 +94,7 @@ struct HomeView: View {
                         if url.host == "newExpense" {
                             fromURL1 = true
                         } else if url.host == "search" {
+                            launchedFromSearchURL = true
                             fromURL2 = true
                         } else if url.host == "insights" {
                             fromURL3 = true
@@ -157,6 +160,15 @@ struct HomeView: View {
             if appLockVM.isAppLockEnabled && fromURL4 {
                 currentTab = "Budget"
             }
+
+            if suppressInitialSearchActivation {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    if !launchedFromSearchURL {
+                        currentTab = "Log"
+                    }
+                    suppressInitialSearchActivation = false
+                }
+            }
         }
         .onOpenURL { url in
             if url.host == "newExpense" {
@@ -167,8 +179,10 @@ struct HomeView: View {
                 }
             } else if url.host == "search" {
                 if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
+                    launchedFromSearchURL = true
                     fromURL2 = true
                 } else {
+                    launchedFromSearchURL = true
                     currentTab = "Search"
                 }
             } else if url.host == "insights" {
@@ -201,13 +215,10 @@ struct HomeView: View {
                 SettingsView()
             }
             Tab(value: "Search", role: .search) {
-                NavigationStack {
-                    SearchView(searchQuery: $searchText)
-                }
+                searchTabContent
             }
         }
-        .searchable(text: $searchText, placement: .automatic, prompt: "Cerca movimento per nota")
-        .tabViewSearchActivation(.searchTabSelection)
+        .modifier(ConditionalSearchActivation(isActive: currentTab == "Search" && !suppressInitialSearchActivation))
         .allowsHitTesting(showPopup ? false : true)
         .environmentObject(toastPresenter)
         .environmentObject(transactionManager)
@@ -244,6 +255,32 @@ struct HomeView: View {
             onAdd: presentAddMovement
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @available(iOS 16.0, *)
+    @ViewBuilder
+    private var searchTabContent: some View {
+        NavigationStack {
+            if currentTab == "Search" && !suppressInitialSearchActivation {
+                SearchView(searchQuery: $searchText)
+                    .searchable(text: $searchText, prompt: "Cerca movimento per nota")
+            } else {
+                SearchView(searchQuery: $searchText)
+            }
+        }
+    }
+}
+
+@available(iOS 26.0, *)
+private struct ConditionalSearchActivation: ViewModifier {
+    let isActive: Bool
+
+    func body(content: Content) -> some View {
+        if isActive {
+            content.tabViewSearchActivation(.searchTabSelection)
+        } else {
+            content
+        }
     }
 }
 
