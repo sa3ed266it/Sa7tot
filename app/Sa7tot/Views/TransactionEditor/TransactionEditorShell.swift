@@ -387,7 +387,7 @@ struct TransactionEditorShell: View {
                 Label(isTransfer ? "Elimina trasferimento" : "Elimina movimento", systemImage: "trash")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.bordered)
+            .transactionDeleteButtonStyle()
             .accessibilityLabel(isTransfer ? "Elimina trasferimento" : "Elimina movimento")
         }
     }
@@ -398,6 +398,23 @@ struct TransactionEditorShell: View {
         case 2: return "Ogni \(repeatCoefficient) settiman\(repeatCoefficient == 1 ? "a" : "e")"
         case 3: return "Ogni \(repeatCoefficient) mes\(repeatCoefficient == 1 ? "e" : "i")"
         default: return "Mai"
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func transactionDeleteButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+                .buttonBorderShape(.roundedRectangle)
+                .buttonStyle(.glass)
+        } else if #available(iOS 17.0, *) {
+            self
+                .buttonBorderShape(.roundedRectangle)
+                .buttonStyle(.bordered)
+        } else {
+            self.buttonStyle(.bordered)
         }
     }
 }
