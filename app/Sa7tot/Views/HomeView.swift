@@ -36,7 +36,6 @@ struct HomeView: View {
 
     @State var currentTab = "Log"
     @State private var searchText = ""
-    @State private var isSearchPresented = false
 
     var topEdge: CGFloat
     var bottomEdge: CGFloat
@@ -201,15 +200,9 @@ struct HomeView: View {
             Tab("Impostazioni", systemImage: "gearshape", value: "Settings", role: nil) {
                 SettingsView()
             }
-            Tab(value: "Search", role: .search) {
-                NavigationStack {
-                    SearchView(searchQuery: $searchText)
-                }
+            Tab("Cerca", systemImage: "magnifyingglass", value: "Search", role: nil) {
+                SearchTabView(searchText: $searchText)
             }
-        }
-        .searchable(text: $searchText, isPresented: $isSearchPresented, placement: .automatic, prompt: "Cerca movimento per nota")
-        .onChange(of: currentTab) { newValue in
-            isSearchPresented = newValue == "Search"
         }
         .allowsHitTesting(showPopup ? false : true)
         .environmentObject(toastPresenter)
@@ -256,22 +249,11 @@ private struct SearchTabView: View {
     var body: some View {
         NavigationView {
             SearchView(searchQuery: $searchText)
-                .sa7totLegacySearchable(text: $searchText)
-            .navigationTitle("Cerca")
-            .navigationBarTitleDisplayMode(.inline)
+                .searchable(text: $searchText, placement: .automatic, prompt: "Cerca movimento per nota")
+                .navigationTitle("Cerca")
+                .navigationBarTitleDisplayMode(.inline)
         }
         .navigationViewStyle(.stack)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func sa7totLegacySearchable(text: Binding<String>) -> some View {
-        if #available(iOS 26.0, *) {
-            self
-        } else {
-            searchable(text: text, placement: .automatic, prompt: "Cerca movimento per nota")
-        }
     }
 }
 
