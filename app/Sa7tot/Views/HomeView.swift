@@ -200,10 +200,14 @@ struct HomeView: View {
             Tab("Impostazioni", systemImage: "gearshape", value: "Settings", role: nil) {
                 SettingsView()
             }
-            Tab("Cerca", systemImage: "magnifyingglass", value: "Search", role: nil) {
-                SearchTabView(searchText: $searchText)
+            Tab(value: "Search", role: .search) {
+                NavigationStack {
+                    SearchView(searchQuery: $searchText)
+                }
             }
         }
+        .searchable(text: $searchText, placement: .automatic, prompt: "Cerca movimento per nota")
+        .tabViewSearchActivation(.searchTabSelection)
         .allowsHitTesting(showPopup ? false : true)
         .environmentObject(toastPresenter)
         .environmentObject(transactionManager)
@@ -249,11 +253,22 @@ private struct SearchTabView: View {
     var body: some View {
         NavigationView {
             SearchView(searchQuery: $searchText)
-                .searchable(text: $searchText, placement: .automatic, prompt: "Cerca movimento per nota")
+                .sa7totLegacySearchable(text: $searchText)
                 .navigationTitle("Cerca")
                 .navigationBarTitleDisplayMode(.inline)
         }
         .navigationViewStyle(.stack)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func sa7totLegacySearchable(text: Binding<String>) -> some View {
+        if #available(iOS 26.0, *) {
+            self
+        } else {
+            searchable(text: text, placement: .automatic, prompt: "Cerca movimento per nota")
+        }
     }
 }
 
