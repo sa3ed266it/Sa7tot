@@ -434,9 +434,7 @@ struct CategoryListView: View {
                             } else {
                                 ForEach(categories) { category in
                                     HStack(spacing: 10) {
-                                        Text(category.wrappedEmoji)
-                                            .font(.system(.subheadline, design: .rounded))
-                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                        Sa7totCategoryIcon(name: category.wrappedName, colour: category.wrappedColour, size: 32)
 //                                            .font(.system(size: 15))
                                         Text(category.wrappedName)
                                             .font(.system(.body, design: .rounded))
@@ -515,9 +513,7 @@ struct CategoryListView: View {
                             } else {
                                 ForEach(categories) { category in
                                     HStack(spacing: 10) {
-                                        Text(category.wrappedEmoji)
-                                            .font(.system(.subheadline, design: .rounded))
-                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                        Sa7totCategoryIcon(name: category.wrappedName, colour: category.wrappedColour, size: 32)
 //                                            .font(.system(size: 15))
                                         Text(category.wrappedName)
                                             .font(.system(.body, design: .rounded))
@@ -922,9 +918,8 @@ struct NewCategoryAlert: View {
                         }
 
                     if newEmoji == "" {
-                        Image("emoji-happy")
-                            .resizable()
-                            .foregroundColor(Color.PrimaryText)
+                        Sa7totIcon(systemName: "face.smiling.fill", role: .status, tint: .secondary)
+                            .font(.system(size: 35))
                             .frame(width: 35, height: 35, alignment: .center)
                             .allowsHitTesting(false)
                     }
@@ -1341,9 +1336,8 @@ struct EditCategoryAlert: View {
                         }
 
                     if newEmoji == "" {
-                        Image("emoji-happy")
-                            .resizable()
-                            .foregroundColor(Color.PrimaryText)
+                        Sa7totIcon(systemName: "face.smiling.fill", role: .status, tint: .secondary)
+                            .font(.system(size: 35))
                             .frame(width: 35, height: 35, alignment: .center)
                             .allowsHitTesting(false)
                     }

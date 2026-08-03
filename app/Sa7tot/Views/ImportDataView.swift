@@ -564,9 +564,7 @@ struct ImportDataView: View {
                                                     .foregroundColor(Color.SubtitleText)
 
                                                 HStack(spacing: 5) {
-                                                    Text(unwrappedCategory.wrappedEmoji)
-//                                                        .font(.system(size: 15))
-                                                        .font(.system(.subheadline, design: .rounded))
+                                                    Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: unwrappedCategory.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: unwrappedCategory.wrappedColour))
 
                                                     Text(unwrappedCategory.wrappedName)
                                                         .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -1135,8 +1133,7 @@ struct MatchCategoryStepperView: View {
 
         } label: {
             HStack(spacing: 5) {
-                Text(categoryInput.wrappedEmoji)
-                    .font(.system(.footnote, design: .rounded))
+                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: categoryInput.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: categoryInput.wrappedColour))
 
 //                    .font(.system(size: 13))
                 Text(categoryInput.wrappedName)

@@ -389,8 +389,7 @@ struct TemplateTransactionView: View {
                                         numbers.remove(at: numbers.count - 1)
                                     }
                                 } label: {
-                                    Image("tag-cross")
-                                        .resizable()
+                                    Image(systemName: "delete.left.fill")
                                         .frame(width: 32, height: 32)
                                         .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
                                         .background(Color.DarkBackground)
@@ -811,8 +810,7 @@ struct CategoryRowPickerView: View {
                                 HStack(spacing: 8) {
                                     ForEach(income ? incomeCategories : expenseCategories, id: \.self) { item in
                                         HStack(spacing: 5) {
-                                            Text(item.wrappedEmoji)
-                                                .font(.system(size: 13))
+                                            Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
                                             Text(item.wrappedName)
                                                 .font(.system(size: 17.5, weight: .medium, design: .rounded))
                                         }
@@ -1110,10 +1108,7 @@ struct SingleTemplateButton: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: -2) {
-            Text(transaction.wrappedEmoji)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .padding(5)
-                .background(blend(over: transactionColor, withAlpha: 0.3), in: RoundedRectangle(cornerRadius: 8))
+            Sa7totCategoryIcon(name: transaction.category?.wrappedName ?? "Altro", colour: transaction.wrappedColour, size: 34)
 
             Spacer()
 

@@ -863,9 +863,7 @@ struct BrandNewBudgetView: View {
             }
         } label: {
             HStack(spacing: 5) {
-                Text(category.wrappedEmoji)
-                    .font(.system(.subheadline, design: .rounded))
-                    .font(.system(size: 15))
+                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: category.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: category.wrappedColour))
                 Text(category.wrappedName)
                     .font(.system(.title3, design: .rounded).weight(.semibold))
 //                    .font(.system(size: 19, weight: .semibold, design: .rounded))

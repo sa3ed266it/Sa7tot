@@ -37,8 +37,8 @@ struct InsightsView: View {
     var body: some View {
         if transactions.isEmpty {
             VStack(spacing: 5) {
-                Image("chart")
-                    .resizable()
+                Sa7totIcon(systemName: "chart.line.uptrend.xyaxis", role: .status, tint: .secondary)
+                    .font(.system(size: 56, weight: .medium))
                     .frame(width: 75, height: 75)
                     .padding(.bottom, 20)
 

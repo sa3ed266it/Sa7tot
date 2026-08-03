@@ -18,8 +18,8 @@ struct BudgetView: View {
     var body: some View {
         if categories.isEmpty && budgets.isEmpty && mainBudget.isEmpty {
             VStack(spacing: 5) {
-                Image("category-3")
-                    .resizable()
+                Sa7totIcon(systemName: "chart.pie.fill", role: .status, tint: .secondary)
+                    .font(.system(size: 56, weight: .medium))
                     .frame(width: 75, height: 75)
                     .padding(.bottom, 20)
 
@@ -655,8 +655,7 @@ struct SingleBudgetView: View {
                             }
                             .frame(width: 40, height: 40)
                             .overlay {
-                                Text(budget.wrappedEmoji)
-                                    .font(.system(size: 20))
+                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName), role: .category, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
                             }
 
                             VStack(alignment: .leading, spacing: -0.5) {
@@ -762,8 +761,7 @@ struct SingleBudgetView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 0.5) {
                             HStack(spacing: 4) {
-                                Text(budget.wrappedEmoji)
-                                    .font(.system(.caption, design: .rounded))
+                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
 //                                    .font(.system(size: 11.5))
 
                                 Text(budget.wrappedName)
@@ -1526,8 +1524,7 @@ struct TimeBudgetView: View {
             // budget name and emoji and time left
             VStack(spacing: 10) {
                 HStack(spacing: 7.5) {
-                    Text(budget.wrappedEmoji)
-                        .font(.system(.subheadline, design: .rounded))
+                    Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
                     Text(budget.wrappedName)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .lineLimit(1)

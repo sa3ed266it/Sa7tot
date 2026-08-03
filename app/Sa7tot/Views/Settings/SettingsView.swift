@@ -394,12 +394,7 @@ private struct SettingsNativeIcon: View {
   let tint: Color
 
   var body: some View {
-    Image(systemName: systemImage)
-      .font(.system(size: 14, weight: .semibold))
-      .foregroundStyle(.white)
-      .frame(width: 26, height: 26)
-      .background(tint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-      .accessibilityHidden(true)
+    Sa7totIconTile(systemName: Sa7totSymbolResolver.resolved(systemImage), tint: tint, size: 30)
   }
 }
 

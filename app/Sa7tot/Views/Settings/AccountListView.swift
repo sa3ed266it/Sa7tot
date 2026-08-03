@@ -9,11 +9,11 @@ struct AccountMenuView: View {
         Menu {
             ForEach(accounts.filter { !$0.isArchived }) { item in
                 Button { account = item } label: {
-                    Label(item.name ?? "Conto", systemImage: item.iconName ?? "building.columns.fill")
+                    Label(item.name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(item.iconName ?? "building.columns.fill"))
                 }
             }
         } label: {
-            Label(account?.name ?? "Conto", systemImage: account?.iconName ?? "building.columns.fill")
+            Label(account?.name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(account?.iconName ?? "building.columns.fill"))
                 .font(.system(.body, design: .rounded).weight(.semibold))
                 .foregroundColor(Color.PrimaryText)
                 .padding(.vertical, 8)
@@ -41,8 +41,11 @@ struct AccountListView: View {
                     AccountEditorView(account: account)
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: account.iconName ?? "building.columns.fill")
-                            .foregroundColor(Color(hex: account.wrappedColour))
+                        Sa7totIconTile(
+                            systemName: Sa7totSymbolResolver.resolved(account.iconName ?? "building.columns.fill"),
+                            tint: Color(hex: account.wrappedColour),
+                            size: 34
+                        )
                         VStack(alignment: .leading) {
                             Text(account.name ?? "Conto")
                             Text(account.wrappedType.italianName)

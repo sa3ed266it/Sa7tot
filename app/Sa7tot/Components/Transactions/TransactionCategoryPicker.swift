@@ -18,10 +18,7 @@ struct TransactionCategoryMenu: View {
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
                         } icon: {
-                            Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
-                                .symbolRenderingMode(.monochrome)
-                                .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
-                                .foregroundStyle(.primary)
+                            Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
                         }
                         Spacer()
                         Circle()
@@ -47,8 +44,7 @@ struct TransactionCategoryMenu: View {
             HStack(spacing: 5) {
                 if let category {
                     HStack(spacing: 5) {
-                        Image(systemName: CategoryIconPresentation.symbol(for: category.wrappedName))
-                            .symbolRenderingMode(.monochrome)
+                        Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: category.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: category.wrappedColour))
                         Text(category.wrappedName)
                             .lineLimit(1)
                     }
@@ -93,10 +89,7 @@ struct NewCategoryPickerView: View {
                             }
                         } label: {
                             HStack(spacing: 12) {
-                        Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
-                            .symbolRenderingMode(.monochrome)
-                            .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
-                            .font(.title3)
+                        Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName), role: .category, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
                                     .frame(width: 32)
                                 Text(item.wrappedName)
                                     .foregroundStyle(.primary)

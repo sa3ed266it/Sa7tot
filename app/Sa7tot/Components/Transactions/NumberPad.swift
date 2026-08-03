@@ -64,8 +64,7 @@ struct NumberPad: View {
                         Button {
                             deleteLastDigit()
                         } label: {
-                            Image("tag-cross")
-                                .resizable()
+                            Image(systemName: "delete.left.fill")
                                 .frame(width: 32, height: 32)
                                 .frame(width: keyWidth, height: keyHeight)
                                 .background(Color.DarkBackground)

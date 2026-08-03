@@ -309,10 +309,10 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> InitialSelectionTabBarController {
         let coordinator = context.coordinator
         let tabs: [UITab] = [
-            UITab(title: "Movimenti", image: UIImage(systemName: "list.bullet.rectangle"), identifier: "Log") { _ in coordinator.host(logView) },
-            UITab(title: "Statistiche", image: UIImage(systemName: "chart.bar.xaxis"), identifier: "Insights") { _ in coordinator.host(insightsView) },
-            UITab(title: "Budget", image: UIImage(systemName: "chart.pie.fill"), identifier: "Budget") { _ in coordinator.host(budgetView) },
-            UITab(title: "Impostazioni", image: UIImage(systemName: "gearshape"), identifier: "Settings") { _ in coordinator.host(settingsView) }
+            UITab(title: "Movimenti", image: Sa7totSymbolResolver.image("list.bullet.rectangle"), identifier: "Log") { _ in coordinator.host(logView) },
+            UITab(title: "Statistiche", image: Sa7totSymbolResolver.image("chart.bar.fill"), identifier: "Insights") { _ in coordinator.host(insightsView) },
+            UITab(title: "Budget", image: Sa7totSymbolResolver.image("chart.pie.fill"), identifier: "Budget") { _ in coordinator.host(budgetView) },
+            UITab(title: "Impostazioni", image: Sa7totSymbolResolver.image("gearshape.fill"), identifier: "Settings") { _ in coordinator.host(settingsView) }
         ]
         let searchTab = UISearchTab { _ in coordinator.searchHost(searchView) }
         searchTab.automaticallyActivatesSearch = true

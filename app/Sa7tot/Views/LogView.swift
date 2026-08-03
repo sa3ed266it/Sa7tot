@@ -75,8 +75,8 @@ struct LogView: View {
             Group {
         if transactions.isEmpty {
             VStack(spacing: 5) {
-                Image("dropbox")
-                    .resizable()
+                Sa7totIcon(systemName: "tray.full.fill", role: .status, tint: .secondary)
+                    .font(.system(size: 56, weight: .medium))
                     .frame(width: 75, height: 75)
                     .padding(.bottom, 20)
                     .accessibility(hidden: true)
@@ -1323,14 +1323,12 @@ struct EmojiLogView: View {
 //                    .fill(Color(hex: colour).opacity(0.73))
             }
 
-            Image(systemName: CategoryIconPresentation.symbol(for: categoryName ?? emoji))
-                .symbolRenderingMode(.monochrome)
-                .font(.system(huge ? .title : .title3, design: .rounded).weight(.semibold))
-                .foregroundStyle(CategoryIconPresentation.foreground(for: colour))
-                // future ? .caption :
-                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                .padding(8)
-//                .font(.system(size: huge ? 45 : future ? 16: 20))
+            Sa7totCategoryIcon(
+                name: categoryName ?? "Altro",
+                colour: colour,
+                size: huge ? 72 : 44,
+                future: future
+            )
         }
         .opacity(future ? 0.6 : 1)
     }
