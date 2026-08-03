@@ -35,6 +35,7 @@ struct HomeView: View {
     @EnvironmentObject var dataController: DataController
 
     @State var currentTab = "Log"
+    @State private var searchText = ""
 
     var topEdge: CGFloat
     var bottomEdge: CGFloat
@@ -200,9 +201,13 @@ struct HomeView: View {
                 SettingsView()
             }
             Tab(value: "Search", role: .search) {
-                SearchTabView(currentTab: $currentTab)
+                NavigationStack {
+                    SearchView(searchQuery: $searchText)
+                }
             }
         }
+        .searchable(text: $searchText, prompt: "Cerca movimento per nota")
+        .tabViewSearchActivation(.searchTabSelection)
         .allowsHitTesting(showPopup ? false : true)
         .environmentObject(toastPresenter)
         .environmentObject(transactionManager)
@@ -222,7 +227,7 @@ struct HomeView: View {
             SettingsView()
                 .tabItem { Label("Impostazioni", systemImage: "gearshape") }
                 .tag("Settings")
-            SearchTabView(currentTab: $currentTab)
+            SearchTabView(searchText: $searchText)
                 .tabItem { Label("Cerca", systemImage: "magnifyingglass") }
                 .tag("Search")
         }
@@ -243,13 +248,12 @@ struct HomeView: View {
 }
 
 private struct SearchTabView: View {
-    @Binding var currentTab: String
+    @Binding var searchText: String
 
     var body: some View {
         NavigationView {
-            SearchView {
-                currentTab = "Log"
-            }
+            SearchView(searchQuery: $searchText)
+                .searchable(text: $searchText, prompt: "Cerca movimento per nota")
             .navigationTitle("Cerca")
             .navigationBarTitleDisplayMode(.inline)
         }
