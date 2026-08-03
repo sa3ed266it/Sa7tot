@@ -10,6 +10,7 @@ import ConfettiSwiftUI
 import Foundation
 import StoreKit
 import SwiftUI
+import UIKit
 import UserNotifications
 import WidgetKit
 
@@ -688,9 +689,70 @@ struct SettingsCategoryView: View {
 
   var body: some View {
     CategoryView(mode: .settings, income: false)
-      .navigationBarBackButtonHidden(true)
-      .navigationBarTitle("")
-      .navigationBarHidden(true)
+      .navigationTitle("Categorie")
+      .navigationBarTitleDisplayMode(.inline)
+      .navigationBarBackButtonHidden(false)
+      .background(NativeTabBarVisibility(isHidden: true))
       .background(Color.PrimaryBackground)
+      .onDisappear {
+        TabBarVisibilityViewController.setAllTabBarsHidden(false)
+      }
+  }
+}
+
+private struct NativeTabBarVisibility: UIViewControllerRepresentable {
+  let isHidden: Bool
+
+  func makeUIViewController(context: Context) -> TabBarVisibilityViewController {
+    let controller = TabBarVisibilityViewController()
+    controller.isHidden = isHidden
+    return controller
+  }
+
+  func updateUIViewController(_ controller: TabBarVisibilityViewController, context: Context) {
+    controller.isHidden = isHidden
+    controller.applyVisibility()
+  }
+
+  static func dismantleUIViewController(_ controller: TabBarVisibilityViewController, coordinator: ()) {
+    controller.isHidden = false
+    controller.applyVisibility()
+  }
+}
+
+private final class TabBarVisibilityViewController: UIViewController {
+  var isHidden = false
+
+  override func didMove(toParent parent: UIViewController?) {
+    super.didMove(toParent: parent)
+    applyVisibility()
+  }
+
+  func applyVisibility() {
+    tabBarController?.tabBar.isHidden = isHidden
+  }
+
+  static func setAllTabBarsHidden(_ hidden: Bool) {
+    let windows = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap(\.windows)
+
+    for window in windows where window.isKeyWindow || window.windowLevel == .normal {
+      setTabBarsHidden(in: window.rootViewController, hidden: hidden)
+    }
+  }
+
+  private static func setTabBarsHidden(in controller: UIViewController?, hidden: Bool) {
+    guard let controller else { return }
+
+    if let tabBarController = controller as? UITabBarController {
+      tabBarController.tabBar.isHidden = hidden
+    }
+
+    for child in controller.children {
+      setTabBarsHidden(in: child, hidden: hidden)
+    }
+
+    setTabBarsHidden(in: controller.presentedViewController, hidden: hidden)
   }
 }

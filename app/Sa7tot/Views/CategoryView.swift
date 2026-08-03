@@ -15,12 +15,41 @@ enum CategoryViewMode {
     case welcome, settings, transaction
 }
 
+private extension View {
+    @ViewBuilder
+    func categoryScrollObservation(_ action: @escaping (Bool) -> Void) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollGeometryChange(for: Bool.self, of: { geometry in
+                geometry.contentOffset.y > 10
+            }, action: { _, hasScrolled in
+                action(hasScrolled)
+            })
+        } else {
+            self
+        }
+    }
+}
+
+private struct CategoryHeaderFade: View {
+    var body: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            .mask {
+                LinearGradient(
+                    colors: [.black.opacity(0.72), .black.opacity(0.24), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .frame(height: 42)
+            .allowsHitTesting(false)
+    }
+}
+
 struct CategoryView: View {
     var mode: CategoryViewMode
 //    @Environment(\.colorScheme) var colorScheme
     @State var income = false
-    @Namespace var animation
-
     @State var newCategory = false
 
     @FetchRequest(sortDescriptors: [SortDescriptor(\.order)], predicate: NSPredicate(format: "income = %d", false)) private var expenseCategories: FetchedResults<Category>
@@ -35,93 +64,29 @@ struct CategoryView: View {
     }
 
     var body: some View {
-        VStack(spacing: 5) {
-            CategoryListView(income: $income, mode: mode, showToast: $showToast, toastTitle: $toastTitle, toastImage: $toastImage, positive: $positive)
+        ZStack(alignment: .top) {
+            CategoryListView(income: $income, mode: mode, hasScrolled: $categoryHasScrolled, showToast: $showToast, toastTitle: $toastTitle, toastImage: $toastImage, positive: $positive)
+                .padding(.top, mode == .settings ? 62 : 0)
 
-            HStack {
-                HStack(spacing: 0) {
-                    Text("Expense")
-                        .font(.system(.body, design: .rounded).weight(.semibold))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(income == false ? Color.PrimaryText : Color.SubtitleText)
-                        .padding(6)
-                        .padding(.horizontal, 8)
-                        .background {
-                            if income == false {
-                                Capsule()
-                                    .fill(Color.SecondaryBackground)
-                                    .matchedGeometryEffect(id: "TAB1", in: animation)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            DispatchQueue.main.async {
-                                withAnimation(.easeIn(duration: 0.15)) {
-                                    income = false
-                                }
-                            }
-                        }
+            if mode == .settings {
+                VStack(spacing: 0) {
+                    Picker("Tipo", selection: $income) {
+                        Text("Spesa").tag(false)
+                        Text("Entrata").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 360)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
 
-                    Text("Income")
-                        .font(.system(.body, design: .rounded).weight(.semibold))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(income == true ? Color.PrimaryText : Color.SubtitleText)
-                        .padding(6)
-                        .padding(.horizontal, 8)
-                        .background {
-                            if income == true {
-                                Capsule()
-                                    .fill(Color.SecondaryBackground)
-                                    .matchedGeometryEffect(id: "TAB1", in: animation)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            DispatchQueue.main.async {
-                                withAnimation(.easeIn(duration: 0.15)) {
-                                    income = true
-                                }
-                            }
-                        }
-                }
-                .padding(3)
-                .layoutPriority(1)
-                .overlay(Capsule().stroke(Color.Outline.opacity(0.4), lineWidth: 1.3))
-
-                Spacer()
-
-                HStack(spacing: 3) {
-                    Image(systemName: "plus")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 14.5, weight: .semibold, design: .rounded))
-
-                    Text("New")
-                        .font(.system(.body, design: .rounded).weight(.semibold))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .lineLimit(1)
-                }
-                .foregroundColor(Color.PrimaryText)
-                .padding(6)
-                .padding(.horizontal, 4.5)
-                .background(Color.SecondaryBackground, in: Capsule())
-                .opacity(disabled ? 0.5 : 1)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if disabled {
-                        showToast = true
-                        toastImage = "exclamationmark.triangle.fill"
-                        toastTitle = "Limit Exceeded"
-                        positive = false
-                    } else {
-                        newCategory = true
+                    if categoryHasScrolled {
+                        CategoryHeaderFade()
                     }
                 }
+                .background(Color.PrimaryBackground)
+                .zIndex(1)
             }
-            .padding(25)
         }
         .sheet(isPresented: $newCategory) {
             if #available(iOS 16.0, *) {
@@ -134,11 +99,34 @@ struct CategoryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea(.keyboard, edges: .all)
         .background(Color.PrimaryBackground)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    if disabled {
+                        showToast = true
+                        toastImage = "exclamationmark.triangle.fill"
+                        toastTitle = "Limit Exceeded"
+                        positive = false
+                    } else {
+                        newCategory = true
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(mode != .settings || disabled)
+                .opacity(mode == .settings ? 1 : 0)
+                .accessibilityHidden(mode != .settings)
+                .accessibilityLabel("Nuovo")
+            }
+        }
     }
+
+    @State private var categoryHasScrolled = false
 }
 
 struct CategoryListView: View {
     @Binding var income: Bool
+    @Binding var hasScrolled: Bool
     var mode: CategoryViewMode
 
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
@@ -302,7 +290,7 @@ struct CategoryListView: View {
                     }
                     .padding(20)
 
-                } else {
+                } else if mode != .settings {
                     HStack(spacing: 8) {
                         if mode == .settings {
                             Circle()
@@ -487,6 +475,7 @@ struct CategoryListView: View {
                     }
                     .scrollContentBackground(.hidden)
                     .scrollIndicators(.hidden)
+                    .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
                 } else {
                     List {
@@ -564,6 +553,7 @@ struct CategoryListView: View {
                             SuggestedCategoriesView(income: income)
                         }
                     }
+                    .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
                 }
             }
@@ -725,12 +715,13 @@ struct CategoryListView: View {
         }
     }
 
-    init(income: Binding<Bool>, mode: CategoryViewMode, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>) {
+    init(income: Binding<Bool>, mode: CategoryViewMode, hasScrolled: Binding<Bool>, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>) {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: NSPredicate(format: "income = %d", income.wrappedValue))
 
         _income = income
+        _hasScrolled = hasScrolled
         _showToast = showToast
         _toastTitle = toastTitle
         _toastImage = toastImage
@@ -1673,8 +1664,7 @@ struct SuggestedCategoriesView: View {
             Section(header: Text("SUGGESTED").foregroundColor(Color.SubtitleText)) {
                 ForEach(suggestions, id: \.self) { category in
                     HStack(spacing: 8) {
-                        Image(systemName: category.symbolName)
-                            .font(.system(.subheadline, design: .rounded))
+                        Sa7totIcon(systemName: category.symbolName, role: .inline)
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         Text(LocalizedStringKey(category.name))
                             .font(.system(.body, design: .rounded))
@@ -1684,8 +1674,7 @@ struct SuggestedCategoriesView: View {
 
                         Spacer()
 
-                        Image(systemName: "plus")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        Sa7totIcon(systemName: "plus", role: .inline)
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color.SubtitleText)

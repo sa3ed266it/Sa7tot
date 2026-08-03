@@ -17,44 +17,44 @@ struct PowerCategory: Hashable, Identifiable {
 
 struct SuggestedCategory: Hashable {
     let name: String
-    let symbolName: String
+    var symbolName: String { CategoryIconRegistry.symbol(for: name) }
 
     static var expenses: [SuggestedCategory] {
         var holding = [SuggestedCategory]()
-        let food = SuggestedCategory(name: "Food", symbolName: "fork.knife")
+        let food = SuggestedCategory(name: "Food")
         holding.append(food)
 
-        let transport = SuggestedCategory(name: "Transport", symbolName: "tram.fill")
+        let transport = SuggestedCategory(name: "Transport")
         holding.append(transport)
 
-        let housing = SuggestedCategory(name: "Rent", symbolName: "house.fill")
+        let housing = SuggestedCategory(name: "Rent")
         holding.append(housing)
 
-        let subscriptions = SuggestedCategory(name: "Subscriptions", symbolName: "repeat.circle.fill")
+        let subscriptions = SuggestedCategory(name: "Subscriptions")
         holding.append(subscriptions)
 
-        let groceries = SuggestedCategory(name: "Groceries", symbolName: "cart.fill")
+        let groceries = SuggestedCategory(name: "Groceries")
         holding.append(groceries)
 
-        let family = SuggestedCategory(name: "Family", symbolName: "person.2.fill")
+        let family = SuggestedCategory(name: "Family")
         holding.append(family)
 
-        let utilities = SuggestedCategory(name: "Utilities", symbolName: "lightbulb.fill")
+        let utilities = SuggestedCategory(name: "Utilities")
         holding.append(utilities)
 
-        let fashion = SuggestedCategory(name: "Fashion", symbolName: "tshirt.fill")
+        let fashion = SuggestedCategory(name: "Fashion")
         holding.append(fashion)
 
-        let healthcare = SuggestedCategory(name: "Healthcare", symbolName: "cross.case.fill")
+        let healthcare = SuggestedCategory(name: "Healthcare")
         holding.append(healthcare)
 
-        let pets = SuggestedCategory(name: "Pets", symbolName: "pawprint.fill")
+        let pets = SuggestedCategory(name: "Pets")
         holding.append(pets)
 
-        let sneakers = SuggestedCategory(name: "Sneakers", symbolName: "shoe.2.fill")
+        let sneakers = SuggestedCategory(name: "Sneakers")
         holding.append(sneakers)
 
-        let gifts = SuggestedCategory(name: "Gifts", symbolName: "gift.fill")
+        let gifts = SuggestedCategory(name: "Gifts")
         holding.append(gifts)
 
         return holding
@@ -62,22 +62,22 @@ struct SuggestedCategory: Hashable {
 
     static var incomes: [SuggestedCategory] {
         var holding = [SuggestedCategory]()
-        let paycheck = SuggestedCategory(name: "Paycheck", symbolName: "banknote.fill")
+        let paycheck = SuggestedCategory(name: "Paycheck")
         holding.append(paycheck)
 
-        let allowance = SuggestedCategory(name: "Allowance", symbolName: "wallet.pass.fill")
+        let allowance = SuggestedCategory(name: "Allowance")
         holding.append(allowance)
 
-        let parttime = SuggestedCategory(name: "Part-Time", symbolName: "briefcase.fill")
+        let parttime = SuggestedCategory(name: "Part-Time")
         holding.append(parttime)
 
-        let investments = SuggestedCategory(name: "Investments", symbolName: "chart.bar.fill")
+        let investments = SuggestedCategory(name: "Investments")
         holding.append(investments)
 
-        let gifts = SuggestedCategory(name: "Gifts", symbolName: "gift.fill")
+        let gifts = SuggestedCategory(name: "Gifts")
         holding.append(gifts)
 
-        let tips = SuggestedCategory(name: "Tips", symbolName: "banknote.fill")
+        let tips = SuggestedCategory(name: "Tips")
         holding.append(tips)
 
         return holding

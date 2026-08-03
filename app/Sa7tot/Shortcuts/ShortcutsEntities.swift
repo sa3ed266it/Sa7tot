@@ -132,14 +132,14 @@ struct IncomeCategoryEntity: AppEntity, Identifiable {
     @Property(title: "Name")
     var name: String
 
-    @Property(title: "Emoji")
+    @Property(title: "Icon")
     var emoji: String
 
     @Property(title: "Income")
     var income: Bool
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(emoji) \(name)")
+        DisplayRepresentation(title: "\(name)" as LocalizedStringResource, image: .init(systemName: Sa7totSharedIconPresentation.symbol(for: name, storedValue: emoji)))
     }
 
     init(id: UUID, name: String, emoji: String, income: Bool) {
@@ -208,14 +208,14 @@ struct ExpenseCategoryEntity: AppEntity, Identifiable {
     @Property(title: "Name")
     var name: String
 
-    @Property(title: "Emoji")
+    @Property(title: "Icon")
     var emoji: String
 
     @Property(title: "Income")
     var income: Bool
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(emoji) \(name)")
+        DisplayRepresentation(title: "\(name)" as LocalizedStringResource, image: .init(systemName: Sa7totSharedIconPresentation.symbol(for: name, storedValue: emoji)))
     }
 
     init(id: UUID, name: String, emoji: String, income: Bool) {
@@ -283,11 +283,11 @@ struct BudgetEntity: AppEntity, Identifiable {
     @Property(title: "Name")
     var name: String
 
-    @Property(title: "Emoji")
+    @Property(title: "Icon")
     var emoji: String
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(emoji) \(name)")
+        DisplayRepresentation(title: "\(name)" as LocalizedStringResource, image: .init(systemName: Sa7totSharedIconPresentation.symbol(for: name, storedValue: emoji)))
     }
 
     init(id: UUID, name: String, emoji: String) {

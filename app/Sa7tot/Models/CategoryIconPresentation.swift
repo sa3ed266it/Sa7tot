@@ -120,7 +120,7 @@ enum CategoryIconCatalog {
         CategoryIconOption("map.fill", "Mappa", .travel),
         CategoryIconOption("globe.europe.africa.fill", "Mondo", .travel),
         CategoryIconOption("tent.fill", "Campeggio", .travel),
-        CategoryIconOption("repeat.circle.fill", "Ricorrenza", .other),
+        CategoryIconOption("arrow.triangle.2.circlepath", "Ricorrenza", .other),
         CategoryIconOption("calendar", "Calendario", .other),
         CategoryIconOption("bell.fill", "Avviso", .other),
         CategoryIconOption("phone.fill", "Telefono", .other),
@@ -159,63 +159,12 @@ enum Sa7totSymbolResolver {
 }
 
 struct CategoryIconPresentation {
-    private static func rawSymbol(for name: String) -> String {
-        let normalized = name
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-
-        switch normalized {
-        case "spesa", "spese": return "cart.fill"
-        case "abbonamento", "abbonamenti": return "repeat.circle.fill"
-        case "trasporti": return "tram.fill"
-        case "cibo": return "fork.knife"
-        case "stipendio": return "banknote.fill"
-        case "casa", "affitto": return "house.fill"
-        case "utenza", "utenze", "bolletta", "bollette": return "bolt.fill"
-        case "famiglia": return "person.2.fill"
-        case "salute": return "cross.case.fill"
-        case "intrattenimento", "svago": return "gamecontroller.fill"
-        case "viaggio", "viaggi": return "airplane"
-        case "moda", "shopping": return "bag.fill"
-        case "regali": return "gift.fill"
-        case "istruzione": return "book.fill"
-        case "sport": return "figure.run"
-        case "animali": return "pawprint.fill"
-        case "entrata", "entrate", "reddito": return "banknote.fill"
-        case "rimborso": return "arrow.uturn.backward.circle.fill"
-        case "risparmi": return "building.columns.fill"
-        case "altro": return "tag.fill"
-        default: return "tag.fill"
-        }
-    }
-
     static func symbol(for name: String, storedValue: String? = nil) -> String {
         if let storedValue, let storedSymbol = CategoryIconStorage.storedSymbol(from: storedValue) {
             return storedSymbol
         }
 
-        if let storedValue, let legacySymbol = legacySymbol(for: storedValue) {
-            return legacySymbol
-        }
-
-        return Sa7totSymbolResolver.resolved(rawSymbol(for: name))
-    }
-
-    private static func legacySymbol(for value: String) -> String? {
-        let legacyMap: [String: String] = [
-            "🍔": "fork.knife", "🍕": "fork.knife", "🍎": "fork.knife",
-            "🚆": "tram.fill", "🚗": "car.fill", "🚌": "bus.fill",
-            "🏠": "house.fill", "💡": "lightbulb.fill", "⚡️": "bolt.fill",
-            "🎁": "gift.fill", "💰": "banknote.fill", "💵": "banknote.fill",
-            "💳": "creditcard.fill", "🏥": "cross.case.fill", "💊": "pills.fill",
-            "⚽️": "sportscourt.fill", "🎮": "gamecontroller.fill", "🎬": "film.fill",
-            "🎵": "music.note", "🐶": "pawprint.fill", "👨‍👩‍👧‍👦": "person.2.fill",
-            "✈️": "airplane", "🎓": "graduationcap.fill", "📚": "books.vertical.fill",
-            "🔄": "repeat.circle.fill", "🔁": "repeat.circle.fill", "🛒": "cart.fill"
-        ]
-        guard let symbol = legacyMap[value] else { return nil }
-        return Sa7totSymbolResolver.resolved(symbol)
+        return Sa7totSymbolResolver.resolved(CategoryIconRegistry.symbol(for: name))
     }
 
     static func foreground(for storedColour: String) -> Color {
@@ -224,6 +173,21 @@ struct CategoryIconPresentation {
 
     static func background(for storedColour: String) -> Color {
         Color(hex: storedColour).opacity(0.22)
+    }
+}
+
+enum CategoryIconMigration {
+    static func migrate(categories: [Category]) -> Bool {
+        var changed = false
+        for category in categories {
+            let canonical = CategoryIconPresentation.symbol(for: category.wrappedName, storedValue: category.emoji)
+            let encoded = CategoryIconStorage.encode(symbolName: canonical)
+            if category.emoji != encoded {
+                category.emoji = encoded
+                changed = true
+            }
+        }
+        return changed
     }
 }
 

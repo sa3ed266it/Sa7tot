@@ -13,28 +13,51 @@ enum Sa7totSharedIconPresentation {
             return String(storedValue.dropFirst(3))
         }
 
-        let legacy: [String: String] = [
-            "🍔": "fork.knife", "🍕": "fork.knife", "🚆": "tram.fill", "🚗": "car.fill",
-            "🏠": "house.fill", "💡": "lightbulb.fill", "🎁": "gift.fill", "💰": "banknote.fill",
-            "💳": "creditcard.fill", "🏥": "cross.case.fill", "💊": "pills.fill", "🎮": "gamecontroller.fill",
-            "🐶": "pawprint.fill", "🛒": "cart.fill"
-        ]
-        if let symbol = legacy[storedValue] {
-            return symbol
-        }
+        return CategoryIconRegistry.symbol(for: name)
+    }
+}
 
-        let normalized = name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT")).lowercased()
-        switch normalized {
-        case "spesa", "spese": return "cart.fill"
-        case "abbonamento", "abbonamenti": return "repeat.circle.fill"
-        case "trasporti": return "tram.fill"
-        case "cibo": return "fork.knife"
-        case "stipendio", "entrata", "entrate", "reddito": return "banknote.fill"
-        case "casa", "affitto": return "house.fill"
-        case "salute": return "cross.case.fill"
-        case "animali": return "pawprint.fill"
-        default: return "tag.fill"
-        }
+/// Shared, Foundation-only source of truth for category symbols.
+/// The app and widget targets both use this registry.
+enum CategoryIconRegistry {
+    private static let symbols: [String: String] = [
+        "trasporti": "tram.fill", "transport": "tram.fill",
+        "affitto": "house.fill", "rent": "house.fill", "casa": "house.fill",
+        "abbonamento": "arrow.triangle.2.circlepath", "abbonamenti": "arrow.triangle.2.circlepath", "subscriptions": "arrow.triangle.2.circlepath",
+        "spesa": "cart.fill", "spese": "cart.fill", "groceries": "cart.fill",
+        "famiglia": "person.2.fill", "family": "person.2.fill",
+        "utenza": "lightbulb.fill", "utenze": "lightbulb.fill", "bolletta": "lightbulb.fill", "bollette": "lightbulb.fill", "utilities": "lightbulb.fill",
+        "moda": "tshirt.fill", "fashion": "tshirt.fill", "shopping": "tshirt.fill",
+        "salute": "cross.case.fill", "healthcare": "cross.case.fill",
+        "animali": "pawprint.fill", "animale": "pawprint.fill", "pets": "pawprint.fill",
+        "cibo": "fork.knife", "food": "fork.knife",
+        "regalo": "gift.fill", "regali": "gift.fill", "gift": "gift.fill", "gifts": "gift.fill",
+        "stipendio": "banknote.fill", "entrata": "banknote.fill", "entrate": "banknote.fill", "reddito": "banknote.fill", "paycheck": "banknote.fill", "salary": "banknote.fill",
+        "bonus": "sparkles", "extra": "sparkles", "tips": "sparkles",
+        "rimborso": "arrow.uturn.backward.circle.fill", "refund": "arrow.uturn.backward.circle.fill",
+        "vendite": "bag.fill", "vendita": "bag.fill", "sales": "bag.fill",
+        "intrattenimento": "gamecontroller.fill", "svago": "gamecontroller.fill", "entertainment": "gamecontroller.fill",
+        "viaggio": "airplane", "viaggi": "airplane", "travel": "airplane",
+        "istruzione": "book.fill", "education": "book.fill",
+        "sport": "figure.run",
+        "risparmi": "building.columns.fill", "savings": "building.columns.fill",
+        "altro": "tag.fill", "other": "tag.fill",
+        "allowance": "banknote.fill", "part time": "briefcase.fill", "investments": "chart.bar.fill",
+        "sneakers": "shoe.2.fill"
+    ]
+
+    static func normalized(_ name: String) -> String {
+        name
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
+            .lowercased()
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+    }
+
+    static func symbol(for name: String) -> String {
+        symbols[normalized(name)] ?? "tag.fill"
     }
 }
 
@@ -97,6 +120,10 @@ extension Category {
 
     var wrappedEmoji: String {
         emoji ?? "😄️"
+    }
+
+    var iconSymbol: String {
+        Sa7totSharedIconPresentation.symbol(for: wrappedName, storedValue: emoji ?? "")
     }
 
     var wrappedName: String {

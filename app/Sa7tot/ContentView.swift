@@ -24,6 +24,9 @@ struct ContentView: View {
     // converts category colors to hex codes
     @AppStorage("dataMigration2", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var dataMigration2: Bool = true
 
+    // converts legacy category emoji/icon values to canonical SF Symbols
+    @AppStorage("dataMigration3", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var dataMigration3: Bool = true
+
     @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
 
     @State var showIntro: Bool = false
@@ -143,6 +146,17 @@ struct ContentView: View {
                 dataController.save()
 
                 dataMigration2 = false
+            }
+
+            if dataMigration3 {
+                let categoryFetch = dataController.fetchRequestForCategoriesMigration()
+                let categories = dataController.results(for: categoryFetch)
+
+                if CategoryIconMigration.migrate(categories: categories) {
+                    dataController.save()
+                }
+
+                dataMigration3 = false
             }
 
             if showUpdateSheet {
