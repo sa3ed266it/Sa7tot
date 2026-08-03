@@ -11,6 +11,11 @@ import Foundation
 import SwiftUIIntrospect
 import SwiftUI
 
+private func homeSignedAmountColor(_ value: Double, positive: Color, neutral: Color) -> Color {
+    if value < 0 { return Color.AlertRed }
+    return value > 0 ? positive : neutral
+}
+
 // Shared by existing non-navigation buttons; retained when the obsolete
 // custom tab-bar file was removed.
 struct BouncyButton: ButtonStyle {
@@ -644,7 +649,7 @@ struct LogInsightsView: View {
                         collapseProgress: collapseProgress
                     ))
             }
-            .padding(.top, 16 - (10 * collapseProgress))
+            .padding(.top, 8 - (4 * collapseProgress))
             .contentShape(Rectangle())
             .contextMenu {
                 if insightsType != 3 {
@@ -933,7 +938,7 @@ struct ListView: View {
                         .font(.system(.callout, design: .rounded).weight(.semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
+                        .foregroundColor(homeSignedAmountColor(filtered.total, positive: Color.SubtitleText, neutral: Color.SubtitleText))
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("\(currencySymbol)\(String(format: "%.2f", filtered.string)) was spent \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
 
@@ -968,7 +973,7 @@ struct ListView: View {
         }
     }
 
-    func filterOutDupes(day: SectionedFetchResults<Date?, Transaction>.Element) -> (transactions: [Transaction], string: String) {
+    func filterOutDupes(day: SectionedFetchResults<Date?, Transaction>.Element) -> (transactions: [Transaction], string: String, total: Double) {
         var seen = [Transaction]()
         let filtered = day.filter { entity -> Bool in
             if seen.contains(where: { $0.id == entity.id }) {
@@ -999,7 +1004,7 @@ struct ListView: View {
             text = (numberFormatter.string(from: NSNumber(value: total)) ?? "$0")
         }
 
-        return (filtered, text)
+        return (filtered, text, total)
     }
 }
 
@@ -1052,6 +1057,18 @@ struct FutureListView: View {
 
     @AppStorage("swapTimeLabel", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var swapTimeLabel: Bool = false
 
+    var total: Double {
+        transactions.reduce(0) { total, transaction in
+            if transaction.wrappedType == .income {
+                return total + transaction.amount
+            } else if transaction.wrappedType == .expense {
+                return total - transaction.amount
+            } else {
+                return total
+            }
+        }
+    }
+
     var totalString: String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .currency
@@ -1061,16 +1078,6 @@ struct FutureListView: View {
             numberFormatter.maximumFractionDigits = 2
         } else {
             numberFormatter.maximumFractionDigits = 0
-        }
-
-        var total = 0.0
-
-        transactions.forEach { transaction in
-            if transaction.wrappedType == .income {
-                total += transaction.amount
-            } else if transaction.wrappedType == .expense {
-                total -= transaction.amount
-            }
         }
 
         if total >= 0 {
@@ -1093,7 +1100,7 @@ struct FutureListView: View {
                     .font(.system(.callout, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
+                    .foregroundColor(homeSignedAmountColor(total, positive: Color.SubtitleText, neutral: Color.SubtitleText))
                     .accessibilityElement(children: .ignore)
 
                     Line()
@@ -1195,7 +1202,7 @@ struct SingleTransactionView: View {
                 if transaction.isTransfer {
                     Text(transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
-                        .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
+                        .foregroundColor(homeSignedAmountColor(transaction.amount, positive: future ? Color.SubtitleText : Color.PrimaryText, neutral: future ? Color.SubtitleText : Color.PrimaryText))
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -1203,7 +1210,7 @@ struct SingleTransactionView: View {
                     Text(showExpenseOrIncomeSign ? "+\(transactionAmountString)" : transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(future ? Color.SubtitleText : Color.IncomeGreen)
+                        .foregroundColor(homeSignedAmountColor(transaction.amount, positive: future ? Color.SubtitleText : Color.IncomeGreen, neutral: future ? Color.SubtitleText : Color.IncomeGreen))
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -1212,7 +1219,7 @@ struct SingleTransactionView: View {
                     Text(showExpenseOrIncomeSign ? "-\(transactionAmountString)" : transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
+                        .foregroundColor(homeSignedAmountColor(-abs(transaction.amount), positive: Color.AlertRed, neutral: Color.AlertRed))
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .layoutPriority(1)
