@@ -1134,12 +1134,6 @@ struct FutureListView: View {
 }
 
 private struct TransactionContextMenuModifier: ViewModifier {
-    let transaction: Transaction
-    let currencySymbol: String
-    let currency: String
-    let showCents: Bool
-    let swapTimeLabel: Bool
-    let future: Bool
     let canDelete: Bool
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -1157,15 +1151,6 @@ private struct TransactionContextMenuModifier: ViewModifier {
                             Label("Elimina", systemImage: "trash")
                         }
                     }
-                } preview: {
-                    TransactionContextPreview(
-                        transaction: transaction,
-                        currencySymbol: currencySymbol,
-                        currency: currency,
-                        showCents: showCents,
-                        swapTimeLabel: swapTimeLabel,
-                        future: future
-                    )
                 }
         } else {
             content.contextMenu {
@@ -1183,6 +1168,7 @@ private struct TransactionContextMenuModifier: ViewModifier {
     }
 }
 
+#if false
 private struct TransactionContextPreview: View {
     let transaction: Transaction
     let currencySymbol: String
@@ -1269,6 +1255,8 @@ private struct TransactionContextPreview: View {
         .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
     }
 }
+
+#endif
 
 struct SingleTransactionView: View {
     let transaction: Transaction
@@ -1369,12 +1357,6 @@ struct SingleTransactionView: View {
                 transactionManager.toEdit = transaction
             }
             .modifier(TransactionContextMenuModifier(
-                transaction: transaction,
-                currencySymbol: currencySymbol,
-                currency: currency,
-                showCents: showCents,
-                swapTimeLabel: swapTimeLabel,
-                future: future,
                 canDelete: !(future && transaction.wrappedDate < Date.now && transaction.recurringType > 0),
                 onEdit: {
                     transactionManager.toEdit = transaction
