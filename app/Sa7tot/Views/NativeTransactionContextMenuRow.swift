@@ -1,6 +1,153 @@
 import SwiftUI
 import UIKit
 
+final class ContextMenuBackgroundEffectController {
+    private weak var installedWindow: UIWindow?
+    private var blurView: UIVisualEffectView?
+    private var dimView: UIView?
+    private var transitionID = 0
+    private var backgroundObserver: NSObjectProtocol?
+
+    init() {
+        backgroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.removeImmediately()
+        }
+    }
+
+    deinit {
+        if let backgroundObserver {
+            NotificationCenter.default.removeObserver(backgroundObserver)
+        }
+        removeImmediately()
+    }
+
+    func show(on window: UIWindow, animator: UIContextMenuInteractionAnimating?) {
+        if installedWindow !== window {
+            removeImmediately()
+        }
+
+        transitionID += 1
+        let currentTransitionID = transitionID
+
+        let blurView: UIVisualEffectView
+        let dimView: UIView
+        if let existingBlurView = self.blurView, let existingDimView = self.dimView {
+            blurView = existingBlurView
+            dimView = existingDimView
+        } else {
+            let newBlurView = UIVisualEffectView(effect: nil)
+            newBlurView.isUserInteractionEnabled = false
+            newBlurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            newBlurView.accessibilityElementsHidden = true
+
+            let newDimView = UIView(frame: .zero)
+            newDimView.isUserInteractionEnabled = false
+            newDimView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            newDimView.backgroundColor = .clear
+            newDimView.accessibilityElementsHidden = true
+
+            newBlurView.contentView.addSubview(newDimView)
+            newDimView.frame = newBlurView.contentView.bounds
+            blurView = newBlurView
+            dimView = newDimView
+            self.blurView = newBlurView
+            self.dimView = newDimView
+        }
+
+        installedWindow = window
+        blurView.frame = window.bounds
+        dimView.frame = blurView.contentView.bounds
+        blurView.alpha = 1
+        blurView.layer.removeAllAnimations()
+        dimView.layer.removeAllAnimations()
+
+        if blurView.superview !== window {
+            window.addSubview(blurView)
+        }
+
+        let reduceTransparency = UIAccessibility.isReduceTransparencyEnabled
+        let targetEffect = blurEffect(for: window, reduceTransparency: reduceTransparency)
+        let targetDimColor = dimColor(for: window, reduceTransparency: reduceTransparency)
+
+        let animations = { [weak blurView, weak dimView] in
+            blurView?.effect = targetEffect
+            dimView?.backgroundColor = targetDimColor
+        }
+
+        if let animator {
+            animator.addAnimations(animations)
+        } else {
+            blurView.effect = nil
+            dimView.backgroundColor = .clear
+            UIView.animate(withDuration: 0.18, animations: animations)
+        }
+    }
+
+    func hide(animator: UIContextMenuInteractionAnimating?) {
+        guard let blurView, let dimView else { return }
+
+        transitionID += 1
+        let currentTransitionID = transitionID
+        let animations = { [weak blurView, weak dimView] in
+            blurView?.effect = nil
+            dimView?.backgroundColor = .clear
+        }
+        let completion = { [weak self] in
+            guard let self, self.transitionID == currentTransitionID else { return }
+            self.removeImmediately()
+        }
+
+        if let animator {
+            animator.addAnimations(animations)
+            animator.addCompletion(completion)
+        } else {
+            UIView.animate(withDuration: 0.16, animations: animations) { _ in
+                completion()
+            }
+        }
+    }
+
+    func removeImmediately() {
+        transitionID += 1
+        blurView?.layer.removeAllAnimations()
+        dimView?.layer.removeAllAnimations()
+        blurView?.removeFromSuperview()
+        blurView = nil
+        dimView = nil
+        installedWindow = nil
+    }
+
+    private func blurEffect(for window: UIWindow, reduceTransparency: Bool) -> UIBlurEffect {
+        let isLight = window.traitCollection.userInterfaceStyle == .light
+        let style: UIBlurEffect.Style
+
+        if reduceTransparency {
+            style = isLight ? .systemMaterialLight : .systemMaterialDark
+        } else {
+            style = isLight ? .systemThinMaterialLight : .systemThinMaterialDark
+        }
+
+        return UIBlurEffect(style: style)
+    }
+
+    private func dimColor(for window: UIWindow, reduceTransparency: Bool) -> UIColor {
+        let isLight = window.traitCollection.userInterfaceStyle == .light
+        let opacity: CGFloat
+
+        if reduceTransparency {
+            opacity = isLight ? 0.10 : 0.18
+        } else {
+            opacity = isLight ? 0.06 : 0.12
+        }
+
+        return UIColor.black.withAlphaComponent(opacity)
+    }
+}
+
 struct NativeTransactionContextMenuRow<Content: View>: UIViewControllerRepresentable {
     let identifier: String
     let canDelete: Bool
@@ -40,6 +187,7 @@ final class NativeTransactionContextMenuRowViewController<Content: View>: UIView
     private var onEdit: () -> Void
     private var onDelete: () -> Void
     private let hostingController: UIHostingController<Content>
+    private let backgroundEffectController = ContextMenuBackgroundEffectController()
 
     init(identifier: String, canDelete: Bool, content: Content, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.identifier = identifier
@@ -119,11 +267,24 @@ final class NativeTransactionContextMenuRowViewController<Content: View>: UIView
         targetedPreview()
     }
 
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willDisplayMenuFor configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
+        guard let window = view.window else { return }
+        backgroundEffectController.show(on: window, animator: animator)
+    }
+
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willEndFor configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
+        backgroundEffectController.hide(animator: animator)
+    }
+
     private func targetedPreview() -> UITargetedPreview {
         let parameters = UIPreviewParameters()
         parameters.backgroundColor = .clear
         parameters.visiblePath = UIBezierPath(rect: view.bounds)
 
         return UITargetedPreview(view: view, parameters: parameters)
+    }
+
+    deinit {
+        backgroundEffectController.removeImmediately()
     }
 }
