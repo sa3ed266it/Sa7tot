@@ -63,9 +63,15 @@ struct TransactionEditorShell: View {
                         category = nil
                         repeatType = 0
                         repeatCoefficient = 1
+                        showCustomRecurring = false
                         destinationAccount = accounts.first(where: { $0 != account && !$0.isArchived })
                     } else {
                         category = nil
+                        if value == "income" {
+                            repeatType = 0
+                            repeatCoefficient = 1
+                            showCustomRecurring = false
+                        }
                         if destinationAccount == account { destinationAccount = nil }
                     }
                 }
@@ -296,7 +302,7 @@ struct TransactionEditorShell: View {
                         AccountMenuView(accounts: Array(accounts), account: $account)
                     }
                 }
-                if !isTransfer { recurrenceRow }
+                if !isTransfer && !income { recurrenceRow }
                 noteRow
             }
         }

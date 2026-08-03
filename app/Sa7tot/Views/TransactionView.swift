@@ -1156,16 +1156,18 @@ struct TransactionView: View {
 
                     editedTransaction.month = calendar.date(from: dateComponents) ?? Date.now
 
-                    if repeatType > 0 {
-                        editedTransaction.onceRecurring = true
-                        editedTransaction.recurringType = Int16(repeatType)
-                        editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
+                    if !income {
+                        if repeatType > 0 {
+                            editedTransaction.onceRecurring = true
+                            editedTransaction.recurringType = Int16(repeatType)
+                            editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
 
-                        dataController.updateRecurringTransaction(transaction: editedTransaction)
-                    } else {
-                        editedTransaction.onceRecurring = false
-                        editedTransaction.recurringType = Int16(repeatType)
-                        editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
+                            dataController.updateRecurringTransaction(transaction: editedTransaction)
+                        } else {
+                            editedTransaction.onceRecurring = false
+                            editedTransaction.recurringType = Int16(repeatType)
+                            editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
+                        }
                     }
 
                     do {
@@ -1210,11 +1212,15 @@ struct TransactionView: View {
 
         transaction.month = calendar.date(from: dateComponents) ?? Date.now
 
-        if repeatType > 0 {
+        if !income && repeatType > 0 {
             transaction.onceRecurring = true
             transaction.recurringType = Int16(repeatType)
             transaction.recurringCoefficient = Int16(repeatCoefficient)
             dataController.updateRecurringTransaction(transaction: transaction)
+        } else if income {
+            transaction.onceRecurring = false
+            transaction.recurringType = 0
+            transaction.recurringCoefficient = 1
         }
 
         do {
