@@ -509,10 +509,7 @@ private struct TransactionEditorCategoryCarousel: View {
             category = item
         } label: {
             HStack(spacing: 7) {
-                Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName, storedValue: item.emoji))
-                    .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(.primary)
-                    .accessibilityHidden(true)
+                CategoryIconView(descriptor: item.iconDescriptor, role: .inline, accessibilityLabel: item.wrappedName)
                 Text(item.wrappedName)
                     .foregroundStyle(.primary)
                     .lineLimit(1)

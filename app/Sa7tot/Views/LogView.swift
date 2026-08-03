@@ -1199,7 +1199,7 @@ struct SingleTransactionView: View {
                         .frame(width: 34, height: 34)
                         .background(Color.SecondaryBackground, in: Circle())
                 } else {
-                    EmojiLogView(emoji: (transaction.category?.wrappedEmoji ?? ""),
+                    CategoryLogIconView(iconIdentifier: transaction.category?.iconIdentifier ?? "sf:tag.fill",
                                  categoryName: transaction.category?.wrappedName,
                                  colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future)
                         .fixedSize(horizontal: true, vertical: true)
@@ -1290,42 +1290,20 @@ func dateFormatter(date: Date) -> String {
     return dateFormatter.string(from: date).uppercased()
 }
 
-struct EmojiLogView: View {
-    let emoji: String
+struct CategoryLogIconView: View {
+    let iconIdentifier: String
     let categoryName: String?
     let colour: String
     let future: Bool
     let huge: Bool
 
     var body: some View {
-        ZStack {
-            if future {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(Color(hex: colour).opacity(0.73), lineWidth: 2)
-                    .foregroundColor(.clear)
-            } else {
-                RoundedRectangle(cornerRadius: huge ? 20 : 9, style: .continuous)
-                    .fill(blend(over: Color(hex: colour), withAlpha: 0.73))
-//                RoundedRectangle(cornerRadius: 9, style: .continuous)
-//                    .fill(Color.white)
-//
-//                RoundedRectangle(cornerRadius: 9, style: .continuous)
-//                    .fill(Color(hex: colour).opacity(0.73))
-            }
-
-            Sa7totCategoryIcon(
-                name: categoryName ?? "Altro",
-                colour: colour,
-                storedValue: emoji,
-                size: huge ? 72 : 44,
-                future: future
-            )
-        }
-        .opacity(future ? 0.6 : 1)
+        CategoryIconView(descriptor: CategoryIconPresentation.descriptor(for: iconIdentifier), role: huge ? .category : .listRow, accessibilityLabel: categoryName ?? "Altro")
+            .opacity(future ? 0.6 : 1)
     }
 
-    init(emoji: String, categoryName: String? = nil, colour: String, future: Bool, huge: Bool = false) {
-        self.emoji = emoji
+    init(iconIdentifier: String, categoryName: String? = nil, colour: String, future: Bool, huge: Bool = false) {
+        self.iconIdentifier = iconIdentifier
         self.categoryName = categoryName
         self.colour = colour
         self.future = future
@@ -1599,10 +1577,7 @@ struct CategoryStepperView: View {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { item in
                             HStack(spacing: 5) {
-                                Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName, storedValue: item.emoji))
-                                    .symbolRenderingMode(.monochrome)
-                                    .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
-                                    .font(.system(.footnote, design: .rounded).weight(.medium))
+                                CategoryIconView(descriptor: item.iconDescriptor, role: .inline, accessibilityLabel: item.wrappedName)
                                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                                    .font(.system(size: 13))
                                 Text(item.wrappedName)

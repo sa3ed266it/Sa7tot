@@ -424,12 +424,40 @@ final class AccountTests: XCTestCase {
         XCTAssertFalse(WalletDuplicateDetector.isDuplicate(amount: Decimal(string: "12.5")!, merchant: "esselunga", account: account, date: Date().addingTimeInterval(601), externalReference: nil, transactions: [transaction]))
     }
 
+    func testCategoryIconDescriptorRoundTripsSupportedIdentifiers() {
+        XCTAssertEqual(CategoryIconDescriptor(identifier: "sf:tram.fill"), .sfSymbol("tram.fill"))
+        XCTAssertEqual(CategoryIconDescriptor(identifier: "asset:netflix"), .asset("netflix"))
+        XCTAssertEqual(CategoryIconDescriptor(identifier: "logo:spotify"), .appLogo("spotify"))
+        XCTAssertEqual(CategoryIconDescriptor(identifier: "logo:spotify").identifier, "logo:spotify")
+    }
+
+    func testCategoryIconDescriptorFallsBackForInvalidIdentifiers() {
+        XCTAssertEqual(CategoryIconDescriptor(identifier: "invalid"), .fallback)
+        XCTAssertEqual(CategoryIconPresentation.descriptor(for: "sf:not.a.real.symbol"), .fallback)
+    }
+
+    func testCategoryIconCatalogHasUniqueIdentifiers() {
+        let identifiers = CategoryIconCatalog.all.map(\.id)
+        XCTAssertEqual(identifiers.count, Set(identifiers).count)
+    }
+
+    func testCategoryIconColorIsSeparateFromPresentationStyle() {
+        XCTAssertEqual(CategoryIconPresentation.Style.plain, .plain)
+        XCTAssertNotEqual(CategoryIconPresentation.Style.plain, .selection)
+    }
+
+    func testNewCategoryUsesCleanIconIdentifierDefault() {
+        let context = makeContext()
+        let category = Category(context: context)
+        XCTAssertEqual(category.iconIdentifier, "sf:tag.fill")
+    }
+
     private func makeCategory(in context: NSManagedObjectContext, name: String, income: Bool = false) -> Category {
         let category = Category(context: context)
         category.id = UUID()
         category.name = name
         category.income = income
-        category.emoji = "🧾"
+        category.iconIdentifier = "sf:doc.text.fill"
         category.colour = "#5E7CE2"
         category.dateCreated = Date()
         return category

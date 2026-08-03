@@ -826,7 +826,7 @@ struct BrandNewBudgetView: View {
 
     @ViewBuilder
     func RowView(category: Category) -> some View {
-        let iconSymbol = CategoryIconPresentation.symbol(for: category.wrappedName, storedValue: category.emoji)
+        let iconDescriptor = category.iconDescriptor
         Button {
             if selectedCategory == category {
                 selectedCategory = nil
@@ -835,7 +835,7 @@ struct BrandNewBudgetView: View {
             }
         } label: {
             HStack(spacing: 5) {
-                Sa7totIcon(systemName: iconSymbol, role: .inline, tint: CategoryIconPresentation.foreground(for: category.wrappedColour))
+                CategoryIconView(descriptor: iconDescriptor, role: .inline, accessibilityLabel: category.wrappedName)
                 Text(category.wrappedName)
                     .font(.system(.title3, design: .rounded).weight(.semibold))
 //                    .font(.system(size: 19, weight: .semibold, design: .rounded))

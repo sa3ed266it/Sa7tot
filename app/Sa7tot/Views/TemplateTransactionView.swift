@@ -810,7 +810,7 @@ struct CategoryRowPickerView: View {
                                 HStack(spacing: 8) {
                                     ForEach(income ? incomeCategories : expenseCategories, id: \.self) { item in
                                         HStack(spacing: 5) {
-                                            Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName, storedValue: item.emoji), role: .inline, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
+                                            CategoryIconView(descriptor: item.iconDescriptor, role: .inline, accessibilityLabel: item.wrappedName)
                                             Text(item.wrappedName)
                                                 .font(.system(size: 17.5, weight: .medium, design: .rounded))
                                         }
@@ -1108,7 +1108,7 @@ struct SingleTemplateButton: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: -2) {
-            Sa7totCategoryIcon(name: transaction.category?.wrappedName ?? "Altro", colour: transaction.wrappedColour, storedValue: transaction.category?.wrappedEmoji, size: 34)
+            CategoryIconView(descriptor: transaction.category?.iconDescriptor ?? .fallback, role: .category, accessibilityLabel: transaction.category?.wrappedName ?? "Altro")
 
             Spacer()
 

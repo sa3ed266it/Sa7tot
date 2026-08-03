@@ -68,7 +68,7 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), emoji: budget.wrappedEmoji, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), iconIdentifier: budget.iconIdentifier, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
 
             let percentageOfDays: Double
 
@@ -89,7 +89,7 @@ struct BudgetWidgetProvider: IntentTimelineProvider {
 
             return (holdingTotal, percentageOfDays, returnBudget)
         } else {
-            let budget = HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0)
+            let budget = HoldingBudget(type: 1, iconIdentifier: "failed", name: "", colour: "", budgetAmount: 0)
             return (0, 0, budget)
         }
     }
@@ -105,7 +105,7 @@ struct BudgetWidgetEntry: TimelineEntry {
 
 struct HoldingBudget {
     let type: Int
-    let emoji: String
+    let iconIdentifier: String
     let name: String
     let colour: String
     let budgetAmount: Double
@@ -171,7 +171,7 @@ struct BudgetWidgetEntryView: View {
                     .background(Color.PrimaryBackground)
             }
 
-        } else if entry.budget.emoji == "failed" {
+        } else if entry.budget.iconIdentifier == "failed" {
             if #available(iOS 17.0, *) {
                 Text("Budget no longer exists - please select new budget from widget options.")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
@@ -198,7 +198,7 @@ struct BudgetWidgetEntryView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2.4) {
                             HStack(spacing: 5) {
-                                Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
+                                Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.iconIdentifier))
                                     .font(.system(size: 9))
                                 Text(entry.budget.name.uppercased())
                                     .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -290,7 +290,7 @@ struct BudgetWidgetEntryView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2.4) {
                             HStack(spacing: 5) {
-                                Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
+                                Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.iconIdentifier))
                                     .font(.system(size: 9))
                                 Text(entry.budget.name.uppercased())
                                     .font(.system(size: 12, weight: .semibold, design: .rounded))

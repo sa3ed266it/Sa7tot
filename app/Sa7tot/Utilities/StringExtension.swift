@@ -18,10 +18,6 @@ extension String {
         return rangeOfCharacter(from: CharacterSet.decimalDigits) != nil
     }
 
-    func onlyEmoji() -> String {
-        return filter { $0.isEmoji }
-    }
-
     func widthOfRoundedString(size: CGFloat, weight: UIFont.Weight) -> CGFloat {
         let systemFont = UIFont.systemFont(ofSize: size, weight: weight)
         let roundedFont: UIFont
@@ -64,12 +60,5 @@ extension String {
         UIGraphicsEndImageContext() //  end image context
 
         return image ?? UIImage()
-    }
-}
-
-extension Character {
-    var isEmoji: Bool {
-        guard let scalar = unicodeScalars.first else { return false }
-        return scalar.properties.isEmoji && (scalar.value > 0x238C || unicodeScalars.count > 1)
     }
 }

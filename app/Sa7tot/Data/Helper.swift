@@ -7,13 +7,38 @@
 
 import Foundation
 
+enum CategoryIconDescriptor: Hashable {
+    case sfSymbol(String)
+    case asset(String)
+    case appLogo(String)
+
+    static let fallback: CategoryIconDescriptor = .sfSymbol("tag.fill")
+
+    init(identifier: String?) {
+        guard let identifier, let separator = identifier.firstIndex(of: ":") else { self = .fallback; return }
+        let value = String(identifier[identifier.index(after: separator)...])
+        guard !value.isEmpty else { self = .fallback; return }
+        switch identifier[..<separator] {
+        case "sf": self = .sfSymbol(value)
+        case "asset": self = .asset(value)
+        case "logo": self = .appLogo(value)
+        default: self = .fallback
+        }
+    }
+
+    var identifier: String {
+        switch self { case .sfSymbol(let value): "sf:\(value)"; case .asset(let value): "asset:\(value)"; case .appLogo(let value): "logo:\(value)" }
+    }
+}
+
 enum Sa7totSharedIconPresentation {
     static func symbol(for name: String, storedValue: String) -> String {
-        if storedValue.hasPrefix("sf:") {
-            return String(storedValue.dropFirst(3))
-        }
-
+        if case .sfSymbol(let symbol) = CategoryIconDescriptor(identifier: storedValue) { return symbol }
         return CategoryIconRegistry.symbol(for: name)
+    }
+
+    static func descriptor(for identifier: String) -> CategoryIconDescriptor {
+        CategoryIconDescriptor(identifier: identifier)
     }
 }
 
@@ -104,8 +129,8 @@ extension TemplateTransaction {
         note ?? ""
     }
 
-    var wrappedEmoji: String {
-        category?.wrappedEmoji ?? ""
+    var iconIdentifier: String {
+        category?.iconIdentifier ?? "sf:tag.fill"
     }
 
     var wrappedColour: String {
@@ -114,17 +139,9 @@ extension TemplateTransaction {
 }
 
 extension Category {
-    var wrappedColour: String {
-        colour ?? "#FFFFFF"
-    }
-
-    var wrappedEmoji: String {
-        emoji ?? "😄️"
-    }
-
-    var iconSymbol: String {
-        Sa7totSharedIconPresentation.symbol(for: wrappedName, storedValue: emoji ?? "")
-    }
+    var wrappedColour: String { colour ?? "#FFFFFF" }
+    var wrappedIconIdentifier: String { iconIdentifier ?? "sf:tag.fill" }
+    var iconDescriptor: CategoryIconDescriptor { CategoryIconDescriptor(identifier: wrappedIconIdentifier) }
 
     var wrappedName: String {
         name ?? ""
@@ -134,9 +151,7 @@ extension Category {
         dateCreated ?? Date.now
     }
 
-    var fullName: String {
-        wrappedEmoji + "  " + wrappedName
-    }
+    var fullName: String { wrappedName }
 
     var allTransactions: [Transaction] {
         let set = transactions as? Set<Transaction> ?? []
@@ -159,13 +174,11 @@ public extension Budget {
         category?.wrappedName ?? ""
     }
 
-    var wrappedEmoji: String {
-        category?.wrappedEmoji ?? ""
+    var iconIdentifier: String {
+        category?.iconIdentifier ?? "sf:tag.fill"
     }
 
-    var fullName: String {
-        return wrappedEmoji + " " + wrappedName
-    }
+    var fullName: String { wrappedName }
 
     var wrappedDate: Date {
         return startDate ?? Date.now

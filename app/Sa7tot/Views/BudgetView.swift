@@ -665,17 +665,7 @@ struct SingleBudgetView: View {
 
                     HStack {
                         HStack(spacing: 10) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(.white)
-
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(Color(hex: budget.wrappedColour).opacity(0.3))
-                            }
-                            .frame(width: 40, height: 40)
-                            .overlay {
-                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName, storedValue: budget.category?.emoji), role: .category, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
-                            }
+                            CategoryIconView(descriptor: budget.category?.iconDescriptor ?? .fallback, role: .category, accessibilityLabel: budget.wrappedName)
 
                             VStack(alignment: .leading, spacing: -0.5) {
                                 Text(budget.wrappedName)
@@ -780,7 +770,7 @@ struct SingleBudgetView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 0.5) {
                             HStack(spacing: 4) {
-                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName, storedValue: budget.category?.emoji), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
+                                CategoryIconView(descriptor: budget.category?.iconDescriptor ?? .fallback, role: .inline, accessibilityLabel: budget.wrappedName)
 //                                    .font(.system(size: 11.5))
 
                                 Text(budget.wrappedName)
@@ -1540,10 +1530,10 @@ struct TimeBudgetView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // budget name and emoji and time left
+            // budget name, icon, and time left
             VStack(spacing: 10) {
                 HStack(spacing: 7.5) {
-                    Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName, storedValue: budget.category?.emoji), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
+                    CategoryIconView(descriptor: budget.category?.iconDescriptor ?? .fallback, role: .inline, accessibilityLabel: budget.wrappedName)
                     Text(budget.wrappedName)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .lineLimit(1)
@@ -2033,7 +2023,7 @@ struct TimeMainBudgetView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // budget name and emoji and time left
+            // budget name, icon, and time left
             VStack(spacing: 10) {
                 Text("Overall Budget")
                     .font(.system(.title3, design: .rounded).weight(.medium))

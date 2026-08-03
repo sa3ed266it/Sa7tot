@@ -244,12 +244,7 @@ struct HorizontalPieChartView: View {
                                 HStack(spacing: 10) {
 
                                     HStack(spacing: 10) {
-                                        Sa7totCategoryIcon(
-                                            name: category.category.wrappedName,
-                                            colour: category.category.wrappedColour,
-                                            storedValue: category.category.wrappedEmoji,
-                                            size: 34
-                                        )
+                                        CategoryIconView(descriptor: category.category.iconDescriptor, role: .category, accessibilityLabel: category.category.wrappedName)
 
                                         Text(category.category.wrappedName)
                                             .font(.system(.title3, design: .rounded).weight(.semibold))

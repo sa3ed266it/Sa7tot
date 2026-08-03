@@ -1058,6 +1058,8 @@
 			files = (
 				53BC2A4E2A8B21920019E4A8 /* AccountTests.swift in Sources */,
 				53BC2A472A8B21920019E4A8 /* AccountSupport.swift in Sources */,
+				53980E5D28A77B62009CC4E2 /* Helper.swift in Sources */,
+				7A7E1A042026080300000001 /* CategoryIconPresentation.swift in Sources */,
 				53BC2A442A8B234F0019E4A8 /* MainModel.xcdatamodeld in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

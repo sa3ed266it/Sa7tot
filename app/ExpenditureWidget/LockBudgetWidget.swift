@@ -80,7 +80,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
                 holdingTotal += transaction.wrappedAmount
             }
 
-            let returnBudget = HoldingBudget(type: Int(budget.type), emoji: budget.wrappedEmoji, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
+            let returnBudget = HoldingBudget(type: Int(budget.type), iconIdentifier: budget.iconIdentifier, name: budget.wrappedName, colour: budget.wrappedColour, budgetAmount: budget.amount)
 
             let timeLeft: String
 
@@ -107,7 +107,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
 
             return (holdingTotal, timeLeft, returnBudget)
         } else {
-            let budget = HoldingBudget(type: 1, emoji: "failed", name: "", colour: "", budgetAmount: 0)
+            let budget = HoldingBudget(type: 1, iconIdentifier: "failed", name: "", colour: "", budgetAmount: 0)
             return (0, "", budget)
         }
     }
@@ -173,7 +173,7 @@ struct LockBudgetWidgetEntryView: View {
             if entry.configuration.budget == nil {
                 Text("Select budget in widget options")
             } else {
-                Text("\(entry.budget.emoji) \(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle)")
+                        Text("\(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle)")
                     .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
             }
 
@@ -191,7 +191,7 @@ struct LockBudgetWidgetEntryView: View {
                     .containerBackground(for: .widget) { AccessoryWidgetBackground() }
                 } else {
                     Gauge(value: percent < 1 ? percent : 1) {
-                        Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
+                        Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.iconIdentifier))
                     } currentValueLabel: {
                         Text("\(Int(round(percent * 100)))%")
                     }
@@ -216,7 +216,7 @@ struct LockBudgetWidgetEntryView: View {
                 } else {
                     if #available(iOS 16.0, *) {
                         Gauge(value: percent < 1 ? percent : 1) {
-                            Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
+                        Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.iconIdentifier))
                         } currentValueLabel: {
                             Text("\(Int(round(percent * 100)))%")
                         }
