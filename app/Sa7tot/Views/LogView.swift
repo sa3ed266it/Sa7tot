@@ -69,6 +69,7 @@ struct LogView: View {
 
     @State var progress = 0.0
     @State private var balanceCollapseProgress: CGFloat = 0
+    private let compactBalanceHeaderHeight: CGFloat = 58
 
     var body: some View {
         NavigationView {
@@ -153,39 +154,72 @@ struct LogView: View {
                 .frame(height: (filter == .all || filter == .recurring || filter == .upcoming) ? 50 : 110, alignment: .top)
                 .padding(.top, 10)
 
-                if filter == .all {
-                    LogInsightsView(
-                        navBarText: $navBarText,
-                        showCents: showCents,
-                        currencySymbol: currencySymbol,
-                        collapseProgress: balanceCollapseProgress
-                    )
-                    .clipped()
-                }
-
-                ScrollView(showsIndicators: false) {
-                    TransactionsList(filter: filter, category: categoryFilter, date: dateFilter, week: weekFilter, month: monthFilter, income: income)
-                        .zIndex(0)
-                        .padding(.horizontal, 20)
-                        .background {
-                            GeometryReader { proxy in
-                                Color.clear
-                                    .preference(
-                                        key: LogScrollOffsetKey.self,
-                                        value: proxy.frame(in: .named("LogScroll")).minY
-                                    )
+                ZStack(alignment: .top) {
+                    ScrollView(showsIndicators: false) {
+                        LazyVStack(spacing: 0) {
+                            if filter == .all {
+                                LogInsightsView(
+                                    navBarText: $navBarText,
+                                    showCents: showCents,
+                                    currencySymbol: currencySymbol
+                                )
+                                .background {
+                                    GeometryReader { proxy in
+                                        Color.clear
+                                            .preference(
+                                                key: HomeBalanceHeaderMetricsKey.self,
+                                                value: HomeBalanceHeaderMetrics(
+                                                    minY: proxy.frame(in: .named("HomeScroll")).minY,
+                                                    height: proxy.size.height
+                                                )
+                                            )
+                                    }
+                                    .allowsHitTesting(false)
+                                }
                             }
-                            .allowsHitTesting(false)
+
+                            TransactionsList(filter: filter, category: categoryFilter, date: dateFilter, week: weekFilter, month: monthFilter, income: income)
+                                .padding(.horizontal, 20)
+
+                            if filter == .all {
+                                // Explicit terminal content gives the native scroll view
+                                // enough legal travel for the balance header to collapse.
+                                // The system bottom safe-area inset remains the only tab-bar inset.
+                                Color.clear
+                                    .frame(height: 120)
+                                    .allowsHitTesting(false)
+                            }
                         }
+                    }
+                    .coordinateSpace(name: "HomeScroll")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onPreferenceChange(HomeBalanceHeaderMetricsKey.self) { metrics in
+                        let collapseDistance = max(1, metrics.height - compactBalanceHeaderHeight)
+                        let nextProgress = min(max(-metrics.minY / collapseDistance, 0), 1)
+                        guard abs(nextProgress - balanceCollapseProgress) > 0.001 else { return }
+                        balanceCollapseProgress = nextProgress
+                    }
+
+                    if filter == .all {
+                        CompactLogInsightsView(
+                            showCents: showCents,
+                            currencySymbol: currencySymbol
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: compactBalanceHeaderHeight)
+                        .background(.regularMaterial)
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .fill(Color.Outline.opacity(0.35))
+                                .frame(height: 0.5)
+                                .allowsHitTesting(false)
+                        }
+                        .opacity(balanceCollapseProgress)
+                        .offset(y: -8 * (1 - balanceCollapseProgress))
+                        .allowsHitTesting(false)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .coordinateSpace(name: "LogScroll")
-                .onPreferenceChange(LogScrollOffsetKey.self) { offset in
-                    let collapseDistance: CGFloat = 120
-                    let progress = min(max(-offset / collapseDistance, 0), 1)
-                    guard abs(progress - balanceCollapseProgress) > 0.001 else { return }
-                    balanceCollapseProgress = progress
-                }
 
 //
 //                CustomRefreshView {
@@ -344,11 +378,109 @@ struct LogView: View {
     }
 }
 
-private struct LogScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+private struct HomeBalanceHeaderMetrics: Equatable {
+    let minY: CGFloat
+    let height: CGFloat
+}
 
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+private struct HomeBalanceHeaderMetricsKey: PreferenceKey {
+    static var defaultValue = HomeBalanceHeaderMetrics(minY: 0, height: 170)
+
+    static func reduce(value: inout HomeBalanceHeaderMetrics, nextValue: () -> HomeBalanceHeaderMetrics) {
+        // The expanded header is a single measurement source.
         value = nextValue()
+    }
+}
+
+struct CompactLogInsightsView: View {
+    @EnvironmentObject var dataController: DataController
+
+    let showCents: Bool
+    let currencySymbol: String
+
+    @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
+
+    var netTotal: (value: Double, positive: Bool) {
+        dataController.getLogViewTotalNet(type: 5)
+    }
+
+    var totalSpent: Double {
+        dataController.getLogViewTotalSpent(type: 5)
+    }
+
+    var totalIncome: Double {
+        dataController.getLogViewTotalIncome(type: 5)
+    }
+
+    var amount: Double {
+        switch insightsType {
+        case 2:
+            return totalIncome
+        case 3:
+            return totalSpent
+        default:
+            return netTotal.value
+        }
+    }
+
+    var headingText: String {
+        switch insightsType {
+        case 2:
+            return "Earned"
+        case 3:
+            return "Spent"
+        default:
+            return "Saldo totale"
+        }
+    }
+
+    var formattedAmount: String {
+        String(format: showCents ? "%.2f" : "%.0f", amount)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(headingText)
+                    .font(.system(.caption, design: .rounded).weight(.medium))
+                    .foregroundColor(Color.SubtitleText)
+
+                HStack(alignment: .lastTextBaseline, spacing: 2) {
+                    Text(insightsType == 1 ? (netTotal.positive ? "+\(currencySymbol)" : "-\(currencySymbol)") : currencySymbol)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundColor(Color.SubtitleText)
+
+                    Text(formattedAmount)
+                        .font(.system(.title3, design: .rounded).weight(.medium))
+                        .foregroundColor(Color.PrimaryText)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            if insightsType == 1 && totalSpent != 0 && totalIncome != 0 {
+                HStack(spacing: 7) {
+                    Text("+\(String(format: showCents ? "%.2f" : "%.0f", totalIncome))")
+                        .foregroundColor(Color.IncomeGreen)
+
+                    Rectangle()
+                        .fill(Color.Outline)
+                        .frame(width: 1, height: 14)
+
+                    Text("-\(String(format: showCents ? "%.2f" : "%.0f", totalSpent))")
+                        .foregroundColor(Color.AlertRed)
+                }
+                .font(.system(.subheadline, design: .rounded).weight(.medium))
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(headingText), \(currencySymbol)\(formattedAmount)")
     }
 }
 
