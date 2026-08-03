@@ -1133,6 +1133,143 @@ struct FutureListView: View {
     }
 }
 
+private struct TransactionContextMenuModifier: ViewModifier {
+    let transaction: Transaction
+    let currencySymbol: String
+    let currency: String
+    let showCents: Bool
+    let swapTimeLabel: Bool
+    let future: Bool
+    let canDelete: Bool
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .contextMenu {
+                    Button(action: onEdit) {
+                        Label("Modifica", systemImage: "pencil")
+                    }
+
+                    if canDelete {
+                        Button(role: .destructive, action: onDelete) {
+                            Label("Elimina", systemImage: "trash")
+                        }
+                    }
+                } preview: {
+                    TransactionContextPreview(
+                        transaction: transaction,
+                        currencySymbol: currencySymbol,
+                        currency: currency,
+                        showCents: showCents,
+                        swapTimeLabel: swapTimeLabel,
+                        future: future
+                    )
+                }
+        } else {
+            content.contextMenu {
+                Button(action: onEdit) {
+                    Label("Modifica", systemImage: "pencil")
+                }
+
+                if canDelete {
+                    Button(role: .destructive, action: onDelete) {
+                        Label("Elimina", systemImage: "trash")
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct TransactionContextPreview: View {
+    let transaction: Transaction
+    let currencySymbol: String
+    let currency: String
+    let showCents: Bool
+    let swapTimeLabel: Bool
+    let future: Bool
+
+    private var amountText: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currency
+        formatter.maximumFractionDigits = showCents ? 2 : 0
+        let formatted = formatter.string(from: NSNumber(value: transaction.amount)) ?? "$0"
+
+        if transaction.isTransfer { return formatted }
+        return transaction.income ? "+\(formatted)" : "-\(formatted)"
+    }
+
+    private var amountColor: Color {
+        if !transaction.income && !transaction.isTransfer { return Color.AlertRed }
+        if transaction.isTransfer && transaction.amount < 0 { return Color.AlertRed }
+        return transaction.income ? Color.IncomeGreen : Color.PrimaryText
+    }
+
+    private var subtitle: String {
+        if transaction.isTransfer {
+            return "Trasferimento: \(transaction.account?.name ?? "Conto") → \(transaction.destinationAccount?.name ?? "Conto")"
+        }
+        if future {
+            return transaction.wrappedDate > Date.now
+                ? dateFormatter(date: transaction.wrappedDate)
+                : dateFormatter(date: transaction.nextTransactionDate)
+        }
+        if swapTimeLabel { return transaction.wrappedCategoryName }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: transaction.wrappedDate)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if transaction.isTransfer {
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color.PrimaryText)
+                    .frame(width: 34, height: 34)
+                    .background(Color.SecondaryBackground, in: Circle())
+            } else {
+                EmojiLogView(
+                    emoji: transaction.category?.wrappedEmoji ?? "",
+                    categoryName: transaction.category?.wrappedName,
+                    colour: transaction.category?.wrappedColour ?? "#FFFFFF",
+                    future: future
+                )
+                .fixedSize(horizontal: true, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(transaction.wrappedNote)
+                    .font(.system(.body, design: .rounded).weight(.medium))
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
+                    .lineLimit(1)
+
+                Text(subtitle)
+                    .font(.system(.subheadline, design: .rounded).weight(.medium))
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                    .foregroundColor(future ? Color.EvenLighterText : Color.SubtitleText)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(amountText)
+                .font(.system(.title3, design: .rounded).weight(.medium))
+                .foregroundColor(amountColor)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
+    }
+}
+
 struct SingleTransactionView: View {
     let transaction: Transaction
     let showCents: Bool
@@ -1231,35 +1368,23 @@ struct SingleTransactionView: View {
             .onTapGesture {
                 transactionManager.toEdit = transaction
             }
-            .contextMenu {
-                if transaction.recurringType > 0 {
-                    Button {
-                        transaction.recurringType = 0
-                        dataController.save()
-                    } label: {
-                        Label("Stop Recurring", systemImage: "xmark")
-                    }
-                }
-
-                Button {
+            .modifier(TransactionContextMenuModifier(
+                transaction: transaction,
+                currencySymbol: currencySymbol,
+                currency: currency,
+                showCents: showCents,
+                swapTimeLabel: swapTimeLabel,
+                future: future,
+                canDelete: !(future && transaction.wrappedDate < Date.now && transaction.recurringType > 0),
+                onEdit: {
                     transactionManager.toEdit = transaction
-                } label: {
-                    Label("Edit", systemImage: "pencil")
+                },
+                onDelete: {
+                    transactionManager.toDelete = transaction
+                    transactionManager.future = future
+                    transactionManager.showPopup = true
                 }
-
-                if !(future && transaction.wrappedDate < Date.now && transaction.recurringType > 0) {
-                    Button {
-                        transactionManager.toDelete = transaction
-                        transactionManager.future = future
-                        transactionManager.showPopup = true
-
-//                        toDelete = transaction
-//                        deleteMode = true
-                    } label: {
-                        Label("Delete", systemImage: "xmark.bin")
-                    }
-                }
-            }
+            ))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
     }
