@@ -84,8 +84,13 @@ struct HomeView: View {
             .environmentObject(toastPresenter)
             .environmentObject(transactionManager)
 
-            CustomTabBar(currentTab: $currentTab, topEdge: topEdge, bottomEdge: bottomEdge, counter: $counter, launchAdd: launchAdd)
-                .offset(y: tabBarManager.hideTab ? (70 + bottomEdge) : 0)
+            NativeFloatingTabBar(
+                currentTab: $currentTab,
+                bottomEdge: bottomEdge,
+                counter: $counter,
+                launchAdd: launchAdd,
+                isVisible: !tabBarManager.hideTab && !(appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked)
+            )
 
             if showPopup {
                 Rectangle()
@@ -179,6 +184,63 @@ struct HomeView: View {
                 currentTab = "Budget"
             }
         }
+    }
+}
+
+private struct NativeFloatingTabBar: View {
+    @Binding var currentTab: String
+    var bottomEdge: CGFloat
+    @Binding var counter: Int
+    var launchAdd: Bool
+    var isVisible: Bool
+
+    @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
+    @State private var addTransaction = false
+    @State private var count = 0
+
+    @AppStorage("confetti", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var confetti = false
+    @AppStorage("firstTransactionViewLaunch", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var firstLaunch = true
+
+    var body: some View {
+        NativeFloatingTabBarRepresentable(
+            currentTab: $currentTab,
+            isVisible: isVisible,
+            onAdd: presentAddMovement
+        )
+        .frame(height: 76)
+        .padding(.horizontal, 16)
+        .padding(.bottom, max(8, bottomEdge - 8))
+        .fullScreenCover(isPresented: $addTransaction, onDismiss: {
+            if confetti && count != transactions.count {
+                counter += 1
+            }
+            if firstLaunch {
+                firstLaunch = false
+            }
+        }) {
+            TransactionView(toEdit: nil)
+        }
+        .onChange(of: launchAdd) { newValue in
+            if newValue {
+                presentAddMovement()
+            }
+        }
+        .onOpenURL { url in
+            if url.host == "newExpense" {
+                presentAddMovement()
+            }
+        }
+        .onChange(of: addTransaction) { newValue in
+            if newValue {
+                count = transactions.count
+            }
+        }
+    }
+
+    private func presentAddMovement() {
+        guard !addTransaction else { return }
+        count = transactions.count
+        addTransaction = true
     }
 }
 
