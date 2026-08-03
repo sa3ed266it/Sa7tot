@@ -468,9 +468,9 @@ struct SettingsView: View {
               .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(spacing: 8) {
-              Text("Sa7tot is based on the open-source Dime project.")
-              Text("Dime is licensed under the GNU General Public License v3.0.")
-              Link("Upstream repository", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
+              Text("Sa7tot is based on an open-source project.")
+              Text("The original project is licensed under the GNU General Public License v3.0.")
+              Link("Open-source project", destination: URL(string: "https://github.com/rafsoh")!)
             }
             .font(.system(size: 12))
             .multilineTextAlignment(.center)

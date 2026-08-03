@@ -17,7 +17,7 @@
                BlueprintIdentifier = "5327D282287C697400F76ADF"
                BuildableName = "Sa7tot.app"
                BlueprintName = "Sa7tot"
-               ReferencedContainer = "container:dime.xcodeproj">
+               ReferencedContainer = "container:Sa7tot.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -35,7 +35,7 @@
                BlueprintIdentifier = "53BC2A522A8B21920019E4A8"
                BuildableName = "Sa7totTests.xctest"
                BlueprintName = "Sa7totTests"
-               ReferencedContainer = "container:dime.xcodeproj">
+               ReferencedContainer = "container:Sa7tot.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -59,7 +59,7 @@
             BlueprintIdentifier = "5327D282287C697400F76ADF"
             BuildableName = "Sa7tot.app"
             BlueprintName = "Sa7tot"
-            ReferencedContainer = "container:dime.xcodeproj">
+            ReferencedContainer = "container:Sa7tot.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -88,7 +88,7 @@
             BlueprintIdentifier = "5327D282287C697400F76ADF"
             BuildableName = "Sa7tot.app"
             BlueprintName = "Sa7tot"
-            ReferencedContainer = "container:dime.xcodeproj">
+            ReferencedContainer = "container:Sa7tot.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

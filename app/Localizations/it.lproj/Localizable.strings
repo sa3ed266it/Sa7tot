@@ -377,9 +377,9 @@
 "Category Budget" = "Categoria Budget";
 "APPEARANCE" = "APPEARANCE";
 "ABOUT" = "INFORMAZIONI";
-"Sa7tot is based on the open-source Dime project." = "Sa7tot si basa sul progetto open source Dime.";
-"Dime is licensed under the GNU General Public License v3.0." = "Dime è distribuito con licenza GNU General Public License v3.0.";
-"Upstream repository" = "Repository upstream";
+"Sa7tot is based on an open-source project." = "Sa7tot si basa su un progetto open source.";
+"The original project is licensed under the GNU General Public License v3.0." = "Il progetto originale è distribuito con licenza GNU General Public License v3.0.";
+"Open-source project" = "Progetto open source";
 "·" = "·";
 "What's New" = "What's Nuovo";
 "Haptic Feedback" = "Haptic Feedback";

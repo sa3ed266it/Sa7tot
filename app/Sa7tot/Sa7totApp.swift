@@ -1,6 +1,6 @@
 //
-//  sa7totApp.swift
-//  sa7tot
+//  Sa7totApp.swift
+//  Sa7tot
 //
 //  Created by Rafael Soh on 11/7/22.
 //

@@ -18,7 +18,7 @@
                BlueprintIdentifier = "53B1D189288ED7E400E28062"
                BuildableName = "ExpenditureWidgetExtension.appex"
                BlueprintName = "ExpenditureWidgetExtension"
-               ReferencedContainer = "container:dime.xcodeproj">
+               ReferencedContainer = "container:Sa7tot.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -32,7 +32,7 @@
                BlueprintIdentifier = "5327D282287C697400F76ADF"
                BuildableName = "Sa7tot.app"
                BlueprintName = "Sa7tot"
-               ReferencedContainer = "container:dime.xcodeproj">
+               ReferencedContainer = "container:Sa7tot.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -66,7 +66,7 @@
             BlueprintIdentifier = "53B1D189288ED7E400E28062"
             BuildableName = "ExpenditureWidgetExtension.appex"
             BlueprintName = "ExpenditureWidgetExtension"
-            ReferencedContainer = "container:dime.xcodeproj">
+            ReferencedContainer = "container:Sa7tot.xcodeproj">
          </BuildableReference>
       </RemoteRunnable>
       <MacroExpansion>
@@ -75,7 +75,7 @@
             BlueprintIdentifier = "5327D282287C697400F76ADF"
             BuildableName = "Sa7tot.app"
             BlueprintName = "Sa7tot"
-            ReferencedContainer = "container:dime.xcodeproj">
+            ReferencedContainer = "container:Sa7tot.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <EnvironmentVariables>
@@ -111,7 +111,7 @@
             BlueprintIdentifier = "5327D282287C697400F76ADF"
             BuildableName = "Sa7tot.app"
             BlueprintName = "Sa7tot"
-            ReferencedContainer = "container:dime.xcodeproj">
+            ReferencedContainer = "container:Sa7tot.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
