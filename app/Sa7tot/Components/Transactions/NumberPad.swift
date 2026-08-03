@@ -31,15 +31,20 @@ struct NumberPad: View {
 
     var body: some View {
         GeometryReader { proxy in
-            VStack(spacing: proxy.size.height * 0.04) {
+            let keyWidth = editorMode ? min(108, max(44, proxy.size.width * 0.29)) : proxy.size.width * 0.3
+            let keyHeight = editorMode ? max(44, min(48, proxy.size.height * 0.19)) : proxy.size.height * 0.22
+            let columnSpacing = editorMode ? min(16, max(8, proxy.size.width * 0.035)) : proxy.size.width * 0.05
+            let rowSpacing = editorMode ? 6 : proxy.size.height * 0.04
+
+            VStack(spacing: rowSpacing) {
                 ForEach(numPadNumbers, id: \.self) { array in
-                    HStack(spacing: proxy.size.width * 0.05) {
+                    HStack(spacing: columnSpacing) {
                         ForEach(array, id: \.self) { singleNumber in
-                            NumberButton(number: singleNumber, size: proxy.size)
+                            NumberButton(number: singleNumber, size: proxy.size, keyWidth: keyWidth, keyHeight: keyHeight)
                         }
                     }
                 }
-                HStack(spacing: proxy.size.width * 0.05) {
+                HStack(spacing: columnSpacing) {
                     if editorMode {
                         Button {
                             if numberEntryType == 2 {
@@ -48,7 +53,7 @@ struct NumberPad: View {
                         } label: {
                             Text(",")
                                 .font(.system(size: 34, weight: .regular, design: .rounded))
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                                .frame(width: keyWidth, height: keyHeight)
                                 .background(Color.SecondaryBackground)
                                 .foregroundColor(Color.PrimaryText)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -62,7 +67,7 @@ struct NumberPad: View {
                             Image("tag-cross")
                                 .resizable()
                                 .frame(width: 32, height: 32)
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                                .frame(width: keyWidth, height: keyHeight)
                                 .background(Color.DarkBackground)
                                 .foregroundColor(Color.LightIcon)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -82,7 +87,7 @@ struct NumberPad: View {
                         .buttonStyle(NumPadButton())
                     }
 
-                    NumberButton(number: 0, size: proxy.size)
+                    NumberButton(number: 0, size: proxy.size, keyWidth: keyWidth, keyHeight: keyHeight)
 
                     if editorMode {
                         Button {
@@ -90,7 +95,7 @@ struct NumberPad: View {
                         } label: {
                             Image(systemName: "delete.left.fill")
                                 .font(.system(size: 25, weight: .medium, design: .rounded))
-                                .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
+                                .frame(width: keyWidth, height: keyHeight)
                                 .foregroundColor(Color.PrimaryText)
                                 .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
@@ -205,7 +210,7 @@ struct NumberPad: View {
     }
 
     @ViewBuilder
-    private func NumberButton(number: Int, size: CGSize) -> some View {
+    private func NumberButton(number: Int, size: CGSize, keyWidth: CGFloat, keyHeight: CGFloat) -> some View {
         var disabled: Bool {
             price >= 100000000
         }
@@ -242,7 +247,7 @@ struct NumberPad: View {
         } label: {
             Text("\(number)")
                 .font(.system(size: 34, weight: .regular, design: .rounded))
-                .frame(width: size.width * 0.3, height: size.height * 0.22)
+                .frame(width: keyWidth, height: keyHeight)
                 .background(Color.SecondaryBackground)
                 .foregroundColor(Color.PrimaryText)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))

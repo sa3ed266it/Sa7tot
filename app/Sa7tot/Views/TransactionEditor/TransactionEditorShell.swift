@@ -28,7 +28,6 @@ struct TransactionEditorShell: View {
     @State private var showCategoryPicker = false
     @State private var showCategorySheet = false
     @State private var showRecurring = false
-    @State private var showRecurringPicker = false
     @State private var showDeleteConfirmation = false
     @State private var noteFocused = false
 
@@ -111,9 +110,11 @@ struct TransactionEditorShell: View {
                     decimalValuesAssigned: $decimalValuesAssigned,
                     showingNotePicker: noteFocused
                 )
-                .frame(maxHeight: 255)
-                .padding(.horizontal, 17)
-                .padding(.top, 8)
+                .frame(maxHeight: 216)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Color.SecondaryBackground.opacity(0.55), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(.horizontal, 8)
                 .background(.regularMaterial)
             }
             .navigationTitle(isEditing ? (isTransfer ? "Modifica trasferimento" : "Modifica movimento") : "Nuovo movimento")
@@ -150,27 +151,12 @@ struct TransactionEditorShell: View {
                 CategoryView(mode: .transaction, income: income)
             }
             .sheet(isPresented: $showRecurring) {
-                recurringPickerContent
+                TransactionEditorRecurrenceSheet(
+                    repeatType: $repeatType,
+                    repeatCoefficient: $repeatCoefficient,
+                    isPresented: $showRecurring
+                )
             }
-    }
-
-    @ViewBuilder private var recurringPickerContent: some View {
-        if #available(iOS 16.0, *) {
-            RecurringPickerView(
-                repeatType: $repeatType,
-                repeatCoefficient: $repeatCoefficient,
-                showMenu: $showRecurring,
-                showPicker: $showRecurringPicker
-            )
-            .presentationDetents([.height(250)])
-        } else {
-            RecurringPickerView(
-                repeatType: $repeatType,
-                repeatCoefficient: $repeatCoefficient,
-                showMenu: $showRecurring,
-                showPicker: $showRecurringPicker
-            )
-        }
     }
 
     @ViewBuilder private var typeSelector: some View {
@@ -341,5 +327,116 @@ private struct TransactionEditorNoteField: View {
         .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .contentShape(Rectangle())
         .onTapGesture { textFocused = true }
+    }
+}
+
+private struct TransactionEditorRecurrenceSheet: View {
+    @Binding var repeatType: Int
+    @Binding var repeatCoefficient: Int
+    @Binding var isPresented: Bool
+    @State private var showCustom = false
+
+    var body: some View {
+        NavigationView {
+            List {
+                recurrenceChoice("Mai", type: 0, coefficient: 1, symbol: "repeat")
+                recurrenceChoice("Ogni giorno", type: 1, coefficient: 1, symbol: "sun.max")
+                recurrenceChoice("Ogni settimana", type: 2, coefficient: 1, symbol: "calendar")
+                recurrenceChoice("Ogni mese", type: 3, coefficient: 1, symbol: "calendar.badge.clock")
+
+                Button {
+                    showCustom = true
+                } label: {
+                    Label("Personalizzata…", systemImage: "slider.horizontal.3")
+                }
+                .frame(minHeight: 44)
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Ripeti")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annulla") { isPresented = false }
+                }
+            }
+        }
+        .sheet(isPresented: $showCustom) {
+            TransactionEditorCustomRecurrenceSheet(
+                repeatType: $repeatType,
+                repeatCoefficient: $repeatCoefficient,
+                isPresented: $isPresented,
+                showCustom: $showCustom
+            )
+        }
+    }
+
+    private func recurrenceChoice(_ title: String, type: Int, coefficient: Int, symbol: String) -> some View {
+        Button {
+            repeatType = type
+            repeatCoefficient = coefficient
+            isPresented = false
+        } label: {
+            HStack {
+                Label(title, systemImage: symbol)
+                Spacer()
+                if repeatType == type && (type == 0 || repeatCoefficient == coefficient) {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.tint)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .frame(minHeight: 44)
+    }
+}
+
+private struct TransactionEditorCustomRecurrenceSheet: View {
+    @Binding var repeatType: Int
+    @Binding var repeatCoefficient: Int
+    @Binding var isPresented: Bool
+    @Binding var showCustom: Bool
+    @State private var unit = 1
+    @State private var coefficient = 1
+
+    private var unitLabel: String {
+        switch unit {
+        case 2: return coefficient == 1 ? "settimana" : "settimane"
+        case 3: return coefficient == 1 ? "mese" : "mesi"
+        default: return coefficient == 1 ? "giorno" : "giorni"
+        }
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Picker("Unità", selection: $unit) {
+                    Text("Giorni").tag(1)
+                    Text("Settimane").tag(2)
+                    Text("Mesi").tag(3)
+                }
+                Stepper(value: $coefficient, in: 1...99) {
+                    Text("Ogni \(coefficient) \(unitLabel)")
+                }
+            }
+            .navigationTitle("Personalizzata")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annulla") { showCustom = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fine") {
+                        repeatType = unit
+                        repeatCoefficient = coefficient
+                        showCustom = false
+                        isPresented = false
+                    }
+                }
+            }
+        }
+        .onAppear {
+            unit = repeatType == 0 ? 1 : repeatType
+            coefficient = max(1, repeatCoefficient)
+        }
     }
 }
