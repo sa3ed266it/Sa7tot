@@ -202,19 +202,6 @@ struct LogView: View {
                         balanceCollapseProgress = nextProgress
                     })
 
-                    if filter == .all {
-                        CollapsedBalanceTitleView(
-                            showCents: showCents,
-                            currencySymbol: currencySymbol
-                        )
-                        .padding(.top, 8)
-                        .opacity(balanceHandoff)
-                        .offset(y: -8 * (1 - balanceHandoff))
-                        .zIndex(1)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(balanceHandoff < 0.5)
-                    }
-
                     if #unavailable(iOS 26.0) {
                         LinearGradient(
                             colors: [Color.PrimaryBackground.opacity(0.82), .clear],
@@ -335,6 +322,19 @@ struct LogView: View {
                     .accessibilityLabel("Aggiungi movimento")
                 }
 
+                ToolbarItem(placement: .principal) {
+                    if filter == .all {
+                        CompactBalanceToolbarTitle(
+                            showCents: showCents,
+                            currencySymbol: currencySymbol
+                        )
+                        .opacity(balanceHandoff)
+                        .offset(y: 4 * (1 - balanceHandoff))
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(balanceHandoff < 0.5)
+                    }
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Picker("Filtro", selection: $filter) {
@@ -428,7 +428,7 @@ private struct HomeScrollProgressModifier: ViewModifier {
     }
 }
 
-struct CollapsedBalanceTitleView: View {
+struct CompactBalanceToolbarTitle: View {
     @EnvironmentObject var dataController: DataController
 
     let showCents: Bool
