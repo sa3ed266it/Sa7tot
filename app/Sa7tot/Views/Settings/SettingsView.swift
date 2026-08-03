@@ -18,39 +18,8 @@ struct SettingsView: View {
 
   @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var colourScheme: Int = 0
-  var colourSchemeString: String {
-    if colourScheme == 1 {
-      return String(localized: "Light")
-    } else if colourScheme == 2 {
-      return String(localized: "Dark")
-    } else {
-      return String(localized: "System")
-    }
-  }
-
-  @AppStorage("activeIcon", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var activeIcon: String = "AppIcon"
-  var appIconString: String {
-    if activeIcon == "AppIcon1" {
-      return "v2.0"
-    } else if activeIcon == "AppIcon2" {
-      return "Unicorn"
-    } else if activeIcon == "AppIcon3" {
-      return "v1.5"
-    } else {
-      return "O.G."
-    }
-  }
-
   @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var firstWeekday: Int = 1
-  var firstWeekdayString: String {
-    if firstWeekday == 1 {
-      return String(localized: "Sunday")
-    } else {
-      return String(localized: "Monday")
-    }
-  }
 
   @AppStorage("showNotifications", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showNotifications: Bool = false
@@ -78,17 +47,6 @@ struct SettingsView: View {
       return String(localized: "On")
     } else {
       return String(localized: "Off")
-    }
-  }
-
-  @AppStorage("numberEntryType", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var numberEntryType: Int = 2
-
-  var numberEntryString: String {
-    if numberEntryType == 1 {
-      return String(localized: "Type 1")
-    } else {
-      return String(localized: "Type 2")
     }
   }
 
@@ -135,7 +93,6 @@ struct SettingsView: View {
   // popups
 
   @State var showImportGuide = false
-  @State var showUpdate: Bool = false
 
   @EnvironmentObject var dataController: DataController
 
@@ -147,7 +104,6 @@ struct SettingsView: View {
         NavigationView { settingsList }
       }
     }
-    .fullScreenCover(isPresented: $showUpdate) { UpdateAlert() }
     .fullScreenCover(isPresented: $showImportGuide) { ImportDataView() }
   }
 
@@ -166,11 +122,8 @@ struct SettingsView: View {
         NavigationLink(destination: WalletAutomationView()) {
           SettingsNativeRow(title: "Automazione Wallet", systemImage: "wallet.pass.fill", tint: .orange, value: "Comandi Rapidi")
         }
-        NavigationLink(destination: SettingsNumberEntryView()) {
-          SettingsNativeRow(title: "Inserimento importi", systemImage: "keyboard.fill", tint: .indigo, value: numberEntryValue)
-        }
         NavigationLink(destination: SettingsWeekStartView()) {
-          SettingsNativeRow(title: "Intervalli temporali", systemImage: "calendar.badge.clock", tint: .red, value: firstWeekdayValue)
+          SettingsNativeRow(title: "Week Starts On", systemImage: "calendar.badge.clock", tint: .red, value: firstWeekdayValue)
         }
       }
 
@@ -187,12 +140,14 @@ struct SettingsView: View {
       }
 
       Section("Aspetto") {
-        NavigationLink(destination: SettingsAppearanceView()) {
-          SettingsNativeRow(title: "Tema", systemImage: "circle.lefthalf.filled", tint: .gray, value: colourSchemeValue)
+        Picker(selection: $colourScheme) {
+          Text("Sistema").tag(0)
+          Text("Chiaro").tag(1)
+          Text("Scuro").tag(2)
+        } label: {
+          SettingsNativeLabel(title: "Tema", systemImage: "circle.lefthalf.filled", tint: .gray)
         }
-        NavigationLink(destination: SettingsAppIconView()) {
-          SettingsNativeRow(title: "Icona app", systemImage: "app.fill", tint: .purple, value: appIconString)
-        }
+        .pickerStyle(.menu)
         Toggle(isOn: $showCents) {
           SettingsNativeLabel(title: "Mostra centesimi", systemImage: "centsign.circle.fill", tint: .teal)
         }
@@ -234,20 +189,6 @@ struct SettingsView: View {
         }
       }
 
-      Section("Informazioni") {
-        Link(destination: URL(string: "https://github.com/sa3ed266it/Sa7tot")!) {
-          SettingsNativeLabel(title: "Progetto open source", systemImage: "chevron.left.forwardslash.chevron.right", tint: .gray)
-        }
-        NavigationLink(destination: SettingsCreditsView()) {
-          SettingsNativeLabel(title: "Crediti", systemImage: "person.crop.circle.fill", tint: .blue)
-        }
-        NavigationLink(destination: SettingsLicenseView()) {
-          SettingsNativeLabel(title: "Licenza", systemImage: "doc.text.fill", tint: .gray)
-        }
-        Button { showUpdate = true } label: {
-          SettingsNativeRow(title: "Versione", systemImage: "info.circle.fill", tint: .gray, value: "\(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
-        }
-      }
     }
     .listStyle(.insetGrouped)
     .navigationTitle("Impostazioni")
@@ -267,20 +208,8 @@ struct SettingsView: View {
     }
   }
 
-  private var numberEntryValue: String {
-    numberEntryType == 1 ? "Tipo 1" : "Tipo 2"
-  }
-
   private var firstWeekdayValue: String {
     firstWeekday == 1 ? "Domenica" : "Lunedì"
-  }
-
-  private var colourSchemeValue: String {
-    switch colourScheme {
-    case 1: return "Chiaro"
-    case 2: return "Scuro"
-    default: return "Sistema"
-    }
   }
 
   private var upcomingValue: String {
@@ -768,37 +697,5 @@ struct SettingsCategoryView: View {
       .navigationBarTitle("")
       .navigationBarHidden(true)
       .background(Color.PrimaryBackground)
-  }
-}
-
-struct SettingsCreditsView: View {
-  var body: some View {
-    List {
-      Section("Crediti") {
-        Text("Sa7tot")
-          .font(.title3.weight(.semibold))
-        Text("Sa7tot è basato sul progetto open source Dime di Rafael Soh.")
-        Link("Progetto Dime su GitHub", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
-        Text("Autore originale: Rafael Soh")
-      }
-    }
-    .listStyle(.insetGrouped)
-    .navigationTitle("Crediti")
-    .navigationBarTitleDisplayMode(.inline)
-  }
-}
-
-struct SettingsLicenseView: View {
-  var body: some View {
-    List {
-      Section("Licenza") {
-        Text("Sa7tot è distribuito secondo la GNU General Public License v3.0.")
-        Link("Leggi la licenza GPL v3.0", destination: URL(string: "https://github.com/sa3ed266it/Sa7tot/blob/main/LICENSE")!)
-        Link("Progetto originale Dime", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
-      }
-    }
-    .listStyle(.insetGrouped)
-    .navigationTitle("Licenza")
-    .navigationBarTitleDisplayMode(.inline)
   }
 }
