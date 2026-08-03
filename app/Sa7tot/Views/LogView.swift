@@ -1195,12 +1195,13 @@ struct SingleTransactionView: View {
         }
         .animation(.easeInOut, value: deletePopup)
         .simultaneousGesture(
-            DragGesture()
-                .updating($isDragging, body: { _, state, _ in
-                    state = true
+            DragGesture(minimumDistance: 10)
+                .updating($isDragging, body: { value, state, _ in
+                    state = abs(value.translation.width) > abs(value.translation.height)
                 })
                 .onChanged { value in
-                    if value.translation.width < 0 {
+                    let isHorizontalSwipe = abs(value.translation.width) > abs(value.translation.height)
+                    if isHorizontalSwipe && value.translation.width < 0 {
                         withAnimation {
                             offset = value.translation.width
                         }
