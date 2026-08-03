@@ -258,24 +258,6 @@ struct NumberPad: View {
     }
 }
 
-struct TransactionEditorKeypad: View {
-    @Binding var price: Double
-    @Binding var isEditingDecimal: Bool
-    @Binding var decimalValuesAssigned: AssignedDecimal
-    var showingNotePicker: Bool
-
-    var body: some View {
-        NumberPad(
-            price: $price,
-            category: .constant(nil),
-            isEditingDecimal: $isEditingDecimal,
-            decimalValuesAssigned: $decimalValuesAssigned,
-            showingNotePicker: showingNotePicker,
-            editorMode: true
-        )
-    }
-}
-
 func splitDouble(_ num: Double) -> [String] {
     let formatter = NumberFormatter()
     formatter.minimumFractionDigits = 0

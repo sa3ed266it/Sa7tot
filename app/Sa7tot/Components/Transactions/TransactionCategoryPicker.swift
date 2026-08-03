@@ -1,6 +1,60 @@
 import Foundation
 import SwiftUI
 
+struct TransactionCategoryMenu: View {
+    @Binding var category: Category?
+    @Binding var showingCategoryView: Bool
+    @FetchRequest private var categories: FetchedResults<Category>
+
+    var body: some View {
+        Menu {
+            ForEach(categories) { item in
+                Button {
+                    category = item
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(item.wrappedEmoji)
+                        Text(item.wrappedName)
+                        Spacer()
+                        if item == category { Image(systemName: "checkmark") }
+                    }
+                }
+                .accessibilityLabel(item.wrappedEmoji + " " + item.wrappedName)
+            }
+            Divider()
+            Button {
+                showingCategoryView = true
+            } label: {
+                Label("Modifica categorie", systemImage: "pencil")
+            }
+        } label: {
+            HStack(spacing: 5) {
+                if let category {
+                    Text(category.wrappedEmoji + " " + category.wrappedName)
+                        .foregroundStyle(Color(hex: category.wrappedColour))
+                        .lineLimit(1)
+                } else {
+                    Text("Scegli").foregroundStyle(.secondary)
+                }
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityLabel("Categoria")
+        .accessibilityValue(category?.wrappedName ?? "Scegli")
+    }
+
+    init(category: Binding<Category?>, showingCategoryView: Binding<Bool>, income: Bool) {
+        _categories = FetchRequest<Category>(
+            sortDescriptors: [SortDescriptor(\.order, order: .reverse)],
+            predicate: NSPredicate(format: "income = %d", income)
+        )
+        _category = category
+        _showingCategoryView = showingCategoryView
+    }
+}
+
 struct NewCategoryPickerView: View {
     @Binding var category: Category?
     @Binding var showPicker: Bool
