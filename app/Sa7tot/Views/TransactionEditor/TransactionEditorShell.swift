@@ -424,40 +424,6 @@ private struct TransactionEditorRow<Content: View>: View {
     }
 }
 
-private enum TransactionEditorCategorySymbolResolver {
-    private static let symbols: [String: String] = [
-        "spesa": "cart.fill",
-        "spese": "cart.fill",
-        "abbonamenti": "repeat.circle.fill",
-        "trasporti": "tram.fill",
-        "cibo": "fork.knife",
-        "casa": "house.fill",
-        "bollette": "bolt.fill",
-        "salute": "cross.case.fill",
-        "shopping": "bag.fill",
-        "svago": "gamecontroller.fill",
-        "viaggi": "airplane",
-        "regali": "gift.fill",
-        "istruzione": "book.fill",
-        "sport": "figure.run",
-        "animali": "pawprint.fill",
-        "stipendio": "banknote.fill",
-        "entrate": "arrow.down.circle.fill",
-        "reddito": "arrow.down.circle.fill",
-        "rimborso": "arrow.uturn.backward.circle.fill",
-        "risparmi": "building.columns.fill",
-        "altro": "tag.fill"
-    ]
-
-    static func symbol(for name: String) -> String {
-        let normalized = name
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        return symbols[normalized] ?? "tag.fill"
-    }
-}
-
 private struct TransactionEditorCategoryCarousel: View {
     @Binding var category: Category?
     let income: Bool
@@ -526,7 +492,7 @@ private struct TransactionEditorCategoryCarousel: View {
             category = item
         } label: {
             HStack(spacing: 7) {
-                Image(systemName: TransactionEditorCategorySymbolResolver.symbol(for: item.wrappedName))
+                Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)

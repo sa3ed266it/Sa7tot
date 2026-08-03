@@ -18,7 +18,9 @@ struct TransactionCategoryMenu: View {
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
                         } icon: {
-                            Text(item.wrappedEmoji)
+                            Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
                                 .foregroundStyle(.primary)
                         }
                         Spacer()
@@ -33,7 +35,7 @@ struct TransactionCategoryMenu: View {
                     }
                     .foregroundStyle(.primary)
                 }
-                .accessibilityLabel(item.wrappedEmoji + " " + item.wrappedName)
+                .accessibilityLabel(item.wrappedName)
             }
             Divider()
             Button {
@@ -44,9 +46,13 @@ struct TransactionCategoryMenu: View {
         } label: {
             HStack(spacing: 5) {
                 if let category {
-                    Text(category.wrappedEmoji + " " + category.wrappedName)
-                        .foregroundStyle(Color(hex: category.wrappedColour))
-                        .lineLimit(1)
+                    HStack(spacing: 5) {
+                        Image(systemName: CategoryIconPresentation.symbol(for: category.wrappedName))
+                            .symbolRenderingMode(.hierarchical)
+                        Text(category.wrappedName)
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(CategoryIconPresentation.foreground(for: category.wrappedColour))
                 } else {
                     Text("Scegli").foregroundStyle(.secondary)
                 }
@@ -87,8 +93,10 @@ struct NewCategoryPickerView: View {
                             }
                         } label: {
                             HStack(spacing: 12) {
-                                Text(item.wrappedEmoji)
-                                    .font(.title3)
+                        Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
+                            .font(.title3)
                                     .frame(width: 32)
                                 Text(item.wrappedName)
                                     .foregroundStyle(.primary)

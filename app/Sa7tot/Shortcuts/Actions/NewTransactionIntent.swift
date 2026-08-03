@@ -223,6 +223,7 @@ struct ShortcutTransactionView: View {
     var body: some View {
         HStack(spacing: 12) {
             EmojiLogView(emoji: (transaction.category?.wrappedEmoji ?? ""),
+                         categoryName: transaction.category?.wrappedName,
                          colour: (transaction.category?.wrappedColour ?? ""), future: false)
                 .frame(width: 35, height: 35, alignment: .center)
                 .overlay(alignment: .bottomTrailing) {

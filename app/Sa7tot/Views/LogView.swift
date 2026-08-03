@@ -1037,6 +1037,7 @@ struct SingleTransactionView: View {
                         .background(Color.SecondaryBackground, in: Circle())
                 } else {
                     EmojiLogView(emoji: (transaction.category?.wrappedEmoji ?? ""),
+                                 categoryName: transaction.category?.wrappedName,
                                  colour: (transaction.category?.wrappedColour ?? "#FFFFFF"), future: future)
                         .fixedSize(horizontal: true, vertical: true)
                         .overlay(alignment: .bottomTrailing) {
@@ -1250,6 +1251,7 @@ func dateFormatter(date: Date) -> String {
 
 struct EmojiLogView: View {
     let emoji: String
+    let categoryName: String?
     let colour: String
     let future: Bool
     let huge: Bool
@@ -1270,8 +1272,10 @@ struct EmojiLogView: View {
 //                    .fill(Color(hex: colour).opacity(0.73))
             }
 
-            Text(emoji)
-                .font(.system(huge ? .title : .title3))
+            Image(systemName: CategoryIconPresentation.symbol(for: categoryName ?? emoji))
+                .symbolRenderingMode(.hierarchical)
+                .font(.system(huge ? .title : .title3, design: .rounded).weight(.semibold))
+                .foregroundStyle(CategoryIconPresentation.foreground(for: colour))
                 // future ? .caption :
                 .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                 .padding(8)
@@ -1280,8 +1284,9 @@ struct EmojiLogView: View {
         .opacity(future ? 0.6 : 1)
     }
 
-    init(emoji: String, colour: String, future: Bool, huge: Bool = false) {
+    init(emoji: String, categoryName: String? = nil, colour: String, future: Bool, huge: Bool = false) {
         self.emoji = emoji
+        self.categoryName = categoryName
         self.colour = colour
         self.future = future
         self.huge = huge
@@ -1649,7 +1654,9 @@ struct CategoryStepperView: View {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { item in
                             HStack(spacing: 5) {
-                                Text(item.wrappedEmoji)
+                                Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
                                     .font(.system(.footnote, design: .rounded).weight(.medium))
                                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                                    .font(.system(size: 13))
