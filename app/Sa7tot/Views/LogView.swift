@@ -69,7 +69,8 @@ struct LogView: View {
 
     @State var progress = 0.0
     @State private var balanceCollapseProgress: CGFloat = 0
-    private let compactBalanceHeaderHeight: CGFloat = 58
+    @State private var expandedBalanceHeaderHeight: CGFloat = 210
+    private let compactBalanceHeaderHeight: CGFloat = 76
 
     var body: some View {
         NavigationView {
@@ -168,7 +169,7 @@ struct LogView: View {
                                     currencySymbol: currencySymbol,
                                     collapseProgress: balanceCollapseProgress
                                 )
-                                .background {
+                                .overlay(alignment: .top) {
                                     GeometryReader { proxy in
                                         Color.clear
                                             .preference(
@@ -198,12 +199,12 @@ struct LogView: View {
                     }
                     .coordinateSpace(name: "HomeScroll")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onPreferenceChange(HomeBalanceHeaderMetricsKey.self) { metrics in
-                        let collapseDistance = max(1, metrics.height - compactBalanceHeaderHeight)
-                        let nextProgress = min(max(-metrics.minY / collapseDistance, 0), 1)
+                    .modifier(HomeScrollProgressModifier { offset in
+                        let collapseDistance = max(1, expandedBalanceHeaderHeight - compactBalanceHeaderHeight)
+                        let nextProgress = min(max(offset / collapseDistance, 0), 1)
                         guard abs(nextProgress - balanceCollapseProgress) > 0.001 else { return }
                         balanceCollapseProgress = nextProgress
-                    }
+                    })
 
                     if filter == .all {
                         CompactLogInsightsView(
@@ -231,11 +232,19 @@ struct LogView: View {
                         }
                         .opacity(balanceCollapseProgress)
                         .offset(y: -8 * (1 - balanceCollapseProgress))
+                        .zIndex(1)
                         .allowsHitTesting(false)
                         .accessibilityHidden(balanceCollapseProgress < 0.5)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onPreferenceChange(HomeBalanceHeaderMetricsKey.self) { metrics in
+                    expandedBalanceHeaderHeight = metrics.height
+                    let collapseDistance = max(1, metrics.height - compactBalanceHeaderHeight)
+                    let nextProgress = min(max(-metrics.minY / collapseDistance, 0), 1)
+                    guard abs(nextProgress - balanceCollapseProgress) > 0.001 else { return }
+                    balanceCollapseProgress = nextProgress
+                }
 
 //
 //                CustomRefreshView {
@@ -405,6 +414,22 @@ private struct HomeBalanceHeaderMetricsKey: PreferenceKey {
     static func reduce(value: inout HomeBalanceHeaderMetrics, nextValue: () -> HomeBalanceHeaderMetrics) {
         // The expanded header is a single measurement source.
         value = nextValue()
+    }
+}
+
+private struct HomeScrollProgressModifier: ViewModifier {
+    let onOffsetChange: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self, of: { geometry in
+                geometry.contentOffset.y
+            }, action: { _, offset in
+                onOffsetChange(offset)
+            })
+        } else {
+            content
+        }
     }
 }
 
