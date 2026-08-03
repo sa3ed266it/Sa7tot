@@ -13,11 +13,25 @@ struct TransactionCategoryMenu: View {
                     category = item
                 } label: {
                     HStack(spacing: 8) {
-                        Text(item.wrappedEmoji)
-                        Text(item.wrappedName)
+                        Label {
+                            Text(item.wrappedName)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                        } icon: {
+                            Text(item.wrappedEmoji)
+                                .foregroundStyle(.primary)
+                        }
                         Spacer()
-                        if item == category { Image(systemName: "checkmark") }
+                        Circle()
+                            .fill(Color(hex: item.wrappedColour))
+                            .frame(width: 8, height: 8)
+                        if item == category {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.primary)
+                                .accessibilityHidden(true)
+                        }
                     }
+                    .foregroundStyle(.primary)
                 }
                 .accessibilityLabel(item.wrappedEmoji + " " + item.wrappedName)
             }

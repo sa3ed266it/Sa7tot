@@ -27,8 +27,9 @@ struct TransactionEditorShell: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showCategorySheet = false
     @State private var showCustomRecurring = false
+    @State private var showNoteSheet = false
     @State private var showDeleteConfirmation = false
-    @State private var noteFocused = false
+    @State private var noteDraft = ""
     @State private var amountText = ""
     @FocusState private var amountFocused: Bool
 
@@ -153,6 +154,20 @@ struct TransactionEditorShell: View {
                     isPresented: $showCustomRecurring
                 )
             }
+            .sheet(isPresented: $showNoteSheet, onDismiss: {
+                noteDraft = note
+            }) {
+                TransactionEditorNoteSheet(
+                    note: $note,
+                    draft: $noteDraft,
+                    price: $price,
+                    category: $category,
+                    suggestedTransactions: suggestedTransactions,
+                    currencySymbol: currencySymbol,
+                    showRecommendations: showRecommendations,
+                    isPresented: $showNoteSheet
+                )
+            }
     }
 
     @ViewBuilder private var typeSelector: some View {
@@ -175,14 +190,14 @@ struct TransactionEditorShell: View {
         VStack(spacing: 8) {
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(currencySymbol)
-                    .font(.system(size: dynamicTypeSize >= .xxLarge ? 34 : 40, weight: .regular, design: .rounded))
+                    .font(.system(size: dynamicTypeSize >= .xxLarge ? 42 : 48, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
                 TextField("0,00", text: amountTextBinding)
                     .focused($amountFocused)
                     .keyboardType(.decimalPad)
                     .textFieldStyle(.plain)
-                    .font(.system(size: dynamicTypeSize >= .xxLarge ? 48 : 56, weight: .regular, design: .rounded))
-                    .minimumScaleFactor(0.55)
+                    .font(.system(size: dynamicTypeSize >= .xxLarge ? 64 : 80, weight: .regular, design: .rounded))
+                    .minimumScaleFactor(0.42)
                     .lineLimit(1)
                     .multilineTextAlignment(.center)
                     .submitLabel(.done)
@@ -192,7 +207,6 @@ struct TransactionEditorShell: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
             .onTapGesture { amountFocused = true }
-            TransactionEditorNoteField(note: $note, focused: $noteFocused)
         }
         .padding(.vertical, 4)
     }
@@ -240,16 +254,14 @@ struct TransactionEditorShell: View {
     }
 
     @ViewBuilder private var suggestionsSection: some View {
-        if showRecommendations && noteFocused && !note.isEmpty && !isEditing && !suggestedTransactions.isEmpty {
+        if showRecommendations && showNoteSheet && !noteDraft.isEmpty && !isEditing && !suggestedTransactions.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(suggestedTransactions, id: \.objectID) { transaction in
                         Button {
-                            note = transaction.wrappedNote
+                            noteDraft = transaction.wrappedNote
                             if price == 0 { price = transaction.wrappedAmount }
                             if category == nil { category = transaction.category }
-                            noteFocused = false
-                            UIApplication.shared.endEditing()
                         } label: {
                             Text(transaction.wrappedNote + "  " + currencySymbol + String(format: "%.0f", transaction.wrappedAmount))
                                 .font(.subheadline.weight(.semibold))
@@ -285,6 +297,7 @@ struct TransactionEditorShell: View {
                     }
                 }
                 if !isTransfer { recurrenceRow }
+                noteRow
             }
         }
     }
@@ -323,6 +336,25 @@ struct TransactionEditorShell: View {
             }
             .accessibilityLabel("Ripeti")
             .accessibilityValue(repeatSummary)
+        }
+    }
+
+    private var noteRow: some View {
+        TransactionEditorRow(title: "Nota", systemImage: "note.text") {
+            HStack(spacing: 8) {
+                Text(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aggiungi" : note)
+                    .foregroundStyle(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .secondary : .primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Button(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aggiungi" : "Modifica") {
+                    noteDraft = note
+                    showNoteSheet = true
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aggiungi nota" : "Modifica nota")
+            }
+            .frame(minHeight: 44)
         }
     }
 
@@ -384,28 +416,86 @@ private struct TransactionEditorRow<Content: View>: View {
     }
 }
 
-private struct TransactionEditorNoteField: View {
+private struct TransactionEditorNoteSheet: View {
     @Binding var note: String
-    @Binding var focused: Bool
-    @FocusState private var textFocused: Bool
+    @Binding var draft: String
+    @Binding var price: Double
+    @Binding var category: Category?
+    let suggestedTransactions: [Transaction]
+    let currencySymbol: String
+    let showRecommendations: Bool
+    @Binding var isPresented: Bool
+    @FocusState private var focused: Bool
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "text.alignleft")
-                .foregroundStyle(.secondary)
-            TextField("Aggiungi nota", text: $note)
-                .focused($textFocused)
-                .onChange(of: textFocused) { focused = $0 }
-                .onChange(of: note) { value in
-                    if value.count > 50 { note = String(value.prefix(50)) }
+        NavigationView {
+            VStack(alignment: .leading, spacing: 12) {
+                TextField("Aggiungi una nota", text: $draft)
+                    .focused($focused)
+                    .textFieldStyle(.roundedBorder)
+                    .submitLabel(.done)
+                    .onChange(of: draft) { value in
+                        if value.count > 50 { draft = String(value.prefix(50)) }
+                    }
+                    .accessibilityLabel("Nota")
+                if showRecommendations && !draft.isEmpty && !suggestedTransactions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(suggestedTransactions, id: \.objectID) { transaction in
+                                Button {
+                                    draft = transaction.wrappedNote
+                                    if price == 0 { price = transaction.wrappedAmount }
+                                    if category == nil { category = transaction.category }
+                                } label: {
+                                    Text(transaction.wrappedNote + "  " + currencySymbol + String(format: "%.0f", transaction.wrappedAmount))
+                                        .font(.subheadline.weight(.semibold))
+                                        .lineLimit(1)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
                 }
-                .accessibilityLabel("Nota")
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .navigationTitle("Nota")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annulla") {
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fine") {
+                        note = draft
+                        isPresented = false
+                    }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Fine") { focused = false }
+                }
+            }
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 48)
-        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .contentShape(Rectangle())
-        .onTapGesture { textFocused = true }
+        .onAppear {
+            focused = true
+        }
+        .modifier(TransactionEditorNoteSheetPresentation())
+    }
+}
+
+private struct TransactionEditorNoteSheetPresentation: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.height(220), .medium])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
+        }
     }
 }
 
