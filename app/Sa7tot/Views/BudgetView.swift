@@ -57,7 +57,6 @@ struct ActualBudgetView: View {
     @FetchRequest(sortDescriptors: []) private var mainBudget: FetchedResults<MainBudget>
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
-    @EnvironmentObject var tabBarManager: TabBarManager
 
     @State var newBudget = false
 
@@ -113,16 +112,6 @@ struct ActualBudgetView: View {
                         VStack {
                             if let first = mainBudget.first {
                                 NavigationLink(destination: DetailedMainBudgetView(budget: first)
-                                    .onAppear {
-                                        withAnimation(.easeOut.speed(2)) {
-                                            tabBarManager.navigationHideTab()
-                                        }
-                                    }
-                                    .onDisappear {
-                                        withAnimation(.easeOut.speed(2)) {
-                                            tabBarManager.navigationShowTab()
-                                        }
-                                    }
 
                                 ) {
                                     if budgets.count == 0 {
@@ -143,16 +132,6 @@ struct ActualBudgetView: View {
                                 VStack(spacing: 10) {
                                     ForEach(budgets, id: \.self) { budget in
                                         NavigationLink(destination: DetailedBudgetView(budget: budget)
-                                            .onAppear {
-                                                withAnimation(.easeOut.speed(2)) {
-                                                    tabBarManager.navigationHideTab()
-                                                }
-                                            }
-                                            .onDisappear {
-                                                withAnimation(.easeOut.speed(2)) {
-                                                    tabBarManager.navigationShowTab()
-                                                }
-                                            }
 
                                         ) {
                                             SingleBudgetView(budget: budget, toDelete: $toDelete, toEdit: $toEdit, budgetRows: budgetRows)
@@ -164,16 +143,6 @@ struct ActualBudgetView: View {
                                 LazyVGrid(columns: layout, spacing: 15) {
                                     ForEach(budgets, id: \.self) { budget in
                                         NavigationLink(destination: DetailedBudgetView(budget: budget)
-                                            .onAppear {
-                                                withAnimation(.easeOut.speed(2)) {
-                                                    tabBarManager.navigationHideTab()
-                                                }
-                                            }
-                                            .onDisappear {
-                                                withAnimation(.easeOut.speed(2)) {
-                                                    tabBarManager.navigationShowTab()
-                                                }
-                                            }
 
                                         ) {
                                             SingleBudgetView(budget: budget, toDelete: $toDelete, toEdit: $toEdit, budgetRows: budgetRows)

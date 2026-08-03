@@ -17,6 +17,19 @@ enum FilterType: String, CaseIterable {
     case recurring
     case upcoming
 
+    var italianTitle: String {
+        switch self {
+        case .all: return "Tutti i movimenti"
+        case .type: return "Per tipo"
+        case .day: return "Per giorno"
+        case .week: return "Per settimana"
+        case .month: return "Per mese"
+        case .category: return "Per categoria"
+        case .recurring: return "Ricorrenti"
+        case .upcoming: return "In arrivo"
+        }
+    }
+
     static var imageDictionary: [FilterType: String] = [
         .all: "square.text.square.fill",
         .type: "centsign.circle.fill",

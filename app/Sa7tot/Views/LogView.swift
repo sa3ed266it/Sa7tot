@@ -9,8 +9,20 @@ import CloudKitSyncMonitor
 import CoreData
 import Foundation
 import SwiftUIIntrospect
-import Popovers
 import SwiftUI
+
+// Shared by existing non-navigation buttons; retained when the obsolete
+// custom tab-bar file was removed.
+struct BouncyButton: ButtonStyle {
+    var duration: Double
+    var scale: Double
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .animation(.easeOut(duration: duration), value: configuration.isPressed)
+    }
+}
 
 struct LogView: View {
     @ObservedObject var syncMonitor = SyncMonitor.shared
@@ -31,19 +43,9 @@ struct LogView: View {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
 
-    @State var addTransaction = false
-
-    // searching
-    @State var searchMode = false
-
     // top bar
     @State var navBarText = ""
-    @State var showMenu = false
-    @AppStorage("logTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var logTimeFrame = 2
-    let subtitleText = ["today", "this week", "this month", "this year"]
 
-    // show filter menu
-    @State var showFilter = false
     @State var filter = FilterType.all
 
     // filters
@@ -53,9 +55,9 @@ struct LogView: View {
     @State var monthFilter = Date.now
     @State var income = false
 
-    // to show/hide tab bar
     var bottomEdge: CGFloat
-    var launchSearch: Bool
+    var launchAdd: Bool
+    var onAdd: () -> Void
 
     // drag to open
 //    enum PullToReach {
@@ -68,6 +70,8 @@ struct LogView: View {
     @State var progress = 0.0
 
     var body: some View {
+        NavigationView {
+            Group {
         if transactions.isEmpty {
             VStack(spacing: 5) {
                 Image("dropbox")
@@ -97,25 +101,6 @@ struct LogView: View {
             VStack(spacing: 0) {
                 VStack(spacing: 18) {
                     HStack {
-                        Button {
-                            searchMode = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-//                                .font(.system(size: 23, weight: .regular))
-                                .font(.system(.title2, design: .rounded).weight(.regular))
-                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                .foregroundColor(Color.DarkIcon)
-                                .padding(5)
-                                .contentShape(Rectangle())
-                                .background {
-                                    RoundedRectangle(cornerRadius: 7)
-                                        .fill(Color.SecondaryBackground)
-                                        .scaleEffect(progress == 1 ? 1.5 : 1.0)
-                                        .opacity(progress)
-                                }
-                        }
-                        .accessibilityLabel("Cerca")
-
                         Spacer()
 
                         switch filter {
@@ -142,42 +127,6 @@ struct LogView: View {
 
                         Spacer()
 
-                        Button {
-                            showFilter = true
-                        } label: {
-                            Image(systemName: filter == .all ? "triangle" : "triangle.tophalf.filled")
-                                .font(.system(.title2, design: .rounded).weight(.regular))
-                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                                .foregroundColor(Color.DarkIcon)
-                                .rotationEffect(Angle(degrees: 180))
-                                .padding(5)
-                                .contentShape(Rectangle())
-                                .background {
-                                    if showFilter {
-                                        RoundedRectangle(cornerRadius: 7)
-                                            .fill(Color.SecondaryBackground)
-                                    }
-//                                    if pullStatus == .filter || showFilter {
-//                                        RoundedRectangle(cornerRadius: 7)
-//                                            .fill(Color.SecondaryBackground)
-//                                            .scaleEffect(released == .filter ? 1.2 : 1.0)
-//                                            .opacity(released  == .filter ? 0.5 : 1.0)
-//                                    }
-                                }
-                        }
-                        .accessibilityLabel("Filtra")
-                        .popover(present: $showFilter, attributes: {
-                            $0.position = .absolute(
-                                originAnchor: .bottomRight,
-                                popoverAnchor: .topRight
-                            )
-                            $0.rubberBandingMode = .none
-                            $0.sourceFrameInset = UIEdgeInsets(top: 0, left: 0, bottom: -10, right: 0)
-                            $0.presentation.animation = .easeInOut(duration: 0.2)
-                            $0.dismissal.animation = .easeInOut(duration: 0.3)
-                        }) {
-                            FilterPickerView(filterType: $filter, showMenu: $showFilter)
-                        }
                     }
 
                     switch filter {
@@ -201,7 +150,7 @@ struct LogView: View {
                 }
                 .padding(.horizontal, 25)
                 .frame(height: (filter == .all || filter == .recurring || filter == .upcoming) ? 50 : 110, alignment: .top)
-                .padding(.top, topEdge + 10)
+                .padding(.top, 10)
 
                 ScrollView(showsIndicators: false) {
                     if filter == .all {
@@ -211,7 +160,6 @@ struct LogView: View {
                     TransactionsList(filter: filter, category: categoryFilter, date: dateFilter, week: weekFilter, month: monthFilter, income: income)
                         .zIndex(0)
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 70 + bottomEdge)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -263,9 +211,6 @@ struct LogView: View {
 //            .onAppear(perform: scrollDelegate.addGesture)
 //            .onDisappear(perform: scrollDelegate.removeGesture)
             .background(Color.PrimaryBackground)
-            .fullScreenCover(isPresented: $searchMode) {
-                SearchView()
-            }
             .onChange(of: syncMonitor.syncStateSummary) { newState in
                 if newState == .succeeded && !updatedRecurring {
                     dataController.updateRecurringTransactions()
@@ -288,9 +233,6 @@ struct LogView: View {
                     dataController.updateRecurringTransactions()
                 }
             }
-            .onChange(of: launchSearch) { _ in
-                searchMode = true
-            }
             .onAppear {
                 if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
                     dataController.updateRecurringTransactions()
@@ -308,13 +250,42 @@ struct LogView: View {
 //                    released = .none
 //                }
 //            }
-            .onOpenURL { url in
-                guard url.host == "search" else {
-                    return
+        }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: onAdd) {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Aggiungi movimento")
                 }
-                searchMode = true
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Picker("Filtro", selection: $filter) {
+                            ForEach(FilterType.allCases, id: \.self) { option in
+                                Text(option.italianTitle).tag(option)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .frame(width: 44, height: 44)
+                    }
+                    .labelStyle(.iconOnly)
+                    .sa7totFilterButtonBorderShape()
+                    .sa7totFilterButtonStyle()
+                    .accessibilityLabel("Filtra")
+                    .accessibilityValue(filter.italianTitle)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: launchAdd) { newValue in
+                if newValue {
+                    onAdd()
+                }
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     @ViewBuilder
@@ -411,16 +382,13 @@ struct LogInsightsView: View {
     let showCents: Bool
     let currencySymbol: String
 
-    @State var showMenu1 = false
-    let subtitleText = ["today", "this week", "this month", "this year", "all time"]
-
     @AppStorage("logInsightsTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var timeframe = 2
     @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
 
     @AppStorage("logViewLineGraph", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var lineGraph: Bool = false
 
     var netTotal: (value: Double, positive: Bool) {
-        dataController.getLogViewTotalNet(type: timeframe)
+        dataController.getLogViewTotalNet(type: 5)
     }
 
     var range: Int {
@@ -454,11 +422,11 @@ struct LogInsightsView: View {
     }
 
     var totalSpent: Double {
-        return dataController.getLogViewTotalSpent(type: timeframe)
+        return dataController.getLogViewTotalSpent(type: 5)
     }
 
     var totalIncome: Double {
-        return dataController.getLogViewTotalIncome(type: timeframe)
+        return dataController.getLogViewTotalIncome(type: 5)
     }
 
     var lineGraphData: [LineGraphDataPoint] {
@@ -493,7 +461,7 @@ struct LogInsightsView: View {
 
     var headingText: String {
         if insightsType == 1 {
-            return "Net total"
+            return "Saldo totale"
         } else if insightsType == 2 {
             return "Earned"
         } else {
@@ -508,28 +476,6 @@ struct LogInsightsView: View {
                     Text(LocalizedStringKey(headingText))
                         .font(.system(.body, design: .rounded).weight(.medium))
                         .foregroundColor(Color.PrimaryText.opacity(0.9))
-                    Button {
-                        showMenu1 = true
-                    } label: {
-                        Text(LocalizedStringKey(subtitleText[timeframe - 1]))
-                            .padding(2)
-                            .padding(.horizontal, 6)
-                            .font(.system(.body, design: .rounded).weight(.medium))
-                            .foregroundColor(Color.PrimaryText.opacity(9))
-                            .overlay(Capsule().stroke(Color.Outline, lineWidth: 1.3))
-                    }
-                    .popover(present: $showMenu1, attributes: {
-                        $0.position = .absolute(
-                            originAnchor: .bottom,
-                            popoverAnchor: .top
-                        )
-                        $0.rubberBandingMode = .none
-                        $0.sourceFrameInset = UIEdgeInsets(top: 0, left: 0, bottom: -10, right: 0)
-                        $0.presentation.animation = .easeInOut(duration: 0.2)
-                        $0.dismissal.animation = .easeInOut(duration: 0.3)
-                    }) {
-                        TimePickerView(showMenu: $showMenu1, timeframe: $timeframe)
-                    }
                 }
 
                 EmptyView()
@@ -633,67 +579,22 @@ struct LogInsightsView: View {
 }
 
 struct SearchView: View {
-    @Environment(\.dismiss) var dismiss
-
-    @State var searchQuery = ""
+    @Binding var searchQuery: String
 
     var body: some View {
-        VStack(spacing: 18) {
-            HStack(spacing: 9) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-//                        .font(.system(size: 17))
-                        .font(.system(.body, design: .rounded).weight(.regular))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(Color.DarkIcon.opacity(0.8))
-                        .accessibility(hidden: true)
-                    TextField("Search entry by note", text: $searchQuery)
-                        .introspect(.textField, on: .iOS(.v13, .v14, .v15, .v16, .v17, .v18)) { textField in
-                            textField.becomeFirstResponder()
-                        }
-                        .font(.system(.body, design: .rounded).weight(.regular))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 17, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.PrimaryText)
-
-                    if searchQuery != "" {
-                        Button {
-                            searchQuery = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(.subheadline, design: .rounded).weight(.regular))
-                                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                .font(.system(size: 15))
-                                .foregroundColor(Color.SubtitleText)
-                                .background(Color.SecondaryBackground)
-                        }
-                    }
-                }
-                .padding(6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 8))
-
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Cancel")
-                        .foregroundColor(Color.PrimaryText)
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                }
-            }
-            
-            ScrollView {
-                if searchQuery == "" {
-                    EmptyView()
-                } else {
+        Group {
+            if searchQuery.isEmpty {
+                Text("Cerca nei movimenti")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundColor(Color.SubtitleText)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
                     FilteredSearchView(searchQuery: searchQuery)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(15)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.PrimaryBackground)
     }
 }
@@ -710,12 +611,12 @@ struct FilteredSearchView: View {
                     Text("📭️")
                         .font(.system(size: 50))
                         .padding(.bottom, 15)
-                    Text("No entries found.")
+                    Text("Nessun movimento trovato")
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.PrimaryText)
-                    Text("Try a different search query!")
+                    Text("Prova un'altra ricerca")
                         .font(.system(.subheadline, design: .rounded).weight(.regular))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                        .font(.system(size: 14, weight: .regular, design: .rounded))
@@ -757,151 +658,23 @@ struct FilteredSearchView: View {
     }
 }
 
-struct TimePickerView: View {
-    @Namespace var animation
-
-    let timeframes = ["today", "this week", "this month", "this year", "all time"]
-
-    @Binding var showMenu: Bool
-    @Binding var timeframe: Int
-    @State var holdingTimeframe = 0
-
-    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var colourScheme: Int = 0
-
-    @Environment(\.colorScheme) var systemColorScheme
-
-    var darkMode: Bool {
-        (colourScheme == 0 && systemColorScheme == .dark) || colourScheme == 2
-    }
-
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            ForEach(timeframes.indices, id: \.self) { index in
-                HStack {
-                    Text(LocalizedStringKey(timeframes[index]))
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-
-                    Spacer()
-
-                    if holdingTimeframe == index + 1 {
-                        Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-//                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-//                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .padding(5)
-                .background {
-                    if holdingTimeframe == index + 1 {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if holdingTimeframe == index + 1 {
-                        showMenu = false
-                    } else {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            holdingTimeframe = index + 1
-                        }
-
-                        timeframe = index + 1
-
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                            showMenu = false
-                        }
-                    }
-                }
-                .accessibilityElement(children: .ignore)
-            }
-        }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
-        .padding(4)
-        .frame(width: dynamicTypeSize > .xxLarge ? 185 : 160)
-        .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
-        .onAppear {
-            holdingTimeframe = timeframe
+private extension View {
+    @ViewBuilder
+    func sa7totFilterButtonBorderShape() -> some View {
+        if #available(iOS 17.0, *) {
+            buttonBorderShape(.circle)
+        } else {
+            buttonBorderShape(.roundedRectangle)
         }
     }
-}
 
-struct FilterPickerView: View {
-    @Namespace var animation
-    @Namespace var animation1
-    @Binding var filterType: FilterType
-    @Binding var showMenu: Bool
-
-    @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var colourScheme: Int = 0
-
-    @Environment(\.colorScheme) var systemColorScheme
-    @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
-    var darkMode: Bool {
-        (colourScheme == 0 && systemColorScheme == .dark) || colourScheme == 2
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            ForEach(FilterType.allCases, id: \.self) { filter in
-                HStack {
-                    Image(systemName: FilterType.imageDictionary[filter] ?? "")
-//                        .font(.system(size: 16))
-                        .font(.system(.callout, design: .rounded).weight(.regular))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .frame(width: 20)
-                    Text(LocalizedStringKey(filter.rawValue))
-//                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        .lineLimit(1)
-                    Spacer()
-
-                    if filterType == filter {
-                        Image(systemName: "checkmark")
-                            .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-//                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(5)
-                .background {
-                    if filterType == filter {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
-                            .matchedGeometryEffect(id: "TAB", in: animation)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if filterType == filter {
-                        showMenu = false
-                    } else {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            filterType = filter
-                        }
-
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            showMenu = false
-                        }
-                    }
-                }
-                .accessibilityElement(children: .ignore)
-            }
+    @ViewBuilder
+    func sa7totFilterButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glass)
+        } else {
+            self
         }
-        .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
-        .padding(4)
-        .frame(width: dynamicTypeSize > .xLarge ? 220 : 190)
-        .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
     }
 }
 

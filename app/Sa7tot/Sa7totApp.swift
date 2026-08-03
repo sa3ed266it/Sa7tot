@@ -12,7 +12,6 @@ struct Sa7totApp: App {
     @StateObject var dataController: DataController
     @StateObject var unlockManager: UnlockManager
     @StateObject var appLockVM = AppLockViewModel()
-    @StateObject var tabBarManager = TabBarManager()
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
@@ -23,7 +22,6 @@ struct Sa7totApp: App {
                 .environmentObject(appLockVM)
                 .environmentObject(dataController)
                 .environmentObject(unlockManager)
-                .environmentObject(tabBarManager)
         }
     }
 
