@@ -94,10 +94,11 @@ struct ActualBudgetView: View {
                         newBudget = true
                     } label: {
                         Image(systemName: "plus")
+                            .frame(width: 44, height: 44)
                     }
                     .budgetAddButtonBorderShape()
                     .budgetAddButtonStyle()
-                    .frame(width: 44, height: 44)
+                    .offset(x: 8)
                     .accessibilityLabel("Add budget")
                 }
                 .frame(maxWidth: .infinity)
