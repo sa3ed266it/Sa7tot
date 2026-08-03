@@ -191,7 +191,7 @@ struct LockBudgetWidgetEntryView: View {
                     .containerBackground(for: .widget) { AccessoryWidgetBackground() }
                 } else {
                     Gauge(value: percent < 1 ? percent : 1) {
-                        Text(entry.budget.emoji)
+                        Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
                     } currentValueLabel: {
                         Text("\(Int(round(percent * 100)))%")
                     }
@@ -216,7 +216,7 @@ struct LockBudgetWidgetEntryView: View {
                 } else {
                     if #available(iOS 16.0, *) {
                         Gauge(value: percent < 1 ? percent : 1) {
-                            Text(entry.budget.emoji)
+                            Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
                         } currentValueLabel: {
                             Text("\(Int(round(percent * 100)))%")
                         }

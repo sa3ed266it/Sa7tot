@@ -653,7 +653,7 @@ struct TransactionView: View {
                                 } else {
                                     if let unwrappedCategory = category {
                                         HStack(spacing: 5) {
-                                            Image(systemName: CategoryIconPresentation.symbol(for: unwrappedCategory.wrappedName))
+                                            Image(systemName: CategoryIconPresentation.symbol(for: unwrappedCategory.wrappedName, storedValue: unwrappedCategory.emoji))
                                                 .symbolRenderingMode(.hierarchical)
                                                 .foregroundStyle(CategoryIconPresentation.foreground(for: unwrappedCategory.wrappedColour))
                                                 .font(.system(.footnote, design: .rounded).weight(.semibold))
@@ -1447,7 +1447,7 @@ struct CategoryPickerView: View {
                             ForEach(categories) { item in
                                 if item != initialCategory {
                                     HStack(spacing: 7) {
-                                        Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
+                                        Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName, storedValue: item.emoji))
                                             .symbolRenderingMode(.hierarchical)
                                             .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
                                             .font(.system(.footnote, design: .rounded))

@@ -434,7 +434,7 @@ struct CategoryListView: View {
                             } else {
                                 ForEach(categories) { category in
                                     HStack(spacing: 10) {
-                                        Sa7totCategoryIcon(name: category.wrappedName, colour: category.wrappedColour, size: 32)
+                                        Sa7totCategoryIcon(name: category.wrappedName, colour: category.wrappedColour, storedValue: category.wrappedEmoji, size: 32)
 //                                            .font(.system(size: 15))
                                         Text(category.wrappedName)
                                             .font(.system(.body, design: .rounded))
@@ -513,7 +513,7 @@ struct CategoryListView: View {
                             } else {
                                 ForEach(categories) { category in
                                     HStack(spacing: 10) {
-                                        Sa7totCategoryIcon(name: category.wrappedName, colour: category.wrappedColour, size: 32)
+                                        Sa7totCategoryIcon(name: category.wrappedName, colour: category.wrappedColour, storedValue: category.wrappedEmoji, size: 32)
 //                                            .font(.system(size: 15))
                                         Text(category.wrappedName)
                                             .font(.system(.body, design: .rounded))
@@ -739,7 +739,8 @@ struct CategoryListView: View {
     }
 }
 
-struct NewCategoryAlert: View {
+#if false
+private struct LegacyNewCategoryAlert: View {
     @Binding var income: Bool
     let budgetMode: Bool
     let bottomSpacers: Bool
@@ -1204,7 +1205,7 @@ struct NewCategoryAlert: View {
     }
 }
 
-struct EditCategoryAlert: View {
+private struct LegacyEditCategoryAlert: View {
     let toEdit: Category
     @Binding var showRootToast: Bool
     @Binding var rootToastTitle: String
@@ -1513,6 +1514,8 @@ struct EditCategoryAlert: View {
     }
 }
 
+#endif
+
 struct DeleteCategoryAlert: View {
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
@@ -1642,28 +1645,18 @@ struct SuggestedCategoriesView: View {
         return emptyArray
     }
 
-    var emojiArray: [String] {
-        var emptyArray = [String]()
-
-        categories.forEach { category in
-            emptyArray.append(category.wrappedEmoji)
-        }
-
-        return emptyArray
-    }
-
     var suggestions: [SuggestedCategory] {
         var holding = [SuggestedCategory]()
 
         if income {
             SuggestedCategory.incomes.forEach { category in
-                if !nameArray.contains(category.name) && !emojiArray.contains(category.emoji) {
+                if !nameArray.contains(category.name) {
                     holding.append(category)
                 }
             }
         } else {
             SuggestedCategory.expenses.forEach { category in
-                if !nameArray.contains(category.name) && !emojiArray.contains(category.emoji) {
+                if !nameArray.contains(category.name) {
                     holding.append(category)
                 }
             }
@@ -1680,8 +1673,7 @@ struct SuggestedCategoriesView: View {
             Section(header: Text("SUGGESTED").foregroundColor(Color.SubtitleText)) {
                 ForEach(suggestions, id: \.self) { category in
                     HStack(spacing: 8) {
-                        Text(category.emoji)
-//                            .font(.system(size: 15))
+                        Image(systemName: category.symbolName)
                             .font(.system(.subheadline, design: .rounded))
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         Text(LocalizedStringKey(category.name))
@@ -1709,7 +1701,8 @@ struct SuggestedCategoriesView: View {
                     .onTapGesture {
                         // double check
 
-                        let (outcome, _) = dataController.categoryCheck(name: category.name, emoji: category.emoji, income: income)
+                        let storedSymbol = CategoryIconStorage.encode(symbolName: category.symbolName)
+                        let (outcome, _) = dataController.categoryCheck(name: category.name, emoji: storedSymbol, income: income)
 
                         if outcome != .none {
                             return
@@ -1721,7 +1714,7 @@ struct SuggestedCategoriesView: View {
                         if !income {
                             let suggestedCategory = Category(context: moc)
                             suggestedCategory.name = NSLocalizedString(category.name, comment: "category name")
-                            suggestedCategory.emoji = category.emoji
+                            suggestedCategory.emoji = storedSymbol
                             suggestedCategory.dateCreated = Date.now
                             suggestedCategory.id = UUID()
                             suggestedCategory.colour = selectedColour
@@ -1744,7 +1737,7 @@ struct SuggestedCategoriesView: View {
                         } else {
                             let suggestedCategory = Category(context: moc)
                             suggestedCategory.name = NSLocalizedString(category.name, comment: "category name")
-                            suggestedCategory.emoji = category.emoji
+                            suggestedCategory.emoji = storedSymbol
                             suggestedCategory.dateCreated = Date.now
                             suggestedCategory.id = UUID()
                             suggestedCategory.colour = "#76FBB0"
@@ -1782,6 +1775,7 @@ struct SuggestedCategoriesView: View {
     }
 }
 
+#if false
 class UIEmojiTextField: UITextField {
     override var textInputMode: UITextInputMode? {
         .activeInputModes.first(where: { $0.primaryLanguage == "emoji" })
@@ -1831,6 +1825,8 @@ struct EmojiTextField: UIViewRepresentable {
         }
     }
 }
+
+#endif
 
 struct NormalTextField: UIViewRepresentable {
     @Binding var text: String
@@ -2007,4 +2003,326 @@ struct OpenAICompletionsResponse: Decodable {
 
 struct OpenAICompletionsOptions: Decodable {
     let text: String
+}
+
+private struct PremiumCategorySheetPresentation: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
+        }
+    }
+}
+
+struct NewCategoryAlert: View {
+    @Binding var income: Bool
+    let budgetMode: Bool
+    let bottomSpacers: Bool
+
+    init(income: Binding<Bool>, bottomSpacers: Bool, budgetMode: Bool = false) {
+        _income = income
+        self.bottomSpacers = bottomSpacers
+        self.budgetMode = budgetMode
+    }
+
+    var body: some View {
+        PremiumCategoryEditor(category: nil, income: $income, budgetMode: budgetMode, bottomSpacers: bottomSpacers)
+    }
+}
+
+struct EditCategoryAlert: View {
+    let toEdit: Category
+    @Binding var showRootToast: Bool
+    @Binding var rootToastTitle: String
+    @Binding var rootToastImage: String
+    @Binding var positive: Bool
+    let bottomSpacers: Bool
+
+    var body: some View {
+        PremiumCategoryEditor(
+            category: toEdit,
+            income: .constant(toEdit.income),
+            budgetMode: false,
+            bottomSpacers: bottomSpacers,
+            onSaved: {
+                rootToastTitle = "Modificata \(toEdit.wrappedName)"
+                rootToastImage = "checkmark.circle.fill"
+                positive = true
+                showRootToast = true
+            }
+        )
+    }
+}
+
+private struct PremiumCategoryEditor: View {
+    let category: Category?
+    @Binding var income: Bool
+    let budgetMode: Bool
+    let bottomSpacers: Bool
+    var onSaved: (() -> Void)? = nil
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var moc
+    @EnvironmentObject private var dataController: DataController
+
+    @State private var name = ""
+    @State private var selectedSymbol = "tag.fill"
+    @State private var selectedColour = "#76FBB0"
+    @State private var errorMessage: String?
+    @State private var isSaving = false
+    @State private var showDeleteConfirmation = false
+    @FocusState private var nameFocused: Bool
+
+    private var title: String {
+        category == nil ? "Nuova categoria" : "Modifica categoria"
+    }
+
+    private var kind: CategoryIconKind {
+        income ? .income : .expense
+    }
+
+    private var iconOptions: [CategoryIconOption] {
+        CategoryIconCatalog.options(for: kind)
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSave: Bool {
+        !trimmedName.isEmpty && !selectedSymbol.isEmpty && UIImage(systemName: selectedSymbol) != nil && !isSaving
+    }
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    preview
+                    kindPicker
+                    nameField
+                    colourPicker
+                    iconPicker
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(Color.AlertRed)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if category != nil {
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            Label("Elimina categoria", systemImage: "trash")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+            }
+            .background(Color.PrimaryBackground)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annulla") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Salva", action: save)
+                        .disabled(!canSave)
+                }
+            }
+        }
+        .modifier(PremiumCategorySheetPresentation())
+        .alert("Eliminare la categoria?", isPresented: $showDeleteConfirmation) {
+            Button("Elimina", role: .destructive) {
+                deleteCategory()
+            }
+            Button("Annulla", role: .cancel) { }
+        } message: {
+            Text("Questa azione non può essere annullata.")
+        }
+        .onAppear {
+            guard let category else { return }
+            name = category.wrappedName
+            selectedColour = category.wrappedColour
+            selectedSymbol = CategoryIconPresentation.symbol(for: category.wrappedName, storedValue: category.emoji)
+        }
+        .onChange(of: income) { _ in
+            if !iconOptions.contains(where: { $0.symbolName == selectedSymbol }) {
+                selectedSymbol = iconOptions.first?.symbolName ?? "tag.fill"
+            }
+        }
+    }
+
+    private var preview: some View {
+        HStack(spacing: 14) {
+            Image(systemName: selectedSymbol)
+                .font(.system(size: 25, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 58, height: 58)
+                .background(Color(hex: selectedColour), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            Text(trimmedName.isEmpty ? "Nome categoria" : trimmedName)
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .foregroundStyle(trimmedName.isEmpty ? Color.SubtitleText : Color.PrimaryText)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .accessibilityHidden(true)
+    }
+
+    private var kindPicker: some View {
+        Picker("Tipo", selection: $income) {
+            Text("Spesa").tag(false)
+            Text("Entrata").tag(true)
+        }
+        .pickerStyle(.segmented)
+        .accessibilityLabel("Tipo categoria")
+    }
+
+    private var nameField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Nome")
+                .font(.headline)
+            TextField("Nome categoria", text: $name)
+                .textInputAutocapitalization(.sentences)
+                .focused($nameFocused)
+                .submitLabel(.done)
+                .padding(.horizontal, 14)
+                .frame(height: 48)
+                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+
+    private var colourPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Colore")
+                .font(.headline)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 8), spacing: 10) {
+                ForEach(Color.colorArray, id: \.self) { colour in
+                    Button {
+                        selectedColour = colour
+                    } label: {
+                        Circle()
+                            .fill(Color(hex: colour))
+                            .frame(width: 32, height: 32)
+                            .overlay {
+                                if selectedColour == colour {
+                                    Image(systemName: "checkmark")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(Color(hex: colour).luminance() > 0.5 ? .black : .white)
+                                }
+                            }
+                    }
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityLabel("Colore \(colour)")
+                    .accessibilityAddTraits(selectedColour == colour ? .isSelected : [])
+                }
+            }
+        }
+    }
+
+    private var iconPicker: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Icona")
+                .font(.headline)
+
+            ForEach(CategoryIconGroup.allCases) { group in
+                let options = iconOptions.filter { $0.group == group }
+                if !options.isEmpty {
+                    Text(group.rawValue)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.SubtitleText)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5), spacing: 10) {
+                        ForEach(options) { option in
+                            Button {
+                                selectedSymbol = option.symbolName
+                            } label: {
+                                Image(systemName: option.symbolName)
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundStyle(selectedSymbol == option.symbolName ? .white : Color.PrimaryText)
+                                    .frame(maxWidth: .infinity, minHeight: 48)
+                                    .background(
+                                        selectedSymbol == option.symbolName
+                                            ? Color(hex: selectedColour)
+                                            : Color.SecondaryBackground,
+                                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    )
+                            }
+                            .accessibilityLabel(option.title)
+                            .accessibilityAddTraits(selectedSymbol == option.symbolName ? .isSelected : [])
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func save() {
+        guard canSave else { return }
+        isSaving = true
+        errorMessage = nil
+
+        let encodedSymbol = CategoryIconStorage.encode(symbolName: selectedSymbol)
+        let result: (error: CategoryError, order: Int64)
+
+        if let category {
+            result = dataController.categoryCheckEdit(name: trimmedName, emoji: encodedSymbol, toEdit: category)
+        } else {
+            result = dataController.categoryCheck(name: trimmedName, emoji: encodedSymbol, income: income)
+        }
+
+        guard result.error == .none else {
+            errorMessage = errorText(for: result.error)
+            isSaving = false
+            return
+        }
+
+        if let category {
+            category.name = trimmedName
+            category.emoji = encodedSymbol
+            category.colour = selectedColour
+        } else {
+            let newCategory = Category(context: moc)
+            newCategory.name = trimmedName
+            newCategory.emoji = encodedSymbol
+            newCategory.dateCreated = Date.now
+            newCategory.id = UUID()
+            newCategory.order = result.order
+            newCategory.income = income
+            newCategory.colour = selectedColour
+        }
+
+        dataController.save()
+        onSaved?()
+        dismiss()
+    }
+
+    private func deleteCategory() {
+        guard let category else { return }
+        moc.delete(category)
+        dataController.save()
+        dismiss()
+    }
+
+    private func errorText(for error: CategoryError) -> String {
+        switch error {
+        case .missingName, .incomplete: return "Inserisci un nome per la categoria."
+        case .missingEmoji: return "Scegli un'icona."
+        case .duplicate, .duplicateName: return "Esiste già una categoria con questo nome."
+        case .duplicateEmoji: return "Questa icona è già utilizzata."
+        case .none: return ""
+        }
+    }
 }

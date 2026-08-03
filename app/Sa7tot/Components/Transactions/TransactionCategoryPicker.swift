@@ -18,7 +18,7 @@ struct TransactionCategoryMenu: View {
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
                         } icon: {
-                            Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
+                            Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName, storedValue: item.emoji), role: .inline, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
                         }
                         Spacer()
                         Circle()
@@ -44,7 +44,7 @@ struct TransactionCategoryMenu: View {
             HStack(spacing: 5) {
                 if let category {
                     HStack(spacing: 5) {
-                        Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: category.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: category.wrappedColour))
+                            Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: category.wrappedName, storedValue: category.emoji), role: .inline, tint: CategoryIconPresentation.foreground(for: category.wrappedColour))
                         Text(category.wrappedName)
                             .lineLimit(1)
                     }
@@ -89,7 +89,7 @@ struct NewCategoryPickerView: View {
                             }
                         } label: {
                             HStack(spacing: 12) {
-                        Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName), role: .category, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
+                        Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: item.wrappedName, storedValue: item.emoji), role: .category, tint: CategoryIconPresentation.foreground(for: item.wrappedColour))
                                     .frame(width: 32)
                                 Text(item.wrappedName)
                                     .foregroundStyle(.primary)

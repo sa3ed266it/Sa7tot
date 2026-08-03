@@ -247,6 +247,7 @@ struct HorizontalPieChartView: View {
                                         Sa7totCategoryIcon(
                                             name: category.category.wrappedName,
                                             colour: category.category.wrappedColour,
+                                            storedValue: category.category.wrappedEmoji,
                                             size: 34
                                         )
 

@@ -1445,6 +1445,7 @@ struct EmojiLogView: View {
             Sa7totCategoryIcon(
                 name: categoryName ?? "Altro",
                 colour: colour,
+                storedValue: emoji,
                 size: huge ? 72 : 44,
                 future: future
             )
@@ -1727,7 +1728,7 @@ struct CategoryStepperView: View {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.self) { item in
                             HStack(spacing: 5) {
-                                Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName))
+                                Image(systemName: CategoryIconPresentation.symbol(for: item.wrappedName, storedValue: item.emoji))
                                     .symbolRenderingMode(.monochrome)
                                     .foregroundStyle(CategoryIconPresentation.foreground(for: item.wrappedColour))
                                     .font(.system(.footnote, design: .rounded).weight(.medium))

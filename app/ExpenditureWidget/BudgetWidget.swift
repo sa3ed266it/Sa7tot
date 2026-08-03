@@ -198,7 +198,7 @@ struct BudgetWidgetEntryView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2.4) {
                             HStack(spacing: 5) {
-                                Text(entry.budget.emoji)
+                                Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
                                     .font(.system(size: 9))
                                 Text(entry.budget.name.uppercased())
                                     .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -290,7 +290,7 @@ struct BudgetWidgetEntryView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2.4) {
                             HStack(spacing: 5) {
-                                Text(entry.budget.emoji)
+                                Image(systemName: Sa7totSharedIconPresentation.symbol(for: entry.budget.name, storedValue: entry.budget.emoji))
                                     .font(.system(size: 9))
                                 Text(entry.budget.name.uppercased())
                                     .font(.system(size: 12, weight: .semibold, design: .rounded))

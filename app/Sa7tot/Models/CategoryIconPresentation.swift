@@ -26,6 +26,128 @@ enum Sa7totIconRole {
     }
 }
 
+enum CategoryIconKind: Hashable {
+    case expense
+    case income
+}
+
+enum CategoryIconGroup: String, CaseIterable, Identifiable {
+    case food = "Cibo"
+    case transport = "Trasporti"
+    case home = "Casa"
+    case shopping = "Acquisti"
+    case health = "Salute"
+    case people = "Persone"
+    case work = "Lavoro"
+    case leisure = "Tempo libero"
+    case finance = "Finanze"
+    case travel = "Viaggi"
+    case other = "Altro"
+
+    var id: String { rawValue }
+}
+
+struct CategoryIconOption: Identifiable, Hashable {
+    let id: String
+    let symbolName: String
+    let title: String
+    let group: CategoryIconGroup
+    let supportedKinds: [CategoryIconKind]
+
+    init(_ symbolName: String, _ title: String, _ group: CategoryIconGroup, kinds: [CategoryIconKind] = [.expense, .income]) {
+        self.id = symbolName
+        self.symbolName = symbolName
+        self.title = title
+        self.group = group
+        self.supportedKinds = kinds
+    }
+}
+
+enum CategoryIconCatalog {
+    static let all: [CategoryIconOption] = [
+        CategoryIconOption("fork.knife", "Cibo", .food),
+        CategoryIconOption("takeoutbag.and.cup.and.straw.fill", "Asporto", .food),
+        CategoryIconOption("cup.and.saucer.fill", "Caffè", .food),
+        CategoryIconOption("wineglass.fill", "Vino", .food),
+        CategoryIconOption("birthday.cake.fill", "Compleanno", .food),
+        CategoryIconOption("cart.fill", "Spesa", .food),
+        CategoryIconOption("car.fill", "Auto", .transport),
+        CategoryIconOption("bus.fill", "Autobus", .transport),
+        CategoryIconOption("tram.fill", "Tram", .transport),
+        CategoryIconOption("train.side.front.car", "Treno", .transport),
+        CategoryIconOption("bicycle", "Bicicletta", .transport),
+        CategoryIconOption("airplane", "Aereo", .transport),
+        CategoryIconOption("fuelpump.fill", "Carburante", .transport),
+        CategoryIconOption("house.fill", "Casa", .home),
+        CategoryIconOption("building.2.fill", "Edificio", .home),
+        CategoryIconOption("bed.double.fill", "Camera", .home),
+        CategoryIconOption("lightbulb.fill", "Luce", .home),
+        CategoryIconOption("bolt.fill", "Energia", .home),
+        CategoryIconOption("drop.fill", "Acqua", .home),
+        CategoryIconOption("wifi", "Internet", .home),
+        CategoryIconOption("bag.fill", "Borsa", .shopping),
+        CategoryIconOption("tshirt.fill", "Abbigliamento", .shopping),
+        CategoryIconOption("shoe.2.fill", "Scarpe", .shopping),
+        CategoryIconOption("tag.fill", "Etichetta", .shopping),
+        CategoryIconOption("gift.fill", "Regalo", .shopping),
+        CategoryIconOption("creditcard.fill", "Carta", .shopping),
+        CategoryIconOption("cross.case.fill", "Salute", .health),
+        CategoryIconOption("heart.fill", "Benessere", .health),
+        CategoryIconOption("pills.fill", "Farmacia", .health),
+        CategoryIconOption("stethoscope", "Medico", .health),
+        CategoryIconOption("dumbbell.fill", "Palestra", .health),
+        CategoryIconOption("leaf.fill", "Natura", .health),
+        CategoryIconOption("person.fill", "Persona", .people),
+        CategoryIconOption("person.2.fill", "Famiglia", .people),
+        CategoryIconOption("pawprint.fill", "Animali", .people),
+        CategoryIconOption("graduationcap.fill", "Istruzione", .people),
+        CategoryIconOption("briefcase.fill", "Lavoro", .work),
+        CategoryIconOption("laptopcomputer", "Computer", .work),
+        CategoryIconOption("book.fill", "Libro", .work),
+        CategoryIconOption("doc.text.fill", "Documento", .work),
+        CategoryIconOption("gamecontroller.fill", "Giochi", .leisure),
+        CategoryIconOption("film.fill", "Cinema", .leisure),
+        CategoryIconOption("music.note", "Musica", .leisure),
+        CategoryIconOption("tv.fill", "Televisione", .leisure),
+        CategoryIconOption("camera.fill", "Foto", .leisure),
+        CategoryIconOption("banknote.fill", "Denaro", .finance),
+        CategoryIconOption("building.columns.fill", "Banca", .finance),
+        CategoryIconOption("wallet.pass.fill", "Portafoglio", .finance),
+        CategoryIconOption("chart.bar.fill", "Investimenti", .finance),
+        CategoryIconOption("eurosign.circle.fill", "Euro", .finance),
+        CategoryIconOption("arrow.left.arrow.right", "Trasferimento", .finance),
+        CategoryIconOption("suitcase.fill", "Valigia", .travel),
+        CategoryIconOption("map.fill", "Mappa", .travel),
+        CategoryIconOption("globe.europe.africa.fill", "Mondo", .travel),
+        CategoryIconOption("tent.fill", "Campeggio", .travel),
+        CategoryIconOption("repeat.circle.fill", "Ricorrenza", .other),
+        CategoryIconOption("calendar", "Calendario", .other),
+        CategoryIconOption("bell.fill", "Avviso", .other),
+        CategoryIconOption("phone.fill", "Telefono", .other),
+        CategoryIconOption("envelope.fill", "Messaggio", .other),
+        CategoryIconOption("ellipsis.circle.fill", "Altro", .other),
+        CategoryIconOption("star.fill", "Preferito", .other)
+    ]
+
+    static func options(for kind: CategoryIconKind) -> [CategoryIconOption] {
+        all.filter { $0.supportedKinds.contains(kind) && UIImage(systemName: $0.symbolName) != nil }
+    }
+}
+
+enum CategoryIconStorage {
+    static let prefix = "sf:"
+
+    static func encode(symbolName: String) -> String {
+        prefix + symbolName
+    }
+
+    static func storedSymbol(from value: String) -> String? {
+        guard value.hasPrefix(prefix) else { return nil }
+        let symbol = String(value.dropFirst(prefix.count))
+        return UIImage(systemName: symbol) == nil ? nil : symbol
+    }
+}
+
 enum Sa7totSymbolResolver {
     static func resolved(_ symbol: String, fallback: String = "tag.fill") -> String {
         UIImage(systemName: symbol) == nil ? fallback : symbol
@@ -68,8 +190,32 @@ struct CategoryIconPresentation {
         }
     }
 
-    static func symbol(for name: String) -> String {
-        Sa7totSymbolResolver.resolved(rawSymbol(for: name))
+    static func symbol(for name: String, storedValue: String? = nil) -> String {
+        if let storedValue, let storedSymbol = CategoryIconStorage.storedSymbol(from: storedValue) {
+            return storedSymbol
+        }
+
+        if let storedValue, let legacySymbol = legacySymbol(for: storedValue) {
+            return legacySymbol
+        }
+
+        return Sa7totSymbolResolver.resolved(rawSymbol(for: name))
+    }
+
+    private static func legacySymbol(for value: String) -> String? {
+        let legacyMap: [String: String] = [
+            "🍔": "fork.knife", "🍕": "fork.knife", "🍎": "fork.knife",
+            "🚆": "tram.fill", "🚗": "car.fill", "🚌": "bus.fill",
+            "🏠": "house.fill", "💡": "lightbulb.fill", "⚡️": "bolt.fill",
+            "🎁": "gift.fill", "💰": "banknote.fill", "💵": "banknote.fill",
+            "💳": "creditcard.fill", "🏥": "cross.case.fill", "💊": "pills.fill",
+            "⚽️": "sportscourt.fill", "🎮": "gamecontroller.fill", "🎬": "film.fill",
+            "🎵": "music.note", "🐶": "pawprint.fill", "👨‍👩‍👧‍👦": "person.2.fill",
+            "✈️": "airplane", "🎓": "graduationcap.fill", "📚": "books.vertical.fill",
+            "🔄": "repeat.circle.fill", "🔁": "repeat.circle.fill", "🛒": "cart.fill"
+        ]
+        guard let symbol = legacyMap[value] else { return nil }
+        return Sa7totSymbolResolver.resolved(symbol)
     }
 
     static func foreground(for storedColour: String) -> Color {
@@ -111,11 +257,12 @@ struct Sa7totIconTile: View {
 struct Sa7totCategoryIcon: View {
     let name: String
     let colour: String
+    var storedValue: String?
     var size: CGFloat = 44
     var future = false
 
     var body: some View {
-        Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: name), role: .category, tint: CategoryIconPresentation.foreground(for: colour))
+        Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: name, storedValue: storedValue), role: .category, tint: CategoryIconPresentation.foreground(for: colour))
             .frame(width: size, height: size)
             .background {
                 if future {

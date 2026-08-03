@@ -674,7 +674,7 @@ struct SingleBudgetView: View {
                             }
                             .frame(width: 40, height: 40)
                             .overlay {
-                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName), role: .category, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
+                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName, storedValue: budget.category?.emoji), role: .category, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
                             }
 
                             VStack(alignment: .leading, spacing: -0.5) {
@@ -780,7 +780,7 @@ struct SingleBudgetView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 0.5) {
                             HStack(spacing: 4) {
-                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
+                                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName, storedValue: budget.category?.emoji), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
 //                                    .font(.system(size: 11.5))
 
                                 Text(budget.wrappedName)
@@ -1543,7 +1543,7 @@ struct TimeBudgetView: View {
             // budget name and emoji and time left
             VStack(spacing: 10) {
                 HStack(spacing: 7.5) {
-                    Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
+                    Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: budget.wrappedName, storedValue: budget.category?.emoji), role: .inline, tint: CategoryIconPresentation.foreground(for: budget.wrappedColour))
                     Text(budget.wrappedName)
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .lineLimit(1)

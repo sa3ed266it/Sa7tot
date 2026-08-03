@@ -7,6 +7,37 @@
 
 import Foundation
 
+enum Sa7totSharedIconPresentation {
+    static func symbol(for name: String, storedValue: String) -> String {
+        if storedValue.hasPrefix("sf:") {
+            return String(storedValue.dropFirst(3))
+        }
+
+        let legacy: [String: String] = [
+            "🍔": "fork.knife", "🍕": "fork.knife", "🚆": "tram.fill", "🚗": "car.fill",
+            "🏠": "house.fill", "💡": "lightbulb.fill", "🎁": "gift.fill", "💰": "banknote.fill",
+            "💳": "creditcard.fill", "🏥": "cross.case.fill", "💊": "pills.fill", "🎮": "gamecontroller.fill",
+            "🐶": "pawprint.fill", "🛒": "cart.fill"
+        ]
+        if let symbol = legacy[storedValue] {
+            return symbol
+        }
+
+        let normalized = name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT")).lowercased()
+        switch normalized {
+        case "spesa", "spese": return "cart.fill"
+        case "abbonamento", "abbonamenti": return "repeat.circle.fill"
+        case "trasporti": return "tram.fill"
+        case "cibo": return "fork.knife"
+        case "stipendio", "entrata", "entrate", "reddito": return "banknote.fill"
+        case "casa", "affitto": return "house.fill"
+        case "salute": return "cross.case.fill"
+        case "animali": return "pawprint.fill"
+        default: return "tag.fill"
+        }
+    }
+}
+
 extension Transaction {
     var wrappedAmount: Double {
         amount

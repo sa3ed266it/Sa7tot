@@ -371,11 +371,12 @@ struct BrandNewBudgetView: View {
                 VStack {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(BudgetTimeFrame.allCases, id: \.self) { time in
+                            let isSelected = time == budgetTimeFrame
                             HStack {
                                 Text(LocalizedStringKey(time.rawValue))
                                 Spacer()
 
-                                if time == budgetTimeFrame {
+                                if isSelected {
                                     Checkmark()
                                 }
                             }
@@ -385,13 +386,8 @@ struct BrandNewBudgetView: View {
 //                            .font(.system(size: 20, weight: .medium, design: .rounded))
                             .padding(8)
 //                            .frame(height: 40)
-                            .background {
-                                if time == budgetTimeFrame {
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(Color.SecondaryBackground)
-                                        .matchedGeometryEffect(id: "TAB2", in: animation)
-                                }
-                            }
+                            .background(isSelected ? Color.SecondaryBackground : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 withAnimation(.easeIn(duration: 0.15)) {
@@ -414,35 +410,9 @@ struct BrandNewBudgetView: View {
                         ScrollView(showsIndicators: false) {
                             ScrollViewReader { value in
                                 VStack(alignment: .leading, spacing: 0) {
-                                    ForEach(weekdays, id: \.self) { day in
-                                        HStack {
-                                            Text(LocalizedStringKey(day))
-                                            Spacer()
-
-                                            if chosenDayWeek == (weekdays.firstIndex(of: day)! + 1) {
-                                                Checkmark()
-                                            }
-                                        }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .foregroundColor(Color.PrimaryText)
-                                        .font(.system(.title3, design: .rounded).weight(.medium))
-//                                        .font(.system(size: 20, weight: .medium, design: .rounded))
-                                        .padding(8)
-//                                        .frame(height: 40)
-                                        .background {
-                                            if chosenDayWeek == (weekdays.firstIndex(of: day)! + 1) {
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color.SecondaryBackground)
-//                                                    .matchedGeometryEffect(id: "TAB3", in: animation)
-                                            }
-                                        }
-                                        .id(weekdays.firstIndex(of: day)! + 1)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            withAnimation(.easeIn(duration: 0.15)) {
-                                                chosenDayWeek = (weekdays.firstIndex(of: day)! + 1)
-                                            }
-                                        }
+                                    ForEach(Array(weekdays.enumerated()), id: \.element) { offset, day in
+                                        let dayIndex = offset + 1
+                                        WeekdaySelectionRow(day: day, index: dayIndex, selectedDay: $chosenDayWeek)
                                     }
                                 }
                                 .onAppear {
@@ -572,16 +542,17 @@ struct BrandNewBudgetView: View {
                         }
                     }
                 } label: {
+                    let isContinueDisabled = selectedCategory == nil && progress == 2
                     Text("Continue")
                         .font(.system(.title3, design: .rounded).weight(.semibold))
 //                        .font(.system(size: 19, weight: .semibold, design: .rounded))
 
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity)
-                        .foregroundColor((selectedCategory == nil && progress == 2) ? Color.SubtitleText : Color.LightIcon)
-                        .background((selectedCategory == nil && progress == 2) ? Color.clear : Color.DarkBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        .foregroundColor(isContinueDisabled ? Color.SubtitleText : Color.LightIcon)
+                        .background(isContinueDisabled ? Color.clear : Color.DarkBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                         .overlay {
-                            if selectedCategory == nil && progress == 2 {
+                            if isContinueDisabled {
                                 RoundedRectangle(cornerRadius: 13, style: .continuous)
                                     .stroke(Color.Outline, lineWidth: 1.3)
                             }
@@ -855,6 +826,7 @@ struct BrandNewBudgetView: View {
 
     @ViewBuilder
     func RowView(category: Category) -> some View {
+        let iconSymbol = CategoryIconPresentation.symbol(for: category.wrappedName, storedValue: category.emoji)
         Button {
             if selectedCategory == category {
                 selectedCategory = nil
@@ -863,7 +835,7 @@ struct BrandNewBudgetView: View {
             }
         } label: {
             HStack(spacing: 5) {
-                Sa7totIcon(systemName: CategoryIconPresentation.symbol(for: category.wrappedName), role: .inline, tint: CategoryIconPresentation.foreground(for: category.wrappedColour))
+                Sa7totIcon(systemName: iconSymbol, role: .inline, tint: CategoryIconPresentation.foreground(for: category.wrappedColour))
                 Text(category.wrappedName)
                     .font(.system(.title3, design: .rounded).weight(.semibold))
 //                    .font(.system(size: 19, weight: .semibold, design: .rounded))
@@ -882,6 +854,30 @@ struct BrandNewBudgetView: View {
             .opacity(selectedCategory == nil ? 1 : (selectedCategory == category ? 1 : 0.4))
         }
         .buttonStyle(BouncyButton(duration: 0.2, scale: 0.8))
+    }
+
+    private func WeekdaySelectionRow(day: String, index: Int, selectedDay: Binding<Int>) -> some View {
+        let isSelected = selectedDay.wrappedValue == index
+        return HStack {
+            Text(LocalizedStringKey(day))
+            Spacer()
+            if isSelected {
+                Checkmark()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .foregroundColor(Color.PrimaryText)
+        .font(.system(.title3, design: .rounded).weight(.medium))
+        .padding(8)
+        .background(isSelected ? Color.SecondaryBackground : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .id(index)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeIn(duration: 0.15)) {
+                selectedDay.wrappedValue = index
+            }
+        }
     }
 
     func getOrdinal(_ number: Int) -> String {
