@@ -36,6 +36,7 @@ struct HomeView: View {
 
     @State var currentTab = "Log"
     @State private var searchText = ""
+    @State private var isSearchPresented = false
 
     var topEdge: CGFloat
     var bottomEdge: CGFloat
@@ -206,8 +207,10 @@ struct HomeView: View {
                 }
             }
         }
-        .searchable(text: $searchText, placement: .automatic, prompt: "Cerca movimento per nota")
-        .tabViewSearchActivation(.searchTabSelection)
+        .searchable(text: $searchText, isPresented: $isSearchPresented, placement: .automatic, prompt: "Cerca movimento per nota")
+        .onChange(of: currentTab) { newValue in
+            isSearchPresented = newValue == "Search"
+        }
         .allowsHitTesting(showPopup ? false : true)
         .environmentObject(toastPresenter)
         .environmentObject(transactionManager)
