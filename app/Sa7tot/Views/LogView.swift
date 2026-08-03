@@ -1133,27 +1133,6 @@ struct FutureListView: View {
     }
 }
 
-private struct TransactionContextMenuModifier: ViewModifier {
-    let canDelete: Bool
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-
-    func body(content: Content) -> some View {
-        content
-            .contextMenu {
-                Button(action: onEdit) {
-                    Label("Modifica", systemImage: "pencil")
-                }
-
-                if canDelete {
-                    Button(role: .destructive, action: onDelete) {
-                        Label("Elimina", systemImage: "trash")
-                    }
-                }
-            }
-    }
-}
-
 struct SingleTransactionView: View {
     let transaction: Transaction
     let showCents: Bool
@@ -1180,7 +1159,38 @@ struct SingleTransactionView: View {
         return numberFormatter.string(from: NSNumber(value: transaction.amount)) ?? "$0"
     }
 
+    private var stableTransactionIdentifier: String {
+        transaction.objectID.uriRepresentation().absoluteString
+    }
+
+    private var canDelete: Bool {
+        !(future && transaction.wrappedDate < Date.now && transaction.recurringType > 0)
+    }
+
     var body: some View {
+        NativeTransactionContextMenuRow(
+            identifier: stableTransactionIdentifier,
+            canDelete: canDelete,
+            content: transactionRowContent,
+            onEdit: {
+                transactionManager.toEdit = transaction
+            },
+            onDelete: {
+                transactionManager.toDelete = transaction
+                transactionManager.future = future
+                transactionManager.showPopup = true
+            }
+        )
+        .fixedSize(horizontal: false, vertical: true)
+        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .onTapGesture {
+            transactionManager.toEdit = transaction
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
+    }
+
+    private var transactionRowContent: some View {
             HStack(spacing: 12) {
                 if transaction.isTransfer {
                     Image(systemName: "arrow.left.arrow.right")
@@ -1248,23 +1258,6 @@ struct SingleTransactionView: View {
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
-            .contentShape(RoundedRectangle(cornerRadius: 10))
-            .onTapGesture {
-                transactionManager.toEdit = transaction
-            }
-            .modifier(TransactionContextMenuModifier(
-                canDelete: !(future && transaction.wrappedDate < Date.now && transaction.recurringType > 0),
-                onEdit: {
-                    transactionManager.toEdit = transaction
-                },
-                onDelete: {
-                    transactionManager.toDelete = transaction
-                    transactionManager.future = future
-                    transactionManager.showPopup = true
-                }
-            ))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
     }
 
     func getSubtitle() -> String {
