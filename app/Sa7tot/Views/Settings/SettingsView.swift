@@ -81,11 +81,6 @@ struct SettingsView: View {
     }
   }
 
-  @Environment(\.openURL) var openURL
-  let supportEmail = SupportEmail(toAddress: "rafasohhh@gmail.com", subject: "Support Email")
-  let featureRequestEmail = SupportEmail(
-    toAddress: "rafasohhh@gmail.com", subject: "Feature Request")
-
   @AppStorage("numberEntryType", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var numberEntryType: Int = 2
 
@@ -139,7 +134,6 @@ struct SettingsView: View {
 
   // popups
 
-  @State var showTipJarMenu = false
   @State var showImportGuide = false
   @State var showUpdate: Bool = false
 
@@ -153,7 +147,6 @@ struct SettingsView: View {
         NavigationView { settingsList }
       }
     }
-    .fullScreenCover(isPresented: $showTipJarMenu) { TipJarAlert() }
     .fullScreenCover(isPresented: $showUpdate) { UpdateAlert() }
     .fullScreenCover(isPresented: $showImportGuide) { ImportDataView() }
   }
@@ -232,50 +225,24 @@ struct SettingsView: View {
         }
       }
 
-      Section("Altro") {
+      Section("Avanzate") {
         NavigationLink(destination: SettingsHapticsView()) {
           SettingsNativeRow(title: "Feedback aptico", systemImage: "hand.tap.fill", tint: .pink, value: hapticValue)
         }
         NavigationLink(destination: SettingsGoofyView()) {
           SettingsNativeLabel(title: "Laboratorio funzioni", systemImage: "flame.fill", tint: .orange)
         }
-        Button { showTipJarMenu = true } label: {
-          SettingsNativeLabel(title: "Supporta Sa7tot", systemImage: "heart.fill", tint: .red)
-        }
-        Button { supportEmail.send(openURL: openURL) } label: {
-          SettingsNativeLabel(title: "Segnala un problema", systemImage: "ladybug.fill", tint: .green)
-        }
-        Button { featureRequestEmail.send(openURL: openURL) } label: {
-          SettingsNativeLabel(title: "Suggerisci una funzione", systemImage: "hand.wave.fill", tint: .yellow)
-        }
-        Button {
-          if let url = URL(string: "https://apps.apple.com/app/id1635280255?action=write-review") {
-            UIApplication.shared.open(url)
-          }
-        } label: {
-          SettingsNativeLabel(title: "Valuta su App Store", systemImage: "star.fill", tint: .yellow)
-        }
-        Button { shareSheet(url: "https://apps.apple.com/app/id1635280255") } label: {
-          SettingsNativeLabel(title: "Condividi con amici", systemImage: "square.and.arrow.up.fill", tint: .blue)
-        }
-        Button {
-          if let url = URL(string: "https://www.x.com/budgetwithsa7tot") { UIApplication.shared.open(url) }
-        } label: {
-          SettingsNativeLabel(title: "Segui Sa7tot su X", systemImage: "bird.fill", tint: .black)
-        }
-        Button {
-          if let url = URL(string: "https://www.x.com/rarfell") { UIApplication.shared.open(url) }
-        } label: {
-          SettingsNativeLabel(title: "Segui Rafael su X", systemImage: "camera.fill", tint: .gray)
-        }
       }
 
       Section("Informazioni") {
-        Link(destination: URL(string: "https://github.com/rafsoh")!) {
+        Link(destination: URL(string: "https://github.com/sa3ed266it/Sa7tot")!) {
           SettingsNativeLabel(title: "Progetto open source", systemImage: "chevron.left.forwardslash.chevron.right", tint: .gray)
         }
-        Link(destination: URL(string: "https://www.x.com/rarfell")!) {
-          SettingsNativeLabel(title: "Autore e supporto", systemImage: "person.fill", tint: .blue)
+        NavigationLink(destination: SettingsCreditsView()) {
+          SettingsNativeLabel(title: "Crediti", systemImage: "person.crop.circle.fill", tint: .blue)
+        }
+        NavigationLink(destination: SettingsLicenseView()) {
+          SettingsNativeLabel(title: "Licenza", systemImage: "doc.text.fill", tint: .gray)
         }
         Button { showUpdate = true } label: {
           SettingsNativeRow(title: "Versione", systemImage: "info.circle.fill", tint: .gray, value: "\(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
@@ -392,27 +359,6 @@ struct SettingsView: View {
       }
     }
     .frame(maxWidth: .infinity)
-  }
-
-  func makeAttributedString() -> AttributedString {
-    var string = AttributedString("Rafael")
-    string.foregroundColor = Color.PrimaryText
-    string.link = URL(string: "https://www.x.com/rarfell")
-
-    return string
-  }
-
-  func shareSheet(url: String) {
-    let url = URL(string: url)
-    let activityView = UIActivityViewController(activityItems: [url!], applicationActivities: nil)
-
-    let allScenes = UIApplication.shared.connectedScenes
-    let scene = allScenes.first { $0.activationState == .foregroundActive }
-
-    if let windowScene = scene as? UIWindowScene {
-      windowScene.keyWindow?.rootViewController?.present(
-        activityView, animated: true, completion: nil)
-    }
   }
 
   func exportData() {
@@ -822,5 +768,37 @@ struct SettingsCategoryView: View {
       .navigationBarTitle("")
       .navigationBarHidden(true)
       .background(Color.PrimaryBackground)
+  }
+}
+
+struct SettingsCreditsView: View {
+  var body: some View {
+    List {
+      Section("Crediti") {
+        Text("Sa7tot")
+          .font(.title3.weight(.semibold))
+        Text("Sa7tot è basato sul progetto open source Dime di Rafael Soh.")
+        Link("Progetto Dime su GitHub", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
+        Text("Autore originale: Rafael Soh")
+      }
+    }
+    .listStyle(.insetGrouped)
+    .navigationTitle("Crediti")
+    .navigationBarTitleDisplayMode(.inline)
+  }
+}
+
+struct SettingsLicenseView: View {
+  var body: some View {
+    List {
+      Section("Licenza") {
+        Text("Sa7tot è distribuito secondo la GNU General Public License v3.0.")
+        Link("Leggi la licenza GPL v3.0", destination: URL(string: "https://github.com/sa3ed266it/Sa7tot/blob/main/LICENSE")!)
+        Link("Progetto originale Dime", destination: URL(string: "https://github.com/rafsoh/dimeApp")!)
+      }
+    }
+    .listStyle(.insetGrouped)
+    .navigationTitle("Licenza")
+    .navigationBarTitleDisplayMode(.inline)
   }
 }
