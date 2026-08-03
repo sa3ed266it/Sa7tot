@@ -37,6 +37,8 @@ struct LogView: View {
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
 
     @EnvironmentObject var dataController: DataController
+    @EnvironmentObject var transactionManager: OverallTransactionManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.managedObjectContext) var moc
 
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
@@ -80,6 +82,8 @@ struct LogView: View {
     private var balanceHandoff: CGFloat {
         min(max((balanceCollapseProgress - 0.50) / 0.28, 0), 1)
     }
+
+    @State private var transactionRowFrames: [UUID: CGRect] = [:]
 
     var body: some View {
         NavigationView {
@@ -366,6 +370,56 @@ struct LogView: View {
             }
         }
         .navigationViewStyle(.stack)
+        .onPreferenceChange(TransactionRowFramePreferenceKey.self) { frames in
+            transactionRowFrames = frames
+            if let focusedID = transactionManager.focusedTransaction?.id {
+                transactionManager.focusedRowFrame = frames[focusedID]
+            }
+        }
+        .overlay {
+            if let transaction = transactionManager.focusedTransaction,
+               let frame = transactionManager.focusedRowFrame {
+                FocusedTransactionOverlay(
+                    transaction: transaction,
+                    frame: frame,
+                    currencySymbol: currencySymbol,
+                    currency: currency,
+                    showCents: showCents,
+                    swapTimeLabel: transactionManager.focusedSwapTimeLabel,
+                    showExpenseOrIncomeSign: transactionManager.focusedShowExpenseOrIncomeSign,
+                    future: transactionManager.focusedFuture,
+                    onDismiss: dismissFocusedTransaction,
+                    onEdit: { editFocusedTransaction(transaction) },
+                    onDelete: { deleteFocusedTransaction(transaction) }
+                )
+                .transition(.opacity)
+                .zIndex(100)
+            }
+        }
+    }
+
+    private func dismissFocusedTransaction() {
+        withAnimation(.easeOut(duration: 0.18)) {
+            transactionManager.focusedTransaction = nil
+            transactionManager.focusedRowFrame = nil
+        }
+    }
+
+    private func editFocusedTransaction(_ transaction: Transaction) {
+        dismissFocusedTransaction()
+        DispatchQueue.main.async {
+            transactionManager.toEdit = transaction
+        }
+    }
+
+    private func deleteFocusedTransaction(_ transaction: Transaction) {
+        let isFuture = transactionManager.focusedFuture
+        dismissFocusedTransaction()
+        DispatchQueue.main.async {
+            transactionManager.toDelete = transaction
+            transactionManager.future = isFuture
+            transactionManager.showPopup = true
+        }
     }
 
     @ViewBuilder
@@ -1133,6 +1187,110 @@ struct FutureListView: View {
     }
 }
 
+private struct TransactionRowFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
+
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, newest in newest })
+    }
+}
+
+private struct FocusedTransactionOverlay: View {
+    let transaction: Transaction
+    let frame: CGRect
+    let currencySymbol: String
+    let currency: String
+    let showCents: Bool
+    let swapTimeLabel: Bool
+    let showExpenseOrIncomeSign: Bool
+    let future: Bool
+    let onDismiss: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let menuWidth: CGFloat = 210
+    private let menuRowHeight: CGFloat = 52
+    private let menuGap: CGFloat = 10
+    private let tabBarClearance: CGFloat = 88
+
+    var body: some View {
+        GeometryReader { proxy in
+            let globalRootFrame = proxy.frame(in: .global)
+            let menuHeight = menuRowHeight * 2
+            let lowerLimit = globalRootFrame.maxY - tabBarClearance
+            let fitsBelow = frame.maxY + menuGap + menuHeight <= lowerLimit
+            let menuY = fitsBelow
+                ? frame.maxY + menuGap + menuHeight / 2
+                : frame.minY - menuGap - menuHeight / 2
+            let menuX = min(max(frame.maxX - menuWidth / 2, menuWidth / 2 + 12), globalRootFrame.maxX - menuWidth / 2 - 12)
+
+            ZStack {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onDismiss)
+
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Color.black.opacity(0.22))
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+
+                SingleTransactionView(
+                    transaction: transaction,
+                    showCents: showCents,
+                    currencySymbol: currencySymbol,
+                    currency: currency,
+                    swapTimeLabel: swapTimeLabel,
+                    future: future,
+                    showExpenseOrIncomeSign: showExpenseOrIncomeSign,
+                    isFocusedClone: true
+                )
+                .frame(width: frame.width, height: frame.height)
+                .position(
+                    x: frame.midX - globalRootFrame.minX,
+                    y: frame.midY - globalRootFrame.minY
+                )
+                .allowsHitTesting(false)
+                .accessibilityAddTraits(.isSelected)
+
+                VStack(spacing: 0) {
+                    Button(action: onEdit) {
+                        Label("Modifica", systemImage: "pencil")
+                            .frame(maxWidth: .infinity, minHeight: menuRowHeight, alignment: .leading)
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive, action: onDelete) {
+                        Label("Elimina", systemImage: "trash")
+                            .frame(maxWidth: .infinity, minHeight: menuRowHeight, alignment: .leading)
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+                .frame(width: menuWidth, height: menuHeight)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+                }
+                .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+                .position(
+                    x: menuX - globalRootFrame.minX,
+                    y: menuY - globalRootFrame.minY
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: fitsBelow ? .top : .bottom)))
+            }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: frame)
+        }
+        .ignoresSafeArea()
+        .accessibilityElement(children: .contain)
+    }
+}
+
+#if false
 private struct TransactionContextMenuModifier: ViewModifier {
     let canDelete: Bool
     let onEdit: () -> Void
@@ -1168,7 +1326,6 @@ private struct TransactionContextMenuModifier: ViewModifier {
     }
 }
 
-#if false
 private struct TransactionContextPreview: View {
     let transaction: Transaction
     let currencySymbol: String
@@ -1266,9 +1423,31 @@ struct SingleTransactionView: View {
     let swapTimeLabel: Bool
     let future: Bool
     let showExpenseOrIncomeSign: Bool
+    let isFocusedClone: Bool
 
     @EnvironmentObject var dataController: DataController
     @EnvironmentObject var transactionManager: OverallTransactionManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(
+        transaction: Transaction,
+        showCents: Bool,
+        currencySymbol: String,
+        currency: String,
+        swapTimeLabel: Bool,
+        future: Bool,
+        showExpenseOrIncomeSign: Bool,
+        isFocusedClone: Bool = false
+    ) {
+        self.transaction = transaction
+        self.showCents = showCents
+        self.currencySymbol = currencySymbol
+        self.currency = currency
+        self.swapTimeLabel = swapTimeLabel
+        self.future = future
+        self.showExpenseOrIncomeSign = showExpenseOrIncomeSign
+        self.isFocusedClone = isFocusedClone
+    }
 
     var transactionAmountString: String {
         let numberFormatter = NumberFormatter()
@@ -1356,17 +1535,30 @@ struct SingleTransactionView: View {
             .onTapGesture {
                 transactionManager.toEdit = transaction
             }
-            .modifier(TransactionContextMenuModifier(
-                canDelete: !(future && transaction.wrappedDate < Date.now && transaction.recurringType > 0),
-                onEdit: {
-                    transactionManager.toEdit = transaction
-                },
-                onDelete: {
-                    transactionManager.toDelete = transaction
-                    transactionManager.future = future
-                    transactionManager.showPopup = true
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.55, maximumDistance: 12)
+                    .onEnded { _ in
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
+                            transactionManager.focusedFuture = future
+                            transactionManager.focusedSwapTimeLabel = swapTimeLabel
+                            transactionManager.focusedShowExpenseOrIncomeSign = showExpenseOrIncomeSign
+                            transactionManager.focusedTransaction = transaction
+                        }
+                    }
+            )
+            .opacity(!isFocusedClone && transactionManager.focusedTransaction?.id == transaction.id ? 0 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: transactionManager.focusedTransaction?.id)
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(
+                            key: TransactionRowFramePreferenceKey.self,
+                            value: transaction.id.map { [$0: proxy.frame(in: .global)] } ?? [:]
+                        )
                 }
-            ))
+                .allowsHitTesting(false)
+            }
+            .accessibilityHidden(!isFocusedClone && transactionManager.focusedTransaction?.id == transaction.id)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
     }

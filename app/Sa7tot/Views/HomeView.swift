@@ -22,6 +22,11 @@ enum DeletionType {
 class OverallTransactionManager: ObservableObject {
     @Published var toEdit: Transaction?
     @Published var toDelete: Transaction?
+    @Published var focusedTransaction: Transaction?
+    @Published var focusedRowFrame: CGRect?
+    @Published var focusedFuture = false
+    @Published var focusedSwapTimeLabel = false
+    @Published var focusedShowExpenseOrIncomeSign = true
     @Published var showToast: Bool = false
     @Published var showPopup: Bool = false
     @Published var future: Bool = false
