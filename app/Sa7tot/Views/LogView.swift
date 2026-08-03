@@ -278,6 +278,7 @@ struct LogView: View {
                     }
                     .labelStyle(.iconOnly)
                     .sa7totFilterButtonBorderShape()
+                    .sa7totFilterButtonStyle()
                     .accessibilityLabel("Filtra")
                     .accessibilityValue(filter.italianTitle)
                 }
@@ -820,6 +821,15 @@ private extension View {
             buttonBorderShape(.circle)
         } else {
             buttonBorderShape(.roundedRectangle)
+        }
+    }
+
+    @ViewBuilder
+    func sa7totFilterButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glass)
+        } else {
+            self
         }
     }
 }
