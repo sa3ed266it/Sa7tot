@@ -68,6 +68,7 @@ struct LogView: View {
 //    @State var released: PullToReach = .none
 
     @State var progress = 0.0
+    @State private var balanceCollapseProgress: CGFloat = 0
 
     var body: some View {
         NavigationView {
@@ -152,16 +153,38 @@ struct LogView: View {
                 .frame(height: (filter == .all || filter == .recurring || filter == .upcoming) ? 50 : 110, alignment: .top)
                 .padding(.top, 10)
 
+                if filter == .all {
+                    LogInsightsView(
+                        navBarText: $navBarText,
+                        showCents: showCents,
+                        currencySymbol: currencySymbol,
+                        collapseProgress: balanceCollapseProgress
+                    )
+                    .clipped()
+                }
+
                 ScrollView(showsIndicators: false) {
-                    if filter == .all {
-                        LogInsightsView(navBarText: $navBarText, showCents: showCents, currencySymbol: currencySymbol)
+                    GeometryReader { proxy in
+                        Color.clear
+                            .preference(
+                                key: LogScrollOffsetKey.self,
+                                value: proxy.frame(in: .named("LogScroll")).minY
+                            )
                     }
+                    .frame(height: 0)
 
                     TransactionsList(filter: filter, category: categoryFilter, date: dateFilter, week: weekFilter, month: monthFilter, income: income)
                         .zIndex(0)
                         .padding(.horizontal, 20)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .coordinateSpace(name: "LogScroll")
+                .onPreferenceChange(LogScrollOffsetKey.self) { offset in
+                    let collapseDistance: CGFloat = 120
+                    let progress = min(max(-offset / collapseDistance, 0), 1)
+                    guard abs(progress - balanceCollapseProgress) > 0.001 else { return }
+                    balanceCollapseProgress = progress
+                }
 
 //
 //                CustomRefreshView {
@@ -237,6 +260,9 @@ struct LogView: View {
                 if !NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
                     dataController.updateRecurringTransactions()
                 }
+            }
+            .onChange(of: filter) { _ in
+                balanceCollapseProgress = 0
             }
 //            .animation(.spring(duration: 0.5), value: released)
 //            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: pullStatus)
@@ -317,11 +343,20 @@ struct LogView: View {
     }
 }
 
+private struct LogScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 struct NumberView: AnimatableModifier {
     var number: Double
     var dynamicTypeSize: DynamicTypeSize
     let netTotal: Bool
     let positive: Bool
+    var collapseProgress: CGFloat = 0
 
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
@@ -331,24 +366,26 @@ struct NumberView: AnimatableModifier {
     }
 
     var fontSize: CGFloat {
+        let baseSize: CGFloat
         switch dynamicTypeSize {
         case .xSmall:
-            return 46
+            baseSize = 46
         case .small:
-            return 47
+            baseSize = 47
         case .medium:
-            return 48
+            baseSize = 48
         case .large:
-            return 50
+            baseSize = 50
         case .xLarge:
-            return 56
+            baseSize = 56
         case .xxLarge:
-            return 58
+            baseSize = 58
         case .xxxLarge:
-            return 62
+            baseSize = 62
         default:
-            return 50
+            baseSize = 50
         }
+        return baseSize * (1 - (0.34 * collapseProgress))
     }
     var animatableData: Double {
         get { number }
@@ -359,7 +396,7 @@ struct NumberView: AnimatableModifier {
         HStack(alignment: .lastTextBaseline, spacing: 2) {
             Group {
                 Text(netTotal ? (positive ? "+\(currencySymbol)" : "-\(currencySymbol)") : currencySymbol)
-                    .font(.system(.largeTitle, design: .rounded))
+                    .font(.system(size: 34 - (8 * collapseProgress), design: .rounded))
                     .foregroundColor(Color.SubtitleText) +
 
                 Text("\(number, specifier: showCents  ? "%.2f" : "%.0f")")
@@ -381,6 +418,7 @@ struct LogInsightsView: View {
 
     let showCents: Bool
     let currencySymbol: String
+    var collapseProgress: CGFloat = 0
 
     @AppStorage("logInsightsTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var timeframe = 2
     @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
@@ -471,17 +509,28 @@ struct LogInsightsView: View {
 
     var body: some View {
         VStack(spacing: -3) {
-            VStack(spacing: 2) {
+            VStack(spacing: 2 - collapseProgress) {
                 HStack(spacing: 4) {
                     Text(LocalizedStringKey(headingText))
-                        .font(.system(.body, design: .rounded).weight(.medium))
+                        .font(.system(size: 17 - (3 * collapseProgress), design: .rounded).weight(.medium))
                         .foregroundColor(Color.PrimaryText.opacity(0.9))
                 }
 
                 EmptyView()
-                    .modifier(NumberView(number: amount, dynamicTypeSize: _dynamicTypeSize.wrappedValue, netTotal: insightsType == 1, positive: netTotal.positive))
+                    .modifier(NumberView(
+                        number: amount,
+                        dynamicTypeSize: _dynamicTypeSize.wrappedValue,
+                        netTotal: insightsType == 1,
+                        positive: netTotal.positive,
+                        collapseProgress: collapseProgress
+                    ))
             }
-            .padding(7)
+            .padding(EdgeInsets(
+                top: 7 - (4 * collapseProgress),
+                leading: 7,
+                bottom: 7 - (4 * collapseProgress),
+                trailing: 7
+            ))
             .contentShape(Rectangle())
             .contextMenu {
                 if insightsType != 3 {
@@ -524,7 +573,7 @@ struct LogInsightsView: View {
 //                    }
 
                     Text("+\(formatNumber(showCents: showCents, number: totalIncome))")
-                        .font(.system(.title2, design: .rounded).weight(.medium))
+                        .font(.system(size: 22 - (4 * collapseProgress), design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.IncomeGreen)
@@ -536,7 +585,7 @@ struct LogInsightsView: View {
                         .foregroundColor(Color.Outline)
 
                     Text("-\(formatNumber(showCents: showCents, number: totalSpent))")
-                        .font(.system(.title2, design: .rounded).weight(.medium))
+                        .font(.system(size: 22 - (4 * collapseProgress), design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.AlertRed)
@@ -554,7 +603,7 @@ struct LogInsightsView: View {
 //                            .lineLimit(1)
 //                    }
                 }
-                .padding(.bottom, 13)
+                .padding(.bottom, 13 - (7 * collapseProgress))
             }
 
             if lineGraph {
@@ -566,7 +615,7 @@ struct LogInsightsView: View {
         }
         .padding([.bottom, .horizontal], 20)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .frame(height: lineGraph ? 240 : 170)
+        .frame(height: (lineGraph ? 240 : 170) - ((lineGraph ? 162 : 92) * collapseProgress))
     }
 
     func formatNumber(showCents: Bool, number: Double) -> String {
