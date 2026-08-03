@@ -342,16 +342,20 @@ struct TransactionEditorShell: View {
     private var noteRow: some View {
         TransactionEditorRow(title: "Nota", systemImage: "note.text") {
             HStack(spacing: 8) {
-                Text(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aggiungi" : note)
-                    .foregroundStyle(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .secondary : .primary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                if !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(note)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .layoutPriority(0)
+                }
                 Button(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aggiungi" : "Modifica") {
                     noteDraft = note
                     showNoteSheet = true
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .layoutPriority(1)
                 .accessibilityLabel(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Aggiungi nota" : "Modifica nota")
             }
             .frame(minHeight: 44)
@@ -430,14 +434,25 @@ private struct TransactionEditorNoteSheet: View {
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 12) {
-                TextField("Aggiungi una nota", text: $draft)
-                    .focused($focused)
-                    .textFieldStyle(.roundedBorder)
-                    .submitLabel(.done)
-                    .onChange(of: draft) { value in
-                        if value.count > 50 { draft = String(value.prefix(50)) }
+                ZStack(alignment: .topLeading) {
+                    if draft.isEmpty {
+                        Text("Aggiungi una nota")
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 10)
+                            .allowsHitTesting(false)
                     }
-                    .accessibilityLabel("Nota")
+                    TextEditor(text: $draft)
+                        .focused($focused)
+                        .font(.body)
+                        .frame(minHeight: 130, maxHeight: 150)
+                        .padding(4)
+                        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .onChange(of: draft) { value in
+                            if value.count > 50 { draft = String(value.prefix(50)) }
+                        }
+                        .accessibilityLabel("Nota")
+                }
                 if showRecommendations && !draft.isEmpty && !suggestedTransactions.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -470,13 +485,9 @@ private struct TransactionEditorNoteSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fine") {
-                        note = draft
+                        note = draft.trimmingCharacters(in: .whitespacesAndNewlines)
                         isPresented = false
                     }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Fine") { focused = false }
                 }
             }
         }
@@ -491,7 +502,7 @@ private struct TransactionEditorNoteSheetPresentation: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 16.0, *) {
             content
-                .presentationDetents([.height(220), .medium])
+                .presentationDetents([.height(280)])
                 .presentationDragIndicator(.visible)
         } else {
             content
