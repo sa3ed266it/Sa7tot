@@ -72,6 +72,10 @@ struct LogView: View {
     @State private var expandedBalanceHeaderHeight: CGFloat = 210
     private let compactBalanceHeaderHeight: CGFloat = 76
 
+    private var compactHeaderVisibilityProgress: CGFloat {
+        min(max((balanceCollapseProgress - 0.55) / 0.45, 0), 1)
+    }
+
     var body: some View {
         NavigationView {
             Group {
@@ -211,30 +215,12 @@ struct LogView: View {
                             showCents: showCents,
                             currencySymbol: currencySymbol
                         )
-                        .frame(maxWidth: .infinity)
-                        .frame(height: compactBalanceHeaderHeight)
-                        .background(.regularMaterial)
-                        .overlay(alignment: .bottom) {
-                            VStack(spacing: 0) {
-                                LinearGradient(
-                                    colors: [Color.PrimaryBackground.opacity(0.72), .clear],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                                .frame(height: 14)
-                                .offset(y: 14)
-
-                                Rectangle()
-                                    .fill(Color.Outline.opacity(0.35))
-                                    .frame(height: 0.5)
-                            }
-                                .allowsHitTesting(false)
-                        }
-                        .opacity(balanceCollapseProgress)
-                        .offset(y: -8 * (1 - balanceCollapseProgress))
+                        .opacity(compactHeaderVisibilityProgress)
+                        .offset(y: -8 * (1 - compactHeaderVisibilityProgress))
+                        .scaleEffect(0.96 + (0.04 * compactHeaderVisibilityProgress))
                         .zIndex(1)
                         .allowsHitTesting(false)
-                        .accessibilityHidden(balanceCollapseProgress < 0.5)
+                        .accessibilityHidden(compactHeaderVisibilityProgress < 1)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -439,89 +425,46 @@ struct CompactLogInsightsView: View {
     let showCents: Bool
     let currencySymbol: String
 
-    @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
-
     var netTotal: (value: Double, positive: Bool) {
         dataController.getLogViewTotalNet(type: 5)
     }
 
-    var totalSpent: Double {
-        dataController.getLogViewTotalSpent(type: 5)
-    }
-
-    var totalIncome: Double {
-        dataController.getLogViewTotalIncome(type: 5)
-    }
-
-    var amount: Double {
-        switch insightsType {
-        case 2:
-            return totalIncome
-        case 3:
-            return totalSpent
-        default:
-            return netTotal.value
-        }
-    }
-
-    var headingText: String {
-        switch insightsType {
-        case 2:
-            return "Earned"
-        case 3:
-            return "Spent"
-        default:
-            return "Saldo totale"
-        }
-    }
-
     var formattedAmount: String {
-        String(format: showCents ? "%.2f" : "%.0f", amount)
+        String(format: showCents ? "%.2f" : "%.0f", netTotal.value)
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(headingText)
-                    .font(.system(.caption, design: .rounded).weight(.medium))
+        VStack(spacing: 2) {
+            Text("Saldo totale")
+                .font(.system(.footnote, design: .rounded).weight(.medium))
+                .foregroundColor(Color.SubtitleText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            HStack(alignment: .lastTextBaseline, spacing: 2) {
+                Text(netTotal.positive ? currencySymbol : "-\(currencySymbol)")
+                    .font(.system(.subheadline, design: .rounded).weight(.medium))
                     .foregroundColor(Color.SubtitleText)
 
-                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text(insightsType == 1 ? (netTotal.positive ? currencySymbol : "-\(currencySymbol)") : currencySymbol)
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
-
-                    Text(formattedAmount)
-                        .font(.system(.title3, design: .rounded).weight(.medium))
-                        .foregroundColor(Color.PrimaryText)
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            if insightsType == 1 && totalSpent != 0 && totalIncome != 0 {
-                HStack(spacing: 7) {
-                    Text("+\(String(format: showCents ? "%.2f" : "%.0f", totalIncome))")
-                        .foregroundColor(Color.IncomeGreen)
-
-                    Rectangle()
-                        .fill(Color.Outline)
-                        .frame(width: 1, height: 14)
-
-                    Text("-\(String(format: showCents ? "%.2f" : "%.0f", totalSpent))")
-                        .foregroundColor(Color.AlertRed)
-                }
-                .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
+                Text(formattedAmount)
+                    .font(.system(.title2, design: .rounded).weight(.semibold))
+                    .foregroundColor(Color.PrimaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
             }
         }
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 22)
+        .padding(.vertical, 12)
+        .frame(minWidth: 240, maxWidth: 280)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(Color.white.opacity(0.12), lineWidth: 0.75)
+                .allowsHitTesting(false)
+        }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(headingText), \(currencySymbol)\(formattedAmount)")
+        .accessibilityLabel("Saldo totale, \(netTotal.positive ? currencySymbol : "-\(currencySymbol)")\(formattedAmount)")
     }
 }
 
