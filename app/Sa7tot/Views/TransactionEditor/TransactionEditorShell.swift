@@ -107,6 +107,7 @@ struct TransactionEditorShell: View {
                 VStack(alignment: .leading, spacing: 14) {
                     typeSelector
                     amountSection
+                    if !isTransfer { categoryCarousel }
                     suggestionsSection
                     detailsSection
                     deleteSection
@@ -283,7 +284,6 @@ struct TransactionEditorShell: View {
                 TransactionEditorRow(title: "Data e ora", systemImage: "calendar") {
                     DatePicker("Data e ora", selection: $date).labelsHidden().datePickerStyle(.compact)
                 }
-                if !isTransfer { categoryRow }
                 if isTransfer {
                     TransactionEditorRow(title: "Da", systemImage: "arrow.up.right") {
                         AccountMenuView(accounts: Array(accounts), account: $account)
@@ -302,14 +302,12 @@ struct TransactionEditorShell: View {
         }
     }
 
-    private var categoryRow: some View {
-        TransactionEditorRow(title: "Categoria", systemImage: "circle.grid.2x2") {
-            TransactionCategoryMenu(
-                category: $category,
-                showingCategoryView: $showCategorySheet,
-                income: income
-            )
-        }
+    private var categoryCarousel: some View {
+        TransactionEditorCategoryCarousel(
+            category: $category,
+            income: income,
+            onManage: { showCategorySheet = true }
+        )
     }
 
     private var recurrenceRow: some View {
@@ -417,6 +415,148 @@ private struct TransactionEditorRow<Content: View>: View {
             content
         }
         .frame(minHeight: 44)
+    }
+}
+
+private enum TransactionEditorCategorySymbolResolver {
+    private static let symbols: [String: String] = [
+        "spesa": "cart.fill",
+        "spese": "cart.fill",
+        "abbonamenti": "repeat.circle.fill",
+        "trasporti": "tram.fill",
+        "cibo": "fork.knife",
+        "casa": "house.fill",
+        "bollette": "bolt.fill",
+        "salute": "cross.case.fill",
+        "shopping": "bag.fill",
+        "svago": "gamecontroller.fill",
+        "viaggi": "airplane",
+        "regali": "gift.fill",
+        "istruzione": "book.fill",
+        "sport": "figure.run",
+        "animali": "pawprint.fill",
+        "stipendio": "banknote.fill",
+        "entrate": "arrow.down.circle.fill",
+        "reddito": "arrow.down.circle.fill",
+        "rimborso": "arrow.uturn.backward.circle.fill",
+        "risparmi": "building.columns.fill",
+        "altro": "tag.fill"
+    ]
+
+    static func symbol(for name: String) -> String {
+        let normalized = name
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return symbols[normalized] ?? "tag.fill"
+    }
+}
+
+private struct TransactionEditorCategoryCarousel: View {
+    @Binding var category: Category?
+    let income: Bool
+    let onManage: () -> Void
+    @FetchRequest private var categories: FetchedResults<Category>
+
+    init(category: Binding<Category?>, income: Bool, onManage: @escaping () -> Void) {
+        _category = category
+        self.income = income
+        self.onManage = onManage
+        _categories = FetchRequest<Category>(
+            sortDescriptors: [SortDescriptor(\.order, order: .reverse)],
+            predicate: NSPredicate(format: "income = %d", income)
+        )
+    }
+
+    var body: some View {
+        Group {
+            if categories.isEmpty {
+                Button(action: onManage) {
+                    Label("Aggiungi categoria", systemImage: "plus.circle.fill")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .frame(minHeight: 44)
+                        .padding(.horizontal, 14)
+                        .background(Color.SecondaryBackground, in: Capsule())
+                }
+                .accessibilityLabel("Aggiungi categoria")
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 10) {
+                            ForEach(categories, id: \.objectID) { item in
+                                categoryChip(item)
+                                    .id(item.objectID)
+                            }
+                            Button(action: onManage) {
+                                Label("Gestisci", systemImage: "ellipsis.circle")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                    .frame(minHeight: 44)
+                                    .padding(.horizontal, 14)
+                                    .background(Color.SecondaryBackground, in: Capsule())
+                            }
+                            .accessibilityLabel("Gestisci categorie")
+                        }
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 2)
+                    }
+                    .onAppear {
+                        scrollToSelection(using: proxy, animated: false)
+                    }
+                    .onChange(of: category) { _ in
+                        scrollToSelection(using: proxy, animated: true)
+                    }
+                }
+                .frame(minHeight: 52)
+            }
+        }
+    }
+
+    private func categoryChip(_ item: Category) -> some View {
+        let selected = item == category
+        let tint = Color(hex: item.wrappedColour)
+        return Button {
+            category = item
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: TransactionEditorCategorySymbolResolver.symbol(for: item.wrappedName))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+                    .accessibilityHidden(true)
+                Text(item.wrappedName)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .font(.body.weight(selected ? .semibold : .regular))
+            .frame(minHeight: 44)
+            .padding(.horizontal, 13)
+            .background(
+                selected ? tint.opacity(0.2) : Color.SecondaryBackground,
+                in: Capsule()
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.wrappedName)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func scrollToSelection(using proxy: ScrollViewProxy, animated: Bool) {
+        guard let selected = category, categories.contains(where: { $0 == selected }) else { return }
+        if animated {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                proxy.scrollTo(selected.objectID, anchor: .center)
+            }
+        } else {
+            proxy.scrollTo(selected.objectID, anchor: .center)
+        }
     }
 }
 
