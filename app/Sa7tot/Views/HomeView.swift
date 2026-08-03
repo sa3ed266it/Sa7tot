@@ -125,12 +125,13 @@ struct HomeView: View {
                 showPopup = newValue
             }
         }
-        .fullScreenCover(item: $transactionManager.toEdit, onDismiss: {
+        .sheet(item: $transactionManager.toEdit, onDismiss: {
             transactionManager.toEdit = nil
         }) { transaction in
             TransactionView(toEdit: transaction)
+                .modifier(TransactionEditorSheetPresentation())
         }
-        .fullScreenCover(isPresented: $addTransaction, onDismiss: {
+        .sheet(isPresented: $addTransaction, onDismiss: {
             if confetti && addTransactionCount != transactions.count {
                 counter += 1
             }
@@ -139,6 +140,7 @@ struct HomeView: View {
             }
         }) {
             TransactionView(toEdit: nil)
+                .modifier(TransactionEditorSheetPresentation())
         }
         .confettiCannon(counter: $counter, num: 50, openingAngle: Angle(degrees: 0), closingAngle: Angle(degrees: 360), radius: 200)
         .onAppear {
@@ -258,6 +260,24 @@ struct HomeView: View {
                 .environmentObject(toastPresenter)
                 .environmentObject(transactionManager)
         )
+    }
+}
+
+private struct TransactionEditorSheetPresentation: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.4, *) {
+            content
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(28)
+                .presentationBackground(.thinMaterial)
+        } else if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
+        }
     }
 }
 
