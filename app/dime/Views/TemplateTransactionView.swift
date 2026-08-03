@@ -12,6 +12,8 @@ import SwiftUI
 import WidgetKit
 
 struct TemplateTransactionView: View {
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)]) private
+    var accounts: FetchedResults<Account>
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
     @Environment(\.dismiss) var dismiss
@@ -28,6 +30,7 @@ struct TemplateTransactionView: View {
     @State private var repeatCoefficient = 1
     @State private var showRecurring = false
     @State var income = false
+    @State private var account: Account?
 
     var transactionTypeString: String {
         if income {
@@ -361,6 +364,7 @@ struct TemplateTransactionView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 // date and category picker
+                AccountMenuView(accounts: Array(accounts), account: $account)
                 CategoryRowPickerView(category: $category, income: income)
                     .padding(.bottom, 5)
 
@@ -680,6 +684,7 @@ struct TemplateTransactionView: View {
             if let unwrappedCategory = category {
                 editedTransaction.category = unwrappedCategory
             }
+            editedTransaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: moc)
 
             editedTransaction.amount = transactionValue
             editedTransaction.income = income
@@ -704,6 +709,7 @@ struct TemplateTransactionView: View {
             if let unwrappedCategory = category {
                 transaction.category = unwrappedCategory
             }
+            transaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: moc)
 
             transaction.amount = transactionValue
             transaction.id = UUID()
@@ -737,6 +743,8 @@ struct TemplateTransactionView: View {
                 print("CANNOT FIND")
             }
 
+            _account = State(initialValue: transaction.account)
+
             _income = State(initialValue: transaction.income)
 
             _repeatType = State(initialValue: Int(transaction.recurringType))
@@ -746,6 +754,9 @@ struct TemplateTransactionView: View {
         }
 
         self.order = order
+        if toEdit == nil {
+            _account = State(initialValue: AccountMigrationService.defaultActiveAccount(in: DataController.shared.container.viewContext))
+        }
         self.toEdit = toEdit
     }
 }

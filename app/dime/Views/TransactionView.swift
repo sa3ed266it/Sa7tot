@@ -15,6 +15,8 @@ struct TransactionView: View {
     var expenseCategories: FetchedResults<Category>
     @FetchRequest(sortDescriptors: [], predicate: NSPredicate(format: "income = %d", true)) private
     var incomeCategories: FetchedResults<Category>
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)]) private
+    var accounts: FetchedResults<Account>
 
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
@@ -35,6 +37,7 @@ struct TransactionView: View {
     @State private var repeatCoefficient = 1
     @State private var showRecurring = false
     @State var income = false
+    @State private var account: Account?
 
     var transactionTypeString: String {
         if income {
@@ -697,6 +700,8 @@ struct TransactionView: View {
                     .padding(.bottom, 5)
                 }
 
+                AccountMenuView(accounts: Array(accounts), account: $account)
+
                 // date and category picker
 
                 if showCategoryPicker {
@@ -1027,6 +1032,7 @@ struct TransactionView: View {
             if let unwrappedCategory = category {
                 editedTransaction.category = unwrappedCategory
             }
+            editedTransaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: moc)
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 withAnimation(.easeInOut(duration: 0.5)) {
@@ -1077,6 +1083,7 @@ struct TransactionView: View {
         if let unwrappedCategory = category {
             transaction.category = unwrappedCategory
         }
+        transaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: moc)
 
         transaction.amount = price
         transaction.date = date
@@ -1110,6 +1117,8 @@ struct TransactionView: View {
                 _category = State(initialValue: unwrappedCategory)
             }
 
+            _account = State(initialValue: transaction.account)
+
             _income = State(initialValue: transaction.income)
 
             if transaction.income {
@@ -1117,6 +1126,9 @@ struct TransactionView: View {
             }
 
             _date = State(initialValue: transaction.date ?? Date.now)
+        }
+        if toEdit == nil {
+            _account = State(initialValue: AccountMigrationService.defaultActiveAccount(in: DataController.shared.container.viewContext))
         }
         self.toEdit = toEdit
     }

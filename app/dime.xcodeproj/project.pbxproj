@@ -30,6 +30,12 @@
 		5327D28E287C697C00F76ADF /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D28D287C697C00F76ADF /* Preview Assets.xcassets */; };
 		5327D295287C698900F76ADF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D294287C698900F76ADF /* Assets.xcassets */; };
 		5327D2AD287C6AD200F76ADF /* DataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AC287C6AD200F76ADF /* DataController.swift */; };
+		53BC2A472A8B21920019E4A8 /* AccountSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BC2A482A8B21920019E4A8 /* AccountSupport.swift */; };
+		53BC2A492A8B21920019E4A8 /* AccountSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BC2A482A8B21920019E4A8 /* AccountSupport.swift */; };
+		53BC2A4A2A8B21920019E4A8 /* AccountSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BC2A482A8B21920019E4A8 /* AccountSupport.swift */; };
+		53BC2A4B2A8B21920019E4A8 /* AccountSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BC2A482A8B21920019E4A8 /* AccountSupport.swift */; };
+		53BC2A4C2A8B21920019E4A8 /* AccountListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BC2A4D2A8B21920019E4A8 /* AccountListView.swift */; };
+		53BC2A4E2A8B21920019E4A8 /* AccountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BC2A4F2A8B21920019E4A8 /* AccountTests.swift */; };
 		5327D2B6287C6AFB00F76ADF /* Authentication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2AF287C6AFB00F76ADF /* Authentication.swift */; };
 		5327D2B7287C6AFB00F76ADF /* KeyboardHeightHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B0287C6AFB00F76ADF /* KeyboardHeightHelper.swift */; };
 		5327D2B9287C6AFB00F76ADF /* EmailExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B2287C6AFB00F76ADF /* EmailExtensions.swift */; };
@@ -301,6 +307,11 @@
 		53B9079C2AE818A00001F496 /* CustomCapsule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCapsule.swift; sourceTree = "<group>"; };
 		53B9079E2AE818B90001F496 /* Ring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ring.swift; sourceTree = "<group>"; };
 		53BC2A402A8B21920019E4A8 /* MainModel 2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 2.xcdatamodel"; sourceTree = "<group>"; };
+		53BC2A482A8B21920019E4A8 /* AccountSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSupport.swift; sourceTree = "<group>"; };
+		53BC2A4D2A8B21920019E4A8 /* AccountListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountListView.swift; sourceTree = "<group>"; };
+		53BC2A4F2A8B21920019E4A8 /* AccountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTests.swift; sourceTree = "<group>"; };
+		53BC2A502A8B21920019E4A8 /* Sa7totTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Sa7totTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		53BC2A462A8B21920019E4A8 /* MainModel 3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 3.xcdatamodel"; sourceTree = "<group>"; };
 		53BC2A412A8B21920019E4A8 /* MainModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MainModel.xcdatamodel; sourceTree = "<group>"; };
 		53D0297F28C5BC0300443F2B /* Currency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Currency.swift; sourceTree = "<group>"; };
 		53D2506F2AA6331600016013 /* TemplateTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateTransactionView.swift; sourceTree = "<group>"; };
@@ -427,6 +438,7 @@
 				D63B20482D8728C300CAFB20 /* Localizable.stringsdict */,
 				53EB931028A65F670026BE28 /* ExpenditureWidgetExtension.entitlements */,
 				5327D285287C697400F76ADF /* Sa7tot */,
+				53BC2A512A8B21920019E4A8 /* Tests */,
 				53B1D18F288ED7E500E28062 /* ExpenditureWidget */,
 				5313EC5E28ACE941000EAB0C /* BudgetIntent */,
 				5313EC6928ACE941000EAB0C /* BudgetIntentUI */,
@@ -439,6 +451,7 @@
 			isa = PBXGroup;
 			children = (
 				5327D283287C697400F76ADF /* Sa7tot.app */,
+				53BC2A502A8B21920019E4A8 /* Sa7totTests.xctest */,
 				53B1D18A288ED7E400E28062 /* ExpenditureWidgetExtension.appex */,
 				5313EC5B28ACE941000EAB0C /* BudgetIntent.appex */,
 				5313EC6628ACE941000EAB0C /* BudgetIntentUI.appex */,
@@ -506,6 +519,7 @@
 			isa = PBXGroup;
 			children = (
 				53BC2A3F2A8B21920019E4A8 /* MainModel.xcdatamodeld */,
+				53BC2A482A8B21920019E4A8 /* AccountSupport.swift */,
 				53980E5B28A77B62009CC4E2 /* Helper.swift */,
 				5327D2AC287C6AD200F76ADF /* DataController.swift */,
 			);
@@ -621,6 +635,7 @@
 		53D6BDC62AF73B1D00F5728E /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				53BC2A4D2A8B21920019E4A8 /* AccountListView.swift */,
 				5327D2CF287C6B5E00F76ADF /* SettingsView.swift */,
 				53D6BDDB2AF73E1900F5728E /* Settings Subviews */,
 			);
@@ -665,6 +680,14 @@
 				AEADEF702AE94DA8006EB614 /* BackButton.swift */,
 			);
 			path = Toolbar;
+			sourceTree = "<group>";
+		};
+		53BC2A512A8B21920019E4A8 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				53BC2A4F2A8B21920019E4A8 /* AccountTests.swift */,
+			);
+			path = dime/Tests;
 			sourceTree = "<group>";
 		};
 		AECE7F9A2AED1A4600B57267 /* Transactions */ = {
@@ -764,6 +787,20 @@
 			productReference = 53B1D18A288ED7E400E28062 /* ExpenditureWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		53BC2A522A8B21920019E4A8 /* Sa7totTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 53BC2A532A8B21920019E4A8 /* Build configuration list for PBXNativeTarget "Sa7totTests" */;
+			buildPhases = (
+				53BC2A542A8B21920019E4A8 /* Sources */,
+				53BC2A552A8B21920019E4A8 /* Frameworks */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = Sa7totTests;
+			productName = Sa7totTests;
+			productReference = 53BC2A502A8B21920019E4A8 /* Sa7totTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -783,9 +820,12 @@
 					5327D282287C697400F76ADF = {
 						CreatedOnToolsVersion = 14.0;
 					};
-					53B1D189288ED7E400E28062 = {
-						CreatedOnToolsVersion = 14.0;
-					};
+				53B1D189288ED7E400E28062 = {
+					CreatedOnToolsVersion = 14.0;
+				};
+				53BC2A522A8B21920019E4A8 = {
+					CreatedOnToolsVersion = 26.0;
+				};
 				};
 			};
 			buildConfigurationList = 5327D27E287C697400F76ADF /* Build configuration list for PBXProject "Sa7tot" */;
@@ -815,6 +855,7 @@
 				53B1D189288ED7E400E28062 /* ExpenditureWidgetExtension */,
 				5313EC5A28ACE941000EAB0C /* BudgetIntent */,
 				5313EC6528ACE941000EAB0C /* BudgetIntentUI */,
+				53BC2A522A8B21920019E4A8 /* Sa7totTests */,
 			);
 		};
 /* End PBXProject section */
@@ -886,6 +927,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53BC2A492A8B21920019E4A8 /* AccountSupport.swift in Sources */,
 				53BC2A442A8B234F0019E4A8 /* MainModel.xcdatamodeld in Sources */,
 				5313EC6028ACE941000EAB0C /* IntentHandler.swift in Sources */,
 				537152E328AD0EC100E93EC4 /* Helper.swift in Sources */,
@@ -900,6 +942,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53BC2A4A2A8B21920019E4A8 /* AccountSupport.swift in Sources */,
 				53BC2A452A8B234F0019E4A8 /* MainModel.xcdatamodeld in Sources */,
 				5313EC6B28ACE941000EAB0C /* IntentViewController.swift in Sources */,
 				537152E428AD0EC100E93EC4 /* Helper.swift in Sources */,
@@ -914,6 +957,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53BC2A472A8B21920019E4A8 /* AccountSupport.swift in Sources */,
+				53BC2A4C2A8B21920019E4A8 /* AccountListView.swift in Sources */,
 				536A2A152A59C47400D81E02 /* Wiggle.swift in Sources */,
 				AEADEF742AE94DC3006EB614 /* ToolbarButton.swift in Sources */,
 				53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */,
@@ -1005,10 +1050,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		53BC2A542A8B21920019E4A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				53BC2A4E2A8B21920019E4A8 /* AccountTests.swift in Sources */,
+				53BC2A472A8B21920019E4A8 /* AccountSupport.swift in Sources */,
+				53BC2A442A8B234F0019E4A8 /* MainModel.xcdatamodeld in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		53BC2A552A8B21920019E4A8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		53B1D186288ED7E400E28062 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53BC2A4B2A8B21920019E4A8 /* AccountSupport.swift in Sources */,
 				537152E628AD243E00E93EC4 /* TestView.swift in Sources */,
 				53B907A32AE81A080001F496 /* DonutSemicircle.swift in Sources */,
 				53D5F02428A8E0E4004573C8 /* InsightsWidget.swift in Sources */,
@@ -1483,6 +1545,31 @@
 			};
 			name = Release;
 		};
+		53BC2A562A8B21920019E4A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.saied.sa7tot.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		53BC2A572A8B21920019E4A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.saied.sa7tot.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1527,6 +1614,15 @@
 			buildConfigurations = (
 				53B1D199288ED87000E28062 /* Debug */,
 				53B1D19A288ED87000E28062 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		53BC2A532A8B21920019E4A8 /* Build configuration list for PBXNativeTarget "Sa7totTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				53BC2A562A8B21920019E4A8 /* Debug */,
+				53BC2A572A8B21920019E4A8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1639,10 +1735,11 @@
 		53BC2A3F2A8B21920019E4A8 /* MainModel.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
+				53BC2A462A8B21920019E4A8 /* MainModel 3.xcdatamodel */,
 				53BC2A402A8B21920019E4A8 /* MainModel 2.xcdatamodel */,
 				53BC2A412A8B21920019E4A8 /* MainModel.xcdatamodel */,
 			);
-			currentVersion = 53BC2A402A8B21920019E4A8 /* MainModel 2.xcdatamodel */;
+			currentVersion = 53BC2A462A8B21920019E4A8 /* MainModel 3.xcdatamodel */;
 			path = MainModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

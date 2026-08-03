@@ -30,6 +30,8 @@ enum CustomError: Swift.Error, CustomLocalizedStringResourceConvertible {
 class DataController: ObservableObject {
     static let shared = DataController()
 
+    @Published private(set) var accountMigrationError: Error?
+
     var container = NSPersistentCloudKitContainer(name: "MainModel")
 
     init() {
@@ -69,6 +71,15 @@ class DataController: ObservableObject {
             }
 
             self.container.viewContext.automaticallyMergesChangesFromParent = true
+
+            let sharedDefaults = UserDefaults(suiteName: groupID) ?? .standard
+            let currency = sharedDefaults.string(forKey: "currency") ?? Locale.current.currencyCode ?? "EUR"
+            do {
+                try AccountMigrationService.migrateIfNeeded(
+                    in: self.container.viewContext, currencyCode: currency, defaults: sharedDefaults)
+            } catch {
+                self.accountMigrationError = error
+            }
         }
 
 //        #if DEBUG
@@ -143,6 +154,7 @@ class DataController: ObservableObject {
                 let newTransaction = Transaction(context: container.viewContext)
                 newTransaction.note = transaction.wrappedNote
                 newTransaction.category = transaction.category
+                newTransaction.account = transaction.account
                 newTransaction.amount = transaction.wrappedAmount
                 newTransaction.date = holdingDate
                 newTransaction.id = UUID()
@@ -185,6 +197,7 @@ class DataController: ObservableObject {
             let newTransaction = Transaction(context: container.viewContext)
             newTransaction.note = transaction.wrappedNote
             newTransaction.category = transaction.category
+            newTransaction.account = transaction.account
             newTransaction.amount = transaction.wrappedAmount
             newTransaction.date = transaction.nextTransactionDate
             newTransaction.id = UUID()
@@ -234,7 +247,7 @@ class DataController: ObservableObject {
         save()
     }
 
-    func newTransaction(note: String, category: Category?, income: Bool, amount: Double, date: Date, repeatType: Int, repeatCoefficient: Int, delay _: Bool) -> Transaction {
+    func newTransaction(note: String, category: Category?, account: Account? = nil, income: Bool, amount: Double, date: Date, repeatType: Int, repeatCoefficient: Int, delay _: Bool) -> Transaction {
         let transaction = Transaction(context: container.viewContext)
 
         if note.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
@@ -248,6 +261,8 @@ class DataController: ObservableObject {
         if let unwrappedCategory = category {
             transaction.category = unwrappedCategory
         }
+
+        transaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: container.viewContext)
 
         transaction.amount = amount
         transaction.date = date
@@ -276,7 +291,7 @@ class DataController: ObservableObject {
     func newTemplateTransaction(order: Int) {
         if let match = getTemplateTransaction(order: order) {
             if let unwrappedCategory = match.category {
-                _ = newTransaction(note: match.note ?? "", category: unwrappedCategory, income: match.income, amount: match.amount, date: Date.now, repeatType: Int(match.recurringType), repeatCoefficient: Int(match.recurringCoefficient), delay: false)
+                _ = newTransaction(note: match.note ?? "", category: unwrappedCategory, account: match.account ?? AccountMigrationService.defaultActiveAccount(in: container.viewContext), income: match.income, amount: match.amount, date: Date.now, repeatType: Int(match.recurringType), repeatCoefficient: Int(match.recurringCoefficient), delay: false)
 
                 addedTransaction = true
             }

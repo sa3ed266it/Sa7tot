@@ -186,6 +186,12 @@ struct SettingsView: View {
                   optionalText: currency)
               }
 
+              NavigationLink(destination: AccountListView()) {
+                SettingsRowView(
+                  systemImage: "building.columns.fill", title: "Conti", colour: 107,
+                  optionalText: "Gestisci i tuoi conti")
+              }
+
               NavigationLink(
                 destination: SettingsNumberEntryView()
                   .onAppear {
