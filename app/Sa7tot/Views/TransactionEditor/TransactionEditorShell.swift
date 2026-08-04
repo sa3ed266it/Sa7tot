@@ -29,7 +29,6 @@ struct TransactionEditorShell: View {
     @State private var showCustomRecurring = false
     @State private var showNoteSheet = false
     @State private var showDeletePopover = false
-    @State private var showFinalDeleteConfirmation = false
     @State private var noteDraft = ""
     @State private var amountText = ""
     @FocusState private var amountFocused: Bool
@@ -156,16 +155,6 @@ struct TransactionEditorShell: View {
                     }
                     .accessibilityLabel("Fine modifica importo")
                 }
-            }
-            .confirmationDialog(
-                isTransfer ? "Eliminare definitivamente questo trasferimento?" : "Eliminare definitivamente questo movimento?",
-                isPresented: $showFinalDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Elimina", role: .destructive, action: onDeleteConfirmed)
-                Button("Annulla", role: .cancel) {}
-            } message: {
-                Text("Questa azione non può essere annullata.")
             }
             .sheet(isPresented: $showCategorySheet) {
                 if #available(iOS 16.0, *) {
@@ -442,9 +431,7 @@ struct TransactionEditorShell: View {
 
             Button("Elimina", role: .destructive) {
                 showDeletePopover = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    showFinalDeleteConfirmation = true
-                }
+                onDeleteConfirmed()
             }
             .frame(maxWidth: .infinity)
         }
