@@ -11,7 +11,7 @@ struct AccountMenuView: View {
     }
 
     private var selectedAccountName: String {
-        account?.name ?? activeAccounts.first?.name ?? "Seleziona conto"
+        account?.name ?? "Seleziona conto"
     }
 
     var body: some View {
@@ -34,7 +34,7 @@ struct AccountMenuView: View {
                         }
                     }
                 } label: {
-                    Label(selectedAccountName, systemImage: Sa7totSymbolResolver.resolved(account?.iconName ?? activeAccounts[0].iconName ?? "building.columns.fill"))
+                    Label(selectedAccountName, systemImage: Sa7totSymbolResolver.resolved(account?.iconName ?? "building.columns.fill"))
                         .font(.system(.body, design: .rounded).weight(.semibold))
                         .foregroundColor(Color.PrimaryText)
                         .padding(.vertical, 8)
@@ -61,7 +61,10 @@ struct AccountMenuView: View {
             return
         }
 
-        account = AccountQuery.resolvedSelection(current: account, from: activeAccounts)
+        let normalized = AccountQuery.normalizedEditorSelection(current: account, from: activeAccounts)
+        if account?.objectID != normalized?.objectID {
+            account = normalized
+        }
     }
 }
 

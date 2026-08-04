@@ -78,6 +78,18 @@ enum AccountQuery {
         }
         return active.first
     }
+
+    /// Normalizes the editor's account binding without inventing a selection.
+    /// A single active account is the only case where the editor may select for
+    /// the user; with multiple accounts, a valid existing selection is kept and
+    /// an empty selection remains empty until the user chooses one.
+    static func normalizedEditorSelection(current: Account?, from accounts: some Sequence<Account>) -> Account? {
+        let active = activeAccounts(from: accounts)
+        if let current, active.contains(where: { $0.objectID == current.objectID }) {
+            return current
+        }
+        return active.count == 1 ? active[0] : nil
+    }
 }
 
 enum AccountMigrationService {

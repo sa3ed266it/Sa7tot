@@ -133,6 +133,30 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(AccountQuery.resolvedSelection(current: archived, from: [archived, active]), active)
     }
 
+    func testEditorSelectionStaysEmptyWithoutActiveAccounts() {
+        XCTAssertNil(AccountQuery.normalizedEditorSelection(current: nil, from: [Account]()))
+    }
+
+    func testEditorSelectionUsesTheOnlyActiveAccount() {
+        let account = makeAccount(type: .cash)
+
+        XCTAssertEqual(AccountQuery.normalizedEditorSelection(current: nil, from: [account]), account)
+    }
+
+    func testEditorSelectionPreservesValidSelectionWithMultipleAccounts() {
+        let first = makeAccount(type: .cash)
+        let second = makeAccount(type: .bank)
+
+        XCTAssertEqual(AccountQuery.normalizedEditorSelection(current: second, from: [first, second]), second)
+    }
+
+    func testEditorSelectionDoesNotInventSelectionWithMultipleAccounts() {
+        let first = makeAccount(type: .cash)
+        let second = makeAccount(type: .bank)
+
+        XCTAssertNil(AccountQuery.normalizedEditorSelection(current: nil, from: [first, second]))
+    }
+
     func testAccountWithTransactionHistoryCannotBeDeleted() {
         let account = makeAccount(type: .bank)
         _ = makeTransaction(account: account, amount: 1)

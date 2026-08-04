@@ -42,6 +42,10 @@ struct TransactionEditorShell: View {
         return category != nil && account != nil
     }
 
+    private var activeAccountCount: Int {
+        accounts.count
+    }
+
     private var formattedAmount: String {
         let formatter = NumberFormatter()
         formatter.locale = Locale.current
@@ -97,7 +101,11 @@ struct TransactionEditorShell: View {
             if newDestination == account { destinationAccount = nil }
         }
         .onAppear {
+            normalizeAccountSelection()
             if amountText.isEmpty { amountText = inputAmount(for: price) }
+        }
+        .onChange(of: activeAccountCount) { _ in
+            normalizeAccountSelection()
         }
         .onChange(of: price) { newPrice in
             if !amountFocused { amountText = inputAmount(for: newPrice) }
@@ -105,6 +113,13 @@ struct TransactionEditorShell: View {
         .onChange(of: amountFocused) { focused in
             if focused && price == 0 { amountText = "" }
             if !focused && amountText.isEmpty { amountText = inputAmount(for: price) }
+        }
+    }
+
+    private func normalizeAccountSelection() {
+        let normalized = AccountQuery.normalizedEditorSelection(current: account, from: accounts)
+        if account?.objectID != normalized?.objectID {
+            account = normalized
         }
     }
 
