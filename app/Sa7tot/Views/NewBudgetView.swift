@@ -203,20 +203,31 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     private var navigationContent: some View {
-        NavigationStack(path: $path) {
-            stepView
-                .navigationTitle("Nuovo budget")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar { toolbarContent }
-                .navigationDestination(for: BudgetCreationStep.self) { step in
-                    switch step {
-                    case .period:
-                        periodStep
-                    case .amount:
-                        amountStep
+        ZStack {
+            budgetFlowSharedBackdrop
+
+            NavigationStack(path: $path) {
+                stepView
+                    .navigationTitle("Nuovo budget")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { toolbarContent }
+                    .navigationDestination(for: BudgetCreationStep.self) { step in
+                        switch step {
+                        case .period:
+                            periodStep
+                        case .amount:
+                            amountStep
+                        }
                     }
-                }
+            }
         }
+    }
+
+    private var budgetFlowSharedBackdrop: some View {
+        (colorScheme == .dark ? Color.black : Color.white)
+            .opacity(0.14)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
     }
 
     @ViewBuilder
