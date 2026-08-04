@@ -36,59 +36,70 @@ struct AccountListView: View {
 
     var body: some View {
         List {
-            ForEach(accounts) { account in
-                NavigationLink {
-                    AccountEditorView(account: account)
-                } label: {
-                    HStack(spacing: 12) {
-                        Sa7totIconTile(
-                            systemName: Sa7totSymbolResolver.resolved(account.iconName ?? "building.columns.fill"),
-                            tint: Color(hex: account.wrappedColour),
-                            size: 34
-                        )
-                        VStack(alignment: .leading) {
-                            Text(account.name ?? "Conto")
-                            Text(account.wrappedType.italianName)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Text(accountBalance(account), format: .currency(code: account.currencyCode ?? "EUR"))
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .opacity(account.isArchived ? 0.5 : 1)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button {
-                        account.isArchived.toggle()
-                        do {
-                            try dataController.saveAccountChanges()
-                        } catch {
-                            errorMessage = error.localizedDescription
-                        }
+            if accounts.isEmpty {
+                AccountEmptyState()
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(accounts) { account in
+                    NavigationLink {
+                        AccountEditorView(account: account)
                     } label: {
-                        Label(account.isArchived ? "Riattiva" : "Archivia", systemImage: account.isArchived ? "arrow.uturn.backward" : "archivebox")
+                        HStack(spacing: 12) {
+                            Sa7totIconTile(
+                                systemName: Sa7totSymbolResolver.resolved(account.iconName ?? "building.columns.fill"),
+                                tint: Color(hex: account.wrappedColour),
+                                size: 34
+                            )
+                            VStack(alignment: .leading) {
+                                Text(account.name ?? "Conto")
+                                Text(account.wrappedType.italianName)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Text(accountBalance(account), format: .currency(code: account.currencyCode ?? "EUR"))
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .opacity(account.isArchived ? 0.5 : 1)
                     }
-                    .tint(.orange)
-                    if account.canDelete {
-                        Button(role: .destructive) {
-                            moc.delete(account)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button {
+                            account.isArchived.toggle()
                             do {
                                 try dataController.saveAccountChanges()
                             } catch {
                                 errorMessage = error.localizedDescription
                             }
-                        } label: { Label("Elimina", systemImage: "trash") }
+                        } label: {
+                            Label(account.isArchived ? "Riattiva" : "Archivia", systemImage: account.isArchived ? "arrow.uturn.backward" : "archivebox")
+                        }
+                        .tint(.orange)
+                        if account.canDelete {
+                            Button(role: .destructive) {
+                                moc.delete(account)
+                                do {
+                                    try dataController.saveAccountChanges()
+                                } catch {
+                                    errorMessage = error.localizedDescription
+                                }
+                            } label: { Label("Elimina", systemImage: "trash") }
+                        }
                     }
                 }
             }
         }
+        .listStyle(.insetGrouped)
+        .accountScrollEdgeEffect()
         .navigationTitle("Conti")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { showingEditor = true } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("Nuovo conto")
             }
         }
+        .modifier(AccountTabBarVisibilityModifier())
         .sheet(isPresented: $showingEditor) {
             NavigationView { AccountEditorView(account: nil) }
         }
@@ -101,6 +112,123 @@ struct AccountListView: View {
 
     private func accountBalance(_ account: Account) -> Double {
         AccountBalanceService.balance(for: account, transactions: transactions)
+    }
+}
+
+private struct AccountEmptyState: View {
+    var body: some View {
+        Group {
+            if #available(iOS 17.0, *) {
+                ContentUnavailableView(
+                    "Nessun conto",
+                    systemImage: "building.columns",
+                    description: Text("Tocca + per aggiungere il primo conto.")
+                )
+            } else {
+                VStack(spacing: 10) {
+                    Image(systemName: "building.columns")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("Nessun conto")
+                        .font(.headline)
+                    Text("Tocca + per aggiungere il primo conto.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 80)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func accountScrollEdgeEffect() -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+    }
+}
+
+private struct AccountTabBarVisibilityModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .toolbar(.hidden, for: .tabBar)
+                .background(AccountTabBarVisibilityBridge())
+        } else {
+            content
+        }
+    }
+}
+
+private struct AccountTabBarVisibilityBridge: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> AccountTabBarVisibilityController {
+        AccountTabBarVisibilityController()
+    }
+
+    func updateUIViewController(_ controller: AccountTabBarVisibilityController, context: Context) {
+        controller.updateTabBarVisibility()
+    }
+}
+
+private final class AccountTabBarVisibilityController: UIViewController {
+    private weak var tabBarControllerToRestore: UITabBarController?
+    private var previousHiddenState = false
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        updateTabBarVisibility()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        restoreTabBar()
+    }
+
+    func updateTabBarVisibility() {
+        guard let tabBarController = nearestTabBarController() else { return }
+        if tabBarControllerToRestore !== tabBarController {
+            tabBarControllerToRestore = tabBarController
+            previousHiddenState = tabBarController.tabBar.isHidden
+        }
+        tabBarController.tabBar.isHidden = true
+    }
+
+    private func restoreTabBar() {
+        guard let tabBarControllerToRestore else { return }
+        tabBarControllerToRestore.tabBar.isHidden = previousHiddenState
+        self.tabBarControllerToRestore = nil
+    }
+
+    private func nearestTabBarController() -> UITabBarController? {
+        var current: UIViewController? = self
+        while let viewController = current {
+            if let tabBarController = viewController as? UITabBarController {
+                return tabBarController
+            }
+            current = viewController.parent
+        }
+
+        guard let root = view.window?.rootViewController else { return nil }
+        return findTabBarController(in: root)
+    }
+
+    private func findTabBarController(in viewController: UIViewController) -> UITabBarController? {
+        if let tabBarController = viewController as? UITabBarController {
+            return tabBarController
+        }
+        for child in viewController.children {
+            if let result = findTabBarController(in: child) {
+                return result
+            }
+        }
+        return nil
     }
 }
 
