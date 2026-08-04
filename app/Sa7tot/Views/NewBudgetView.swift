@@ -14,6 +14,7 @@ struct InstructionHeadings {
 }
 
 private enum BudgetCreationStep: Hashable {
+    case scope
     case period
     case amount
 }
@@ -127,7 +128,7 @@ private struct NativeBrandNewBudgetView: View {
     @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     private var currencyCode = Locale.current.currencyCode ?? "EUR"
 
-    @State private var path: [BudgetCreationStep] = []
+    @State private var currentStep: BudgetCreationStep = .scope
     @State private var draft: BudgetCreationDraft
     @State private var amountText = ""
     @State private var showSaveError = false
@@ -147,7 +148,13 @@ private struct NativeBrandNewBudgetView: View {
     private var activeExpenseCategories: [Category] {
         categories.filter { !$0.isDeleted && $0.managedObjectContext != nil }
     }
-    private var stepNumber: Int { path.count + 1 }
+    private var stepNumber: Int {
+        switch currentStep {
+        case .scope: 1
+        case .period: 2
+        case .amount: 3
+        }
+    }
     private var parsedAmount: Decimal? {
         BudgetAmountParser.decimal(from: amountText)
     }
@@ -201,19 +208,20 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     private var navigationContent: some View {
-        NavigationStack(path: $path) {
-            stepView
+        NavigationStack {
+            Group {
+                switch currentStep {
+                case .scope:
+                    scopeStep
+                case .period:
+                    periodStep
+                case .amount:
+                    amountStep
+                }
+            }
                 .navigationTitle("Nuovo budget")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbarContent }
-                .navigationDestination(for: BudgetCreationStep.self) { step in
-                    switch step {
-                    case .period:
-                        periodStep
-                    case .amount:
-                        amountStep
-                    }
-                }
         }
     }
 
@@ -223,21 +231,25 @@ private struct NativeBrandNewBudgetView: View {
             : AnyShapeStyle(Color.white.opacity(0.14))
     }
 
-    @ViewBuilder
-    private var stepView: some View {
-        scopeStep
-    }
-
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        if path.isEmpty {
+        if currentStep == .scope {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Annulla") { dismiss() }
+            }
+        } else {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    goToPreviousStep()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Indietro")
             }
         }
 
         ToolbarItem(placement: .confirmationAction) {
-            Button(path.count == 2 ? "Crea" : "Avanti") {
+            Button(currentStep == .amount ? "Crea" : "Avanti") {
                 advanceOrSave()
             }
             .disabled(!stepIsValid)
@@ -477,19 +489,6 @@ private struct NativeBrandNewBudgetView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .navigationTitle("Nuovo budget")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { periodToolbarContent }
-    }
-
-    @ToolbarContentBuilder
-    private var periodToolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .confirmationAction) {
-            Button("Avanti") {
-                advanceOrSave()
-            }
-            .disabled(!stepIsValid)
-        }
     }
 
     private func periodSelectionCard(_ period: BudgetTimeFrame) -> some View {
@@ -603,24 +602,11 @@ private struct NativeBrandNewBudgetView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .navigationTitle("Nuovo budget")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { amountToolbarContent }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Fine") { amountFieldFocused = false }
             }
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var amountToolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .confirmationAction) {
-            Button("Crea") {
-                saveDraft()
-            }
-            .disabled(!stepIsValid)
         }
     }
 
@@ -757,12 +743,24 @@ private struct NativeBrandNewBudgetView: View {
         guard stepIsValid else { return }
         draft.computedStartDate = computedStartDate
 
-        if path.count == 0 {
-            path.append(.period)
-        } else if path.count == 1 {
-            path.append(.amount)
-        } else {
+        switch currentStep {
+        case .scope:
+            currentStep = .period
+        case .period:
+            currentStep = .amount
+        case .amount:
             saveDraft()
+        }
+    }
+
+    private func goToPreviousStep() {
+        switch currentStep {
+        case .scope:
+            break
+        case .period:
+            currentStep = .scope
+        case .amount:
+            currentStep = .period
         }
     }
 
@@ -784,7 +782,7 @@ private struct NativeBrandNewBudgetView: View {
         }
         draft.currencyCode = currencyCode
         amountText = decimalString(draft.amount)
-        path = [.period, .amount]
+        currentStep = .amount
     }
 
     private func budgetType(for rawValue: Int16) -> String {
