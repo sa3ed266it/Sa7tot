@@ -136,9 +136,14 @@ struct SettingsView: View {
         NavigationLink(destination: WalletAutomationView()) {
           SettingsNativeRow(title: "Automazione Wallet", systemImage: "wallet.pass.fill", tint: .orange, value: "Comandi Rapidi")
         }
-        NavigationLink(destination: SettingsWeekStartView()) {
-          SettingsNativeRow(title: "Week Starts On", systemImage: "calendar.badge.clock", tint: .red, value: firstWeekdayValue)
+        Picker("Inizio settimana", selection: $firstWeekday) {
+          ForEach(Sa7totWeekday.allCases) { weekday in
+            Text(weekday.italianName).tag(weekday.rawValue)
+          }
         }
+        .pickerStyle(.menu)
+        .accessibilityLabel("Inizio settimana")
+        .accessibilityValue(Sa7totWeekday(rawValue: firstWeekday)?.italianName ?? Sa7totWeekday.sunday.italianName)
       }
 
       Section("Monitoraggio") {
@@ -210,7 +215,11 @@ struct SettingsView: View {
     .navigationTitle("Impostazioni")
     .navigationBarTitleDisplayMode(.large)
     .dynamicTypeSize(...DynamicTypeSize.accessibility5)
-    .onChange(of: firstWeekday) { _ in WidgetCenter.shared.reloadAllTimelines() }
+    .onChange(of: firstWeekday) { newValue in
+      if let weekday = Sa7totWeekday(rawValue: newValue) {
+        Sa7totCalendarSettings.updateWeekday(weekday)
+      }
+    }
     .onChange(of: showCents) { _ in WidgetCenter.shared.reloadAllTimelines() }
     .onChange(of: currency) { newValue in
       NSUbiquitousKeyValueStore.default.set(newValue, forKey: "currency")
@@ -219,7 +228,10 @@ struct SettingsView: View {
     .onChange(of: scenePhase) { newPhase in
       if newPhase == .active { refreshNotificationPermission() }
     }
-    .onAppear { refreshNotificationPermission() }
+    .onAppear {
+      if !(1...7).contains(firstWeekday) { firstWeekday = 1 }
+      refreshNotificationPermission()
+    }
     .alert("Notifiche disattivate", isPresented: $showingNotificationPermissionAlert) {
       Button("Annulla", role: .cancel) {}
       Button("Apri Impostazioni") { openNotificationSettings() }
@@ -299,10 +311,6 @@ struct SettingsView: View {
     guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
     UIApplication.shared.open(settingsURL)
   }
-  private var firstWeekdayValue: String {
-    firstWeekday == 1 ? "Domenica" : "Lunedì"
-  }
-
   private var upcomingValue: String {
     showUpcoming ? "Mostrati" : "Nascosti"
   }

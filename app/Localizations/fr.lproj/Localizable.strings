@@ -171,7 +171,6 @@
 "Thursday" = "Jeudi";
 "Friday" = "Vendredi";
 "Saturday" = "Samedi";
-"Start of month" = "Début du mois";
 "%@ of month" = "%@ du mois";
 "Set budget amount" = "Fixer le montant du budget";
 "Feel free to edit this in the future." = "N'hésitez pas à modifier ce texte à l'avenir.";
@@ -203,7 +202,6 @@
 "DATA" = "Vos données";
 "OTHERS" = "Autres";
 "Appearance" = "Apparence";
-"Start of Week" = "Début de la semaine";
 "Notifications" = "Notifications";
 "Currency" = "Devise";
 "Number Entry" = "Format des numéros";

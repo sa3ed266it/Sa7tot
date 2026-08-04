@@ -168,7 +168,6 @@
 "Thursday" = "Четверг";
 "Friday" = "Пятница";
 "Saturday" = "Суббота";
-"Start of month" = "Начало месяца";
 "%@ of month" = "%@ число";
 "Set budget amount" = "Установите сумму бюджета";
 "Feel free to edit this in the future." = "Вы сможете отредактировать это позже";
@@ -202,7 +201,6 @@
 "DATA" = "Данные";
 "OTHERS" = "Другое";
 "Appearance" = "Внешний вид";
-"Start of Week" = "Начало недели";
 "Notifications" = "Уведомления";
 "Currency" = "Валюта";
 "Number Entry" = "Ввод Суммы";

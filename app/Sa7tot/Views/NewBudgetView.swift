@@ -29,7 +29,6 @@ struct BrandNewBudgetView: View {
     @FetchRequest private var categories: FetchedResults<Category>
 
     @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstWeekday: Int = 1
-    @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstDayOfMonth: Int = 1
 
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
@@ -57,7 +56,6 @@ struct BrandNewBudgetView: View {
 
     // stage 4
     @State var chosenDayWeek = 1
-    @State var chosenDayMonth = 1
     @State var chosenDayYear = Date.now
 
     private var weekdays: [String] {
@@ -423,50 +421,9 @@ struct BrandNewBudgetView: View {
                         .modifier(PickerStyle(colorScheme: colorScheme))
                         .frame(height: min(heightOfPicker, 250))
                     case .month:
-                        ScrollView(showsIndicators: false) {
-                            ScrollViewReader { value in
-                                VStack(alignment: .leading, spacing: 0) {
-                                    ForEach(1 ..< 29) { day in
-                                        HStack {
-                                            if Int(day) == 1 {
-                                                Text("Start of month")
-                                            } else {
-                                                Text("\(getOrdinal(day)) of month")
-                                            }
-
-                                            Spacer()
-
-                                            if chosenDayMonth == day {
-                                                Checkmark()
-                                            }
-                                        }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .foregroundColor(Color.PrimaryText)
-                                        .font(.system(.title3, design: .rounded).weight(.medium))
-                                        .padding(8)
-                                        .background {
-                                            if chosenDayMonth == day {
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color.SecondaryBackground)
-//                                                    .matchedGeometryEffect(id: "TAB3", in: animation)
-                                            }
-                                        }
-                                        .contentShape(Rectangle())
-                                        .id(day)
-                                        .onTapGesture {
-                                            withAnimation(.easeIn(duration: 0.15)) {
-                                                chosenDayMonth = day
-                                            }
-                                        }
-                                    }
-                                }
-                                .onAppear {
-                                    value.scrollTo(chosenDayMonth)
-                                }
-                            }
-                        }
-                        .modifier(PickerStyle(colorScheme: colorScheme))
-                        .frame(height: min(heightOfPicker, 250))
+                        Text("Mese di calendario")
+                            .font(.system(.title3, design: .rounded).weight(.medium))
+                            .foregroundColor(Color.PrimaryText)
                     case .year:
                         // in: oneYearAgo...Date.now,
                         DatePicker("Date", selection: $chosenDayYear, in: oneYearAgo ... Date.now, displayedComponents: .date)
@@ -577,7 +534,6 @@ struct BrandNewBudgetView: View {
                         chosenDayWeek = Calendar.current.dateComponents([.weekday], from: unwrappedEditedBudget.startDate!).weekday!
                     case 3:
                         budgetTimeFrame = .month
-                        chosenDayMonth = Calendar.current.dateComponents([.day], from: unwrappedEditedBudget.startDate!).day!
                     case 4:
                         budgetTimeFrame = .year
                         chosenDayYear = unwrappedEditedBudget.startDate!
@@ -608,7 +564,6 @@ struct BrandNewBudgetView: View {
 //                    }
                 } else {
                     chosenDayWeek = firstWeekday
-                    chosenDayMonth = firstDayOfMonth
                 }
 
                 if let unwrappedEditedMainBudget = toEditMainBudget {
@@ -620,7 +575,6 @@ struct BrandNewBudgetView: View {
                         chosenDayWeek = Calendar.current.dateComponents([.weekday], from: unwrappedEditedMainBudget.startDate!).weekday!
                     case 3:
                         budgetTimeFrame = .month
-                        chosenDayMonth = Calendar.current.dateComponents([.day], from: unwrappedEditedMainBudget.startDate!).day!
                     case 4:
                         budgetTimeFrame = .year
                         chosenDayYear = unwrappedEditedMainBudget.startDate!
@@ -650,7 +604,6 @@ struct BrandNewBudgetView: View {
 //                    }
                 } else {
                     chosenDayWeek = firstWeekday
-                    chosenDayMonth = firstDayOfMonth
                 }
             }
         }
@@ -716,19 +669,7 @@ struct BrandNewBudgetView: View {
         case .month:
             let calendar = Calendar.current
 
-            let dateComponents = calendar.dateComponents([.month, .year], from: today)
-
-            let startOfMonth = calendar.date(from: dateComponents)!
-
-            let holdingDate = calendar.date(byAdding: .day, value: chosenDayMonth - 1, to: startOfMonth)!
-
-            if holdingDate > today {
-                let newHoldingDate = calendar.date(byAdding: .month, value: -1, to: holdingDate)!
-
-                startDate = newHoldingDate
-            } else {
-                startDate = holdingDate
-            }
+            startDate = Sa7totCalendarSettings.startOfMonth(for: today, calendar: calendar)
         case .year:
             startDate = Calendar.current.startOfDay(for: chosenDayYear)
         }

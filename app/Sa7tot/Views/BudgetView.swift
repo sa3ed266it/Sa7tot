@@ -1789,7 +1789,7 @@ struct FilteredBudgetView: View {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         if type == 1 {

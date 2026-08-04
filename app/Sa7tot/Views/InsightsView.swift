@@ -335,7 +335,7 @@ struct HorizontalPieChartView: View {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         switch type {
@@ -393,7 +393,7 @@ struct FilteredCategoryInsightsView: View {
 
             var calendar = Calendar(identifier: .gregorian)
 
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+            calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
             calendar.minimumDaysInFirstWeek = 4
 
             switch type {
@@ -508,7 +508,7 @@ struct FilteredInsightsView: View {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         if type == 1 {
@@ -588,8 +588,6 @@ struct SingleGraphView: View {
     @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var showCents: Bool
 
-    @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstDayOfMonth: Int = 1
-
     var dateString: String {
         let dateFormatter = DateFormatter()
 
@@ -611,18 +609,7 @@ struct SingleGraphView: View {
                 return dateFormatter.string(from: date) + " - " + dateFormatter.string(from: endWeekDate)
             }
         } else if type == 2 {
-            if firstDayOfMonth == 1 {
-                dateFormatter.dateFormat = "MMM yyyy"
-            } else {
-                dateFormatter.dateFormat = "d MMM"
-                let endComponents = DateComponents(month: 1, second: -1)
-                let endMonthDate = Calendar.current.date(byAdding: endComponents, to: date) ?? Date.now
-                if language == "ru" {
-                    return dateFormatter.string(from: date) + " - " + dateFormatter.string(from: endMonthDate)
-                } else {
-                    return dateFormatter.string(from: date)  + " - " + dateFormatter.string(from: endMonthDate)
-                }
-            }
+            dateFormatter.dateFormat = "MMM yyyy"
         } else if type == 3 {
             dateFormatter.dateFormat = "yyyy"
         }
@@ -922,7 +909,7 @@ struct WeekGraphView: View {
 
     var startOfCurrentWeek: Date {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         let dateComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: Date.now)
@@ -936,7 +923,7 @@ struct WeekGraphView: View {
             return Date.now
         } else {
             var calendar = Calendar(identifier: .gregorian)
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
+            calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
             calendar.minimumDaysInFirstWeek = 4
 
             if let date = transactions[0].day {
@@ -1332,8 +1319,6 @@ struct MonthGraphView: View {
         SortDescriptor(\.day)
     ]) private var transactions: FetchedResults<Transaction>
 
-    @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstDayOfMonth: Int = 1
-
     @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
@@ -1347,12 +1332,7 @@ struct MonthGraphView: View {
     @State var selectedDate: Date?
 
     var startOfCurrentMonth: Date {
-        return getStartOfMonth(startDay: firstDayOfMonth)
-//        let calendar = Calendar(identifier: .gregorian)
-//
-//        let dateComponents = calendar.dateComponents([.month, .year], from: Date.now)
-//
-//        return  calendar.date(from: dateComponents) ?? Date.now
+        Sa7totCalendarSettings.startOfMonth(for: Date.now)
     }
 
     // start of month of the earliest transaction
@@ -1362,11 +1342,7 @@ struct MonthGraphView: View {
         } else {
             let date = transactions[0].day ?? Date.now
 
-            return calculateStartOfMonthPeriod(earliestDate: date, startOfMonthDay: firstDayOfMonth)
-//
-//            let dateComponents = calendar.dateComponents([.month, .year], from: date)
-//
-//            return  calendar.date(from: dateComponents) ?? Date.now
+            return Sa7totCalendarSettings.startOfMonth(for: date)
         }
     }
 
@@ -1590,8 +1566,6 @@ struct MonthGraphView: View {
 }
 
 struct SingleMonthBarGraphView: View {
-    @AppStorage("firstDayOfMonth", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstDayOfMonth: Int = 1
-
     @Binding var selectedDate: Date?
     @Binding var categoryFilterMode: Bool
     @Binding var selectedDateAmount: Double
@@ -1646,7 +1620,7 @@ struct SingleMonthBarGraphView: View {
                                 .opacity(selectedDate == nil ? 1 : (selectedDate == day ? 1 : 0.4))
                                 .zIndex(0)
                                 .overlay(alignment: .bottom) {
-                                    if numberArray.contains(((daysOfMonth.firstIndex(of: day) ?? -1) + 1)) && firstDayOfMonth == 1 {
+                                    if numberArray.contains((daysOfMonth.firstIndex(of: day) ?? -1) + 1) {
                                         Text("\((daysOfMonth.firstIndex(of: day) ?? -1) + 1)")
                                             .font(.system(size: 12, weight: .bold, design: .rounded))
                                             .foregroundColor(Color.SubtitleText)
@@ -1655,7 +1629,7 @@ struct SingleMonthBarGraphView: View {
                                     }
                                 }
                         }
-                        .padding(.bottom, firstDayOfMonth == 1 ? 22 : 0)
+                        .padding(.bottom, 22)
                         .opacity(day > Date.now ? 0.3 : 1)
                         .frame(maxWidth: .infinity)
                         .allowsHitTesting(!(day > Date.now))

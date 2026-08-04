@@ -172,7 +172,6 @@
 "Thursday" = "Thursday";
 "Friday" = "Friday";
 "Saturday" = "Saturday";
-"Start of month" = "Start of month";
 "%@ of month" = "%@ of month";
 "Set budget amount" = "Set budget amount";
 "Feel free to edit this in the future." = "Feel free to edit this in the future.";
@@ -204,7 +203,6 @@
 "DATA" = "DATA";
 "OTHERS" = "OTHERS";
 "Appearance" = "Appearance";
-"Start of Week" = "Start of Week";
 "Notifications" = "Notifications";
 "Currency" = "Currency";
 "Number Entry" = "Number Entry";
@@ -225,7 +223,6 @@
 "Light" = "Light";
 "Dark" = "Dark";
 "System" = "System";
-"Week Starts On" = "Week Starts On";
 "Mornings" = "Mornings";
 "Evenings" = "Evenings";
 "Custom" = "Custom";

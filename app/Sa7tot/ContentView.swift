@@ -79,10 +79,8 @@ struct ContentView: View {
 
             let defaults =
                 UserDefaults(suiteName: "group.com.saied.sa7tot") ?? UserDefaults.standard
+            defaults.removeObject(forKey: "firstDayOfMonth")
 
-            if defaults.object(forKey: "firstDayOfMonth") == nil {
-                defaults.set(1, forKey: "firstDayOfMonth")
-            }
 
             if firstLaunch {
                 showIntro = true
@@ -91,7 +89,6 @@ struct ContentView: View {
 
                 defaults.set(1, forKey: "firstWeekday")
                 defaults.set(1, forKey: "haptics")
-                defaults.set(1, forKey: "firstDayOfMonth")
                 defaults.set(1, forKey: "notificationOption")
                 defaults.set(false, forKey: "confetti")
                 defaults.set(false, forKey: "chromatic")

@@ -566,7 +566,7 @@ struct LogInsightsView: View {
     var range: Int {
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         if timeframe == 3 {
@@ -1787,7 +1787,7 @@ struct WeekStepperView: View {
             return Date.now
         } else {
             var calendar = Calendar(identifier: .gregorian)
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
+            calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
             calendar.minimumDaysInFirstWeek = 4
 
             let date = transactions[0].day ?? Date.now
@@ -1850,7 +1850,7 @@ struct WeekStepperView: View {
         .onAppear {
             var calendar = Calendar(identifier: .gregorian)
 
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 0
+            calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
             calendar.minimumDaysInFirstWeek = 4
 
             let date = transactionsReversed[0].day ?? Date.now

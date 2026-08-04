@@ -47,7 +47,6 @@
 "Indicate budget type" = "Indica il tipo di budget";
 "The overall budget tracks expenses across the board, while categorical budgets are tied to expenses of a particular type only." = "Il budget complessivo tiene traccia di tutte le spese, mentre i budget di categoria riguardano solo un tipo specifico di spesa.";
 "Try your best to stay under this limit! Also, feel free to change this in the future." = "Cerca di rimanere sotto questo limite! Potrai modificarlo in futuro.";
-"Time Frames" = "Periodi";
 "Quick-Add Widget" = "Widget aggiunta rapida";
 "Follow Sa7tot on X" = "Segui Sa7tot su X";
 "Designed by the brilliant @rudra_dsigns, check out his work on Twitter." = "Disegnata dal talentuoso @rudra_dsigns. Scopri il suo lavoro su Twitter.";
@@ -216,7 +215,6 @@
 "Thursday" = "Giovedì";
 "Friday" = "Venerdì";
 "Saturday" = "Sabato";
-"Start of month" = "Inizio del mese";
 "%@ of month" = "%@ del mese";
 "Set budget amount" = "Imposta importo budget";
 "Feel free to edit this in the future." = "Potrai modificarlo in futuro.";
@@ -246,7 +244,6 @@
 "DATA" = "DATI";
 "OTHERS" = "ALTRO";
 "Appearance" = "Aspetto";
-"Start of Week" = "Inizio settimana";
 "Notifications" = "Notifiche";
 "Currency" = "Valuta";
 "Number Entry" = "Inserimento numeri";
@@ -267,7 +264,6 @@
 "Light" = "Chiaro";
 "Dark" = "Scuro";
 "System" = "Sistema";
-"Week Starts On" = "Inizio settimana";
 "Mornings" = "Mattine";
 "Evenings" = "Sere";
 "Custom" = "Personalizzato";
@@ -383,7 +379,5 @@
 "Limit to 14-Day Outlook" = "Limit to 14-Giorno Outlook";
 "Don't worry, even if you do hide them there, you will aways be able to find all upcoming transactions right here." = "Don't worry, even if you do hide them there, you will aways be able to find all upcoming transactions right here.";
 "App Icon" = "App Icon";
-"Time Frames" = "Time Frames";
-"Start of Month" = "Inizio of Mese";
 "Displays transaction suggestions whilst you type in the 'Note' field of the new transaction page." = "Displays transaction suggestions whilst you type in the 'Nota' field of the new transaction page.";
 "Enables a chromatic abberation effect on the 'New Transaction' page when a future date is set." = "Abilitas a chromatic abberation effect on the 'Nuovo Movimento' page when a future date is set.";

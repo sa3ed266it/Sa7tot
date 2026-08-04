@@ -26,7 +26,6 @@ struct UpdateAlert: View {
         WelcomeSheetFeatureRow(icon: "circle.grid.2x2.fill", header: "Re-designed Screens", subtitle: "Budget and category creation screens have been completely reworked."),
         WelcomeSheetFeatureRow(icon: "swatchpalette.fill", header: "Custom Category Colors", subtitle: "Using the stock iOS color picker, give your categories a long-awaited aesthetic refresh."),
         WelcomeSheetFeatureRow(icon: "exclamationmark.octagon.fill", header: "New Toasts", subtitle: "Similarly, alert toasts across the app have been re-designed."),
-        WelcomeSheetFeatureRow(icon: "calendar", header: "Custom Time Frames", subtitle: "Change the start of a month's cycle to align with payday.")
     ]
 
     var body: some View {

@@ -10,6 +10,68 @@ import Foundation
 import SwiftUI
 import WidgetKit
 
+enum Sa7totWeekday: Int, CaseIterable, Identifiable {
+    case monday = 2
+    case tuesday = 3
+    case wednesday = 4
+    case thursday = 5
+    case friday = 6
+    case saturday = 7
+    case sunday = 1
+
+    var id: Int { rawValue }
+
+    var italianName: String {
+        switch self {
+        case .monday: return "Lunedì"
+        case .tuesday: return "Martedì"
+        case .wednesday: return "Mercoledì"
+        case .thursday: return "Giovedì"
+        case .friday: return "Venerdì"
+        case .saturday: return "Sabato"
+        case .sunday: return "Domenica"
+        }
+    }
+
+    static var storedSelection: Sa7totWeekday {
+        let value = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 1
+        return Sa7totWeekday(rawValue: (1...7).contains(value) ? value : 1) ?? .sunday
+    }
+}
+
+enum Sa7totCalendarSettings {
+    static let settingsDidChange = Notification.Name("Sa7totCalendarSettingsDidChange")
+
+    static func calendar() -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale.current
+        calendar.timeZone = Calendar.current.timeZone
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
+        calendar.minimumDaysInFirstWeek = 4
+        return calendar
+    }
+
+    static func startOfMonth(for date: Date, calendar: Calendar = Calendar.current) -> Date {
+        let components = calendar.dateComponents([.year, .month], from: date)
+        return calendar.date(from: components) ?? calendar.startOfDay(for: date)
+    }
+
+    static func startOfNextMonth(for date: Date, calendar: Calendar = Calendar.current) -> Date {
+        let start = startOfMonth(for: date, calendar: calendar)
+        return calendar.date(byAdding: .month, value: 1, to: start) ?? start
+    }
+
+    static func startOfWeek(for date: Date, calendar: Calendar = Sa7totCalendarSettings.calendar()) -> Date {
+        calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? calendar.startOfDay(for: date)
+    }
+
+    static func updateWeekday(_ weekday: Sa7totWeekday) {
+        UserDefaults(suiteName: "group.com.saied.sa7tot")?.set(weekday.rawValue, forKey: "firstWeekday")
+        NotificationCenter.default.post(name: settingsDidChange, object: nil)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+}
+
 @available(iOS 16, *)
 enum CustomError: Swift.Error, CustomLocalizedStringResourceConvertible {
     case notFound,
@@ -503,7 +565,7 @@ class DataController: ObservableObject {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         switch type {
@@ -794,7 +856,7 @@ class DataController: ObservableObject {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         let dateCapPredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
@@ -842,9 +904,7 @@ class DataController: ObservableObject {
                 let thisWeek = calendar.date(from: dateComponents)!
                 startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), thisWeek as CVarArg)
             } else if type == 3 {
-                let startOfMonth = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstDayOfMonth")
-
-                let thisMonth = getStartOfMonth(startDay: startOfMonth)
+                let thisMonth = Sa7totCalendarSettings.startOfMonth(for: Date.now)
                 startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), thisMonth as CVarArg)
             } else {
                 let dateComponents = calendar.dateComponents([.year], from: Date.now)
@@ -1357,7 +1417,7 @@ class DataController: ObservableObject {
             // calendar initialization
             var calendar = Calendar(identifier: .gregorian)
 
-            calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+            calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
             calendar.minimumDaysInFirstWeek = 4
 
             var dictionary = [Date: Double]()
@@ -1531,7 +1591,7 @@ class DataController: ObservableObject {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), date as CVarArg)
@@ -1664,7 +1724,7 @@ class DataController: ObservableObject {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         let endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
@@ -1685,9 +1745,7 @@ class DataController: ObservableObject {
 
             startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
         case .month:
-            let startOfMonth = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstDayOfMonth")
-
-            startDate = getStartOfMonth(startDay: startOfMonth)
+            startDate = Sa7totCalendarSettings.startOfMonth(for: Date.now)
 
             startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
         case .year:
@@ -1714,7 +1772,7 @@ class DataController: ObservableObject {
 
         var calendar = Calendar(identifier: .gregorian)
 
-        calendar.firstWeekday = UserDefaults(suiteName: "group.com.saied.sa7tot")!.integer(forKey: "firstWeekday")
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
         switch type {
@@ -1867,31 +1925,4 @@ struct LineGraphDataPoint: Equatable {
             return String(format: "%.0f", amount)
         }
     }
-}
-
-func getStartOfMonth(startDay: Int) -> Date {
-    let calendar = Calendar.current
-
-    guard startDay > 0 && startDay <= calendar.maximumRange(of: .day)!.upperBound else {
-        let dateComponents = calendar.dateComponents([.month, .year], from: Date.now)
-        return calendar.date(from: dateComponents) ?? Date.now
-    }
-
-    let today = calendar.startOfDay(for: Date.now)
-    let currentDay = calendar.component(.day, from: today)
-
-    var startComponents = DateComponents()
-    startComponents.month = currentDay >= startDay ? 0 : -1
-
-    startComponents.day = startDay - currentDay
-
-    return calendar.date(byAdding: startComponents, to: today) ?? Date.now
-}
-
-func calculateStartOfMonthPeriod(earliestDate: Date, startOfMonthDay: Int) -> Date {
-    var components = Calendar.current.dateComponents([.year, .month, .day], from: earliestDate)
-    components.day = startOfMonthDay
-
-    let startOfMonth = Calendar.current.date(from: components) ?? Date.now
-    return (earliestDate < startOfMonth) ? (Calendar.current.date(byAdding: .month, value: -1, to: startOfMonth) ?? Date.now) : startOfMonth
 }

@@ -138,7 +138,6 @@
 		53D6BDC32AF668E700F5728E /* DetailedBudgetViewTopBarButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC22AF668E700F5728E /* DetailedBudgetViewTopBarButtons.swift */; };
 		53D6BDC52AF6B32C00F5728E /* StepperButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */; };
 		53D6BDCC2AF73BC800F5728E /* SettingsCurrencyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */; };
-		53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */; };
 		53D6BDD22AF73C5D00F5728E /* SettingsNotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDD12AF73C5D00F5728E /* SettingsNotificationView.swift */; };
 		53D6BDD42AF73CA100F5728E /* SettingsFeatureLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDD32AF73CA100F5728E /* SettingsFeatureLabView.swift */; };
 		53D6BDD62AF73CE400F5728E /* SettingsUpcomingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D6BDD52AF73CE400F5728E /* SettingsUpcomingView.swift */; };
@@ -323,7 +322,6 @@
 		53D6BDC22AF668E700F5728E /* DetailedBudgetViewTopBarButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedBudgetViewTopBarButtons.swift; sourceTree = "<group>"; };
 		53D6BDC42AF6B32C00F5728E /* StepperButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperButtons.swift; sourceTree = "<group>"; };
 		53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCurrencyView.swift; sourceTree = "<group>"; };
-		53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWeekStartView.swift; sourceTree = "<group>"; };
 		53D6BDD12AF73C5D00F5728E /* SettingsNotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNotificationView.swift; sourceTree = "<group>"; };
 		53D6BDD32AF73CA100F5728E /* SettingsFeatureLabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFeatureLabView.swift; sourceTree = "<group>"; };
 		53D6BDD52AF73CE400F5728E /* SettingsUpcomingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsUpcomingView.swift; sourceTree = "<group>"; };
@@ -656,7 +654,6 @@
 				53D6BDD72AF73CFC00F5728E /* SettingsEraseView.swift */,
 				53D6BDCB2AF73BC800F5728E /* SettingsCurrencyView.swift */,
 				53D6BDDE2AF73EF100F5728E /* SettingsHapticsView.swift */,
-				53D6BDCD2AF73BDA00F5728E /* SettingsWeekStartView.swift */,
 				53D6BDD12AF73C5D00F5728E /* SettingsNotificationView.swift */,
 				53D6BDD32AF73CA100F5728E /* SettingsFeatureLabView.swift */,
 				53D6BDD52AF73CE400F5728E /* SettingsUpcomingView.swift */,
@@ -965,7 +962,6 @@
 				53BC2A4C2A8B21920019E4A8 /* AccountListView.swift in Sources */,
 				536A2A152A59C47400D81E02 /* Wiggle.swift in Sources */,
 				AEADEF742AE94DC3006EB614 /* ToolbarButton.swift in Sources */,
-				53D6BDCE2AF73BDA00F5728E /* SettingsWeekStartView.swift in Sources */,
 				5327D2DA287C6B5F00F76ADF /* TestView.swift in Sources */,
 				538A32AA2A505AC6008AEF8C /* BottomSheet.swift in Sources */,
 				5327D2D9287C6B5F00F76ADF /* HomeView.swift in Sources */,
