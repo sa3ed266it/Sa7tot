@@ -15,7 +15,7 @@ struct TransactionView: View {
     var expenseCategories: FetchedResults<Category>
     @FetchRequest(sortDescriptors: [], predicate: NSPredicate(format: "income = %d", true)) private
     var incomeCategories: FetchedResults<Category>
-    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)]) private
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)], predicate: AccountQuery.activePredicate) private
     var accounts: FetchedResults<Account>
 
     @Environment(\.managedObjectContext) var moc

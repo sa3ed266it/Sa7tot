@@ -33,7 +33,7 @@ struct TransactionEditorShell: View {
     @State private var amountText = ""
     @FocusState private var amountFocused: Bool
 
-    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)])
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)], predicate: AccountQuery.activePredicate)
     private var accounts: FetchedResults<Account>
 
     private var canSave: Bool {

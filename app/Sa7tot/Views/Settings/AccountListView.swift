@@ -7,7 +7,11 @@ struct AccountMenuView: View {
     @State private var showingCreateAccount = false
 
     private var activeAccounts: [Account] {
-        accounts.filter { !$0.isArchived }
+        AccountQuery.activeAccounts(from: accounts)
+    }
+
+    private var selectedAccountName: String {
+        account?.name ?? activeAccounts.first?.name ?? "Seleziona conto"
     }
 
     var body: some View {
@@ -26,18 +30,18 @@ struct AccountMenuView: View {
                 Menu {
                     ForEach(activeAccounts) { item in
                         Button { account = item } label: {
-                            Label(item.name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(item.iconName ?? "building.columns.fill"))
+                            Label(item.name ?? "Account senza nome", systemImage: Sa7totSymbolResolver.resolved(item.iconName ?? "building.columns.fill"))
                         }
                     }
                 } label: {
-                    Label(account?.name ?? activeAccounts[0].name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(account?.iconName ?? activeAccounts[0].iconName ?? "building.columns.fill"))
+                    Label(selectedAccountName, systemImage: Sa7totSymbolResolver.resolved(account?.iconName ?? activeAccounts[0].iconName ?? "building.columns.fill"))
                         .font(.system(.body, design: .rounded).weight(.semibold))
                         .foregroundColor(Color.PrimaryText)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
                         .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
                 }
-                .accessibilityLabel("Conto: \(account?.name ?? activeAccounts[0].name ?? "Conto")")
+                .accessibilityLabel("Conto: \(selectedAccountName)")
             }
         }
         .onAppear(perform: synchronizeSelection)
@@ -57,11 +61,7 @@ struct AccountMenuView: View {
             return
         }
 
-        if let selected = account, activeAccounts.contains(where: { $0.objectID == selected.objectID }) {
-            return
-        }
-
-        account = activeAccounts.first
+        account = AccountQuery.resolvedSelection(current: account, from: activeAccounts)
     }
 }
 
@@ -70,6 +70,11 @@ struct AccountListView: View {
     @EnvironmentObject private var dataController: DataController
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true), NSSortDescriptor(key: "createdAt", ascending: true)])
     private var accounts: FetchedResults<Account>
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(key: "order", ascending: true), NSSortDescriptor(key: "createdAt", ascending: true)],
+        predicate: AccountQuery.activePredicate
+    )
+    private var activeAccounts: FetchedResults<Account>
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)])
     private var transactions: FetchedResults<Transaction>
     @State private var showingEditor = false
@@ -77,7 +82,7 @@ struct AccountListView: View {
 
     var body: some View {
         List {
-            if accounts.isEmpty {
+            if activeAccounts.isEmpty {
                 AccountEmptyState()
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)

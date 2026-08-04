@@ -96,6 +96,31 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(AccountMigrationService.defaultActiveAccount(in: context), active)
     }
 
+    func testActiveAccountSelectionReturnsNilWhenNoAccountsExist() {
+        XCTAssertNil(AccountQuery.resolvedSelection(current: nil, from: [Account]()))
+    }
+
+    func testActiveAccountSelectionAutomaticallyChoosesTheOnlyAccount() {
+        let account = makeAccount(type: .cash)
+
+        XCTAssertEqual(AccountQuery.resolvedSelection(current: nil, from: [account]), account)
+    }
+
+    func testActiveAccountSelectionPreservesTheSelectedAccountAmongMultipleAccounts() {
+        let first = makeAccount(type: .cash)
+        let second = makeAccount(type: .bank)
+
+        XCTAssertEqual(AccountQuery.resolvedSelection(current: second, from: [first, second]), second)
+    }
+
+    func testActiveAccountSelectionClearsAnArchivedSelection() {
+        let archived = makeAccount(type: .cash)
+        archived.isArchived = true
+        let active = makeAccount(type: .bank)
+
+        XCTAssertEqual(AccountQuery.resolvedSelection(current: archived, from: [archived, active]), active)
+    }
+
     func testAccountWithTransactionHistoryCannotBeDeleted() {
         let account = makeAccount(type: .bank)
         _ = makeTransaction(account: account, amount: 1)

@@ -60,6 +60,26 @@ struct AccountMigrationHooks {
     static let production = AccountMigrationHooks(save: nil, verify: nil)
 }
 
+enum AccountQuery {
+    static let activePredicate = NSPredicate(format: "isArchived = NO")
+
+    static func isActive(_ account: Account) -> Bool {
+        account.managedObjectContext != nil && !account.isDeleted && !account.isArchived
+    }
+
+    static func activeAccounts(from accounts: some Sequence<Account>) -> [Account] {
+        accounts.filter(isActive)
+    }
+
+    static func resolvedSelection(current: Account?, from accounts: some Sequence<Account>) -> Account? {
+        let active = activeAccounts(from: accounts)
+        if let current, active.contains(where: { $0.objectID == current.objectID }) {
+            return current
+        }
+        return active.first
+    }
+}
+
 enum AccountMigrationService {
     static let markerKey = "accountsMigrationV1Complete"
     static let defaultAccountName = "Conto principale"
@@ -73,9 +93,9 @@ enum AccountMigrationService {
             let accounts = try context.fetch(accountRequest)
             let account: Account
 
-            if let existing = accounts.first(where: { $0.name == defaultAccountName }) {
+            if let existing = accounts.first(where: { $0.name == defaultAccountName && AccountQuery.isActive($0) }) {
                 account = existing
-            } else if let existing = accounts.first(where: { !$0.isArchived }) {
+            } else if let existing = accounts.first(where: AccountQuery.isActive) {
                 account = existing
             } else {
                 let newAccount = Account(context: context)
@@ -130,7 +150,7 @@ enum AccountMigrationService {
 
     static func defaultActiveAccount(in context: NSManagedObjectContext) -> Account? {
         let request = Account.fetchRequest()
-        request.predicate = NSPredicate(format: "isArchived = NO")
+        request.predicate = AccountQuery.activePredicate
         request.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true), NSSortDescriptor(key: "createdAt", ascending: true)]
         return try? context.fetch(request).first
     }

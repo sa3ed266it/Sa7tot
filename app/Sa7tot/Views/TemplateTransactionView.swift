@@ -12,7 +12,7 @@ import SwiftUI
 import WidgetKit
 
 struct TemplateTransactionView: View {
-    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)]) private
+    @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "order", ascending: true)], predicate: AccountQuery.activePredicate) private
     var accounts: FetchedResults<Account>
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
