@@ -4,23 +4,64 @@ import SwiftUI
 struct AccountMenuView: View {
     let accounts: [Account]
     @Binding var account: Account?
+    @State private var showingCreateAccount = false
+
+    private var activeAccounts: [Account] {
+        accounts.filter { !$0.isArchived }
+    }
 
     var body: some View {
-        Menu {
-            ForEach(accounts.filter { !$0.isArchived }) { item in
-                Button { account = item } label: {
-                    Label(item.name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(item.iconName ?? "building.columns.fill"))
+        Group {
+            if activeAccounts.isEmpty {
+                Button {
+                    showingCreateAccount = true
+                } label: {
+                    Label("Aggiungi conto", systemImage: "plus.circle.fill")
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Aggiungi conto")
+            } else {
+                Menu {
+                    ForEach(activeAccounts) { item in
+                        Button { account = item } label: {
+                            Label(item.name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(item.iconName ?? "building.columns.fill"))
+                        }
+                    }
+                } label: {
+                    Label(account?.name ?? activeAccounts[0].name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(account?.iconName ?? activeAccounts[0].iconName ?? "building.columns.fill"))
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color.PrimaryText)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
+                }
+                .accessibilityLabel("Conto: \(account?.name ?? activeAccounts[0].name ?? "Conto")")
             }
-        } label: {
-            Label(account?.name ?? "Conto", systemImage: Sa7totSymbolResolver.resolved(account?.iconName ?? "building.columns.fill"))
-                .font(.system(.body, design: .rounded).weight(.semibold))
-                .foregroundColor(Color.PrimaryText)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
         }
-        .accessibilityLabel("Conto: \(account?.name ?? "Conto principale")")
+        .onAppear(perform: synchronizeSelection)
+        .onChange(of: accounts.count) { _ in synchronizeSelection() }
+        .sheet(isPresented: $showingCreateAccount) {
+            if #available(iOS 16.0, *) {
+                NavigationStack { AccountEditorView(account: nil) }
+            } else {
+                NavigationView { AccountEditorView(account: nil) }
+            }
+        }
+    }
+
+    private func synchronizeSelection() {
+        guard !activeAccounts.isEmpty else {
+            account = nil
+            return
+        }
+
+        if let selected = account, activeAccounts.contains(where: { $0.objectID == selected.objectID }) {
+            return
+        }
+
+        account = activeAccounts.first
     }
 }
 

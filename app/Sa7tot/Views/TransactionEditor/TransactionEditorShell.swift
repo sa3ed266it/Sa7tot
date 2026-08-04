@@ -39,7 +39,7 @@ struct TransactionEditorShell: View {
     private var canSave: Bool {
         guard price.isFinite, price > 0 else { return false }
         if isTransfer { return account != nil && destinationAccount != nil && account != destinationAccount }
-        return category != nil
+        return category != nil && account != nil
     }
 
     private var formattedAmount: String {

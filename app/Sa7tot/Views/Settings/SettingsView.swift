@@ -138,6 +138,7 @@ struct SettingsView: View {
             }
             .accessibilityLabel("Valuta")
             .accessibilityValue(currency)
+            .tint(.secondary)
           }
           SettingsDivider()
           SettingsRowLayout(title: "Inizio settimana", systemImage: "calendar", tint: .purple) {
@@ -152,6 +153,7 @@ struct SettingsView: View {
             }
             .accessibilityLabel("Inizio settimana")
             .accessibilityValue(Sa7totWeekday(rawValue: firstWeekday)?.italianName ?? "Domenica")
+            .tint(.secondary)
           }
         }
 
@@ -194,6 +196,7 @@ struct SettingsView: View {
             }
             .accessibilityLabel("Tema")
             .accessibilityValue(themeValue)
+            .tint(.secondary)
           }
           SettingsDivider()
           SettingsRowLayout(title: "Mostra centesimi", systemImage: "centsign.circle.fill", tint: .teal) {
@@ -504,8 +507,12 @@ private struct SettingsCard<Content: View>: View {
         content
       }
       .padding(.horizontal, 16)
-      .padding(.vertical, 4)
-      .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+      .padding(.vertical, 2)
+      .background(
+        RoundedRectangle(cornerRadius: 23, style: .continuous)
+          .fill(Color(uiColor: .secondarySystemBackground).opacity(0.94))
+          .overlay(.regularMaterial.opacity(0.18), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
+      )
     }
   }
 }
@@ -552,7 +559,7 @@ private struct SettingsRowLayout<Trailing: View>: View {
       Spacer(minLength: 10)
       trailing
     }
-    .frame(minHeight: 66)
+    .frame(minHeight: 58)
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
   }
@@ -610,6 +617,7 @@ private struct SettingsMenuValue: View {
         .foregroundStyle(.tertiary)
     }
     .fixedSize(horizontal: true, vertical: false)
+    .foregroundStyle(.secondary)
   }
 }
 
@@ -691,7 +699,13 @@ private struct SettingsNativeIcon: View {
   let tint: Color
 
   var body: some View {
-    Sa7totIconTile(systemName: Sa7totSymbolResolver.resolved(systemImage), tint: tint, size: 30)
+    Image(systemName: Sa7totSymbolResolver.resolved(systemImage))
+      .font(.system(size: 17, weight: .semibold))
+      .symbolRenderingMode(.hierarchical)
+      .foregroundStyle(.primary)
+      .frame(width: 38, height: 38)
+      .background(tint.opacity(0.22), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+      .accessibilityHidden(true)
   }
 }
 

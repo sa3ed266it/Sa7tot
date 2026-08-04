@@ -440,6 +440,7 @@ struct TemplateTransactionView: View {
                                 .foregroundColor(Color.LightIcon)
                                 .background(Color.DarkBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
+                            .disabled(transactionValue == 0 || category == nil || account == nil)
                             .buttonStyle(NumPadButton())
                         }
                     }
@@ -671,6 +672,14 @@ struct TemplateTransactionView: View {
             return
         }
 
+        guard account != nil else {
+            toastImage = "building.columns"
+            toastTitle = "Aggiungi un conto"
+            showToast = true
+            generator.notificationOccurred(.error)
+            return
+        }
+
         generator.notificationOccurred(.success)
 
         if let editedTransaction = toEdit {
@@ -683,7 +692,7 @@ struct TemplateTransactionView: View {
             if let unwrappedCategory = category {
                 editedTransaction.category = unwrappedCategory
             }
-            editedTransaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: moc)
+            editedTransaction.account = account
 
             editedTransaction.amount = transactionValue
             editedTransaction.income = income
@@ -714,7 +723,7 @@ struct TemplateTransactionView: View {
             if let unwrappedCategory = category {
                 transaction.category = unwrappedCategory
             }
-            transaction.account = account ?? AccountMigrationService.defaultActiveAccount(in: moc)
+            transaction.account = account
 
             transaction.amount = transactionValue
             transaction.id = UUID()
