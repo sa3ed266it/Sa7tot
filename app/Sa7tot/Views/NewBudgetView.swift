@@ -103,6 +103,8 @@ private struct NativeBrandNewBudgetView: View {
     @State private var showSaveError = false
     @State private var saveErrorMessage = ""
     @State private var saveSucceeded = false
+    @State private var showCategoryCreation = false
+    @State private var categoryCreationIsIncome = false
     @FocusState private var amountFieldFocused: Bool
 
     let overallBudgetCreated: Bool
@@ -110,6 +112,9 @@ private struct NativeBrandNewBudgetView: View {
     let toEditMainBudget: MainBudget?
 
     private var isEditing: Bool { toEditBudget != nil || toEditMainBudget != nil }
+    private var activeExpenseCategories: [Category] {
+        categories.filter { !$0.isDeleted && $0.managedObjectContext != nil }
+    }
     private var stepNumber: Int { path.count + 1 }
     private var parsedAmount: Decimal? {
         let formatter = NumberFormatter()
@@ -152,6 +157,10 @@ private struct NativeBrandNewBudgetView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(saveErrorMessage)
+        }
+        .sheet(isPresented: $showCategoryCreation) {
+            NewCategoryAlert(income: $categoryCreationIsIncome, bottomSpacers: false, budgetMode: true)
+                .presentationDetents([.fraction(0.47)])
         }
         .onAppear(perform: loadDraft)
     }
@@ -316,38 +325,84 @@ private struct NativeBrandNewBudgetView: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 28)
 
-            VStack(spacing: 0) {
-                ForEach(categories, id: \.objectID) { category in
-                    Button {
-                        withAnimation(.snappy) {
-                            draft.category = category
+            if activeExpenseCategories.isEmpty {
+                Button {
+                    categoryCreationIsIncome = false
+                    showCategoryCreation = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "tray")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Nessuna categoria disponibile")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Aggiungi categoria")
+                                .font(.caption)
+                                .foregroundStyle(.tint)
                         }
-                    } label: {
-                        HStack(spacing: 12) {
-                            CategoryIconView(
-                                descriptor: category.iconDescriptor,
-                                role: .inline,
-                                accessibilityLabel: category.wrappedName
-                            )
-                            Text(category.wrappedName)
-                                .font(.body)
-                            Spacer()
-                            Image(systemName: draft.category?.objectID == category.objectID ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(draft.category?.objectID == category.objectID ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                        Spacer()
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.tint)
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 60)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Nessuna categoria disponibile. Aggiungi categoria")
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 12) {
+                        ForEach(activeExpenseCategories, id: \.objectID) { category in
+                            budgetCategoryChip(category)
                         }
-                        .frame(minHeight: 52)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.primary)
-                    if category.objectID != categories.last?.objectID {
-                        Divider()
-                            .padding(.leading, 44)
-                    }
+                    .padding(.horizontal, 2)
+                }
+                .frame(minHeight: 60)
+            }
+        }
+    }
+
+    private func budgetCategoryChip(_ category: Category) -> some View {
+        let isSelected = draft.category?.objectID == category.objectID
+
+        return Button {
+            withAnimation(.snappy) {
+                draft.category = category
+            }
+        } label: {
+            HStack(spacing: 9) {
+                CategoryIconView(
+                    descriptor: category.iconDescriptor,
+                    role: .inline,
+                    accessibilityLabel: category.wrappedName
+                )
+                Text(category.wrappedName)
+                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .accessibilityHidden(true)
                 }
             }
-            .padding(.horizontal, 14)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 15)
+            .frame(minHeight: 56)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary.opacity(0.3)), lineWidth: isSelected ? 1.5 : 1)
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(category.wrappedName)
+        .accessibilityValue(isSelected ? "Selezionata" : "Non selezionata")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var periodStep: some View {
