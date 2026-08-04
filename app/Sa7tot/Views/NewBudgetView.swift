@@ -176,11 +176,9 @@ private struct NativeBrandNewBudgetView: View {
 
     var body: some View {
         Group {
-            if #available(iOS 26.0, *) {
+            if #available(iOS 16.4, *) {
                 navigationContent
-            } else if #available(iOS 16.4, *) {
-                navigationContent
-                    .presentationBackground(.ultraThinMaterial)
+                    .presentationBackground(sharedBudgetSheetTone)
             } else {
                 navigationContent
             }
@@ -203,31 +201,26 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     private var navigationContent: some View {
-        ZStack {
-            budgetFlowSharedBackdrop
-
-            NavigationStack(path: $path) {
-                stepView
-                    .navigationTitle("Nuovo budget")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar { toolbarContent }
-                    .navigationDestination(for: BudgetCreationStep.self) { step in
-                        switch step {
-                        case .period:
-                            periodStep
-                        case .amount:
-                            amountStep
-                        }
+        NavigationStack(path: $path) {
+            stepView
+                .navigationTitle("Nuovo budget")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { toolbarContent }
+                .navigationDestination(for: BudgetCreationStep.self) { step in
+                    switch step {
+                    case .period:
+                        periodStep
+                    case .amount:
+                        amountStep
                     }
-            }
+                }
         }
     }
 
-    private var budgetFlowSharedBackdrop: some View {
-        (colorScheme == .dark ? Color.black : Color.white)
-            .opacity(0.14)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+    private var sharedBudgetSheetTone: AnyShapeStyle {
+        colorScheme == .dark
+            ? AnyShapeStyle(Color.black.opacity(0.14))
+            : AnyShapeStyle(Color.white.opacity(0.14))
     }
 
     @ViewBuilder
