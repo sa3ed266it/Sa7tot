@@ -81,6 +81,7 @@ struct AccountListView: View {
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)])
     private var transactions: FetchedResults<Transaction>
     @State private var showingEditor = false
+    @State private var accountBeingEdited: Account?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -91,8 +92,8 @@ struct AccountListView: View {
                     .listRowSeparator(.hidden)
             } else {
                 ForEach(accounts) { account in
-                    NavigationLink {
-                        AccountEditorView(account: account)
+                    Button {
+                        accountBeingEdited = account
                     } label: {
                         HStack(spacing: 12) {
                             Sa7totIconTile(
@@ -112,6 +113,7 @@ struct AccountListView: View {
                         }
                         .opacity(account.isArchived ? 0.5 : 1)
                     }
+                    .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
                             account.isArchived.toggle()
@@ -154,6 +156,13 @@ struct AccountListView: View {
                 NavigationStack { AccountEditorView(account: nil) }
             } else {
                 NavigationView { AccountEditorView(account: nil) }
+            }
+        }
+        .fullScreenCover(item: $accountBeingEdited) { account in
+            if #available(iOS 16.0, *) {
+                NavigationStack { AccountEditorView(account: account) }
+            } else {
+                NavigationView { AccountEditorView(account: account) }
             }
         }
         .alert("Errore", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
@@ -537,9 +546,6 @@ struct AccountEditorView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Annulla") { dismiss() }
-                    .opacity(account == nil ? 1 : 0)
-                    .disabled(account != nil)
-                    .accessibilityHidden(account != nil)
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Salva") {
