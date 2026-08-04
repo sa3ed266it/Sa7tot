@@ -117,101 +117,144 @@ struct SettingsView: View {
   }
 
   private var settingsList: some View {
-    List {
-      Section("Generale") {
-        Toggle(isOn: notificationBinding) {
-          SettingsNativeLabel(title: "Notifiche", systemImage: "bell.fill", tint: .yellow)
-        }
-        Picker("Valuta", selection: $currency) {
-          ForEach(Currency.allCurrencies, id: \.code) { item in
-            Text("\(item.code) — \(item.name)").tag(item.code)
+    ScrollView(showsIndicators: false) {
+      VStack(alignment: .leading, spacing: 24) {
+        SettingsCard(title: "PREFERENZE") {
+          SettingsRowLayout(title: "Notifiche", systemImage: "bell.fill", tint: .yellow) {
+            Toggle("", isOn: notificationBinding)
+              .labelsHidden()
+              .tint(.green)
+          }
+          SettingsDivider()
+          SettingsRowLayout(title: "Valuta", systemImage: "eurosign", tint: .green) {
+            Menu {
+              Picker("Valuta", selection: $currency) {
+                ForEach(Currency.allCurrencies, id: \.code) { item in
+                  Text("\(item.code) — \(item.name)").tag(item.code)
+                }
+              }
+            } label: {
+              SettingsMenuValue(text: currency)
+            }
+            .accessibilityLabel("Valuta")
+            .accessibilityValue(currency)
+          }
+          SettingsDivider()
+          SettingsRowLayout(title: "Inizio settimana", systemImage: "calendar", tint: .purple) {
+            Menu {
+              Picker("Inizio settimana", selection: $firstWeekday) {
+                ForEach(Sa7totWeekday.allCases) { weekday in
+                  Text(weekday.italianName).tag(weekday.rawValue)
+                }
+              }
+            } label: {
+              SettingsMenuValue(text: Sa7totWeekday(rawValue: firstWeekday)?.italianName ?? "Domenica")
+            }
+            .accessibilityLabel("Inizio settimana")
+            .accessibilityValue(Sa7totWeekday(rawValue: firstWeekday)?.italianName ?? "Domenica")
           }
         }
-        .pickerStyle(.menu)
-        .accessibilityLabel("Valuta")
-        .accessibilityValue(currency)
-        NavigationLink(destination: AccountListView()) {
-          SettingsNativeRow(title: "Conti", systemImage: "building.columns.fill", tint: .blue, value: "Gestisci i tuoi conti")
-        }
-        NavigationLink(destination: WalletAutomationView()) {
-          SettingsNativeRow(title: "Automazione Wallet", systemImage: "wallet.pass.fill", tint: .orange, value: "Comandi Rapidi")
-        }
-        Picker("Inizio settimana", selection: $firstWeekday) {
-          ForEach(Sa7totWeekday.allCases) { weekday in
-            Text(weekday.italianName).tag(weekday.rawValue)
+
+        SettingsCard(title: "GESTIONE") {
+          SettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
+            AccountListView()
+          }
+          SettingsDivider()
+          SettingsNavigationRow(title: "Automazione Wallet", subtitle: "Comandi Rapidi", systemImage: "wallet.pass.fill", tint: .orange) {
+            WalletAutomationView()
           }
         }
-        .pickerStyle(.menu)
-        .accessibilityLabel("Inizio settimana")
-        .accessibilityValue(Sa7totWeekday(rawValue: firstWeekday)?.italianName ?? Sa7totWeekday.sunday.italianName)
-      }
 
-      Section("Monitoraggio") {
-        Toggle(isOn: incomeTrackingBinding) {
-          SettingsNativeLabel(title: "Monitoraggio entrate", systemImage: "banknote.fill", tint: .green)
+        SettingsCard(title: "MONITORAGGIO") {
+          SettingsRowLayout(title: "Monitoraggio entrate", systemImage: "banknote.fill", tint: .green) {
+            Toggle("", isOn: incomeTrackingBinding)
+              .labelsHidden()
+              .tint(.green)
+          }
+        }
+
+        SettingsCard(title: "SICUREZZA") {
+          SettingsRowLayout(title: "Autenticazione", systemImage: "faceid", tint: .blue) {
+            Toggle("", isOn: appLockBinding)
+              .labelsHidden()
+              .tint(.green)
+          }
+        }
+
+        SettingsCard(title: "ASPETTO") {
+          SettingsRowLayout(title: "Tema", systemImage: "paintbrush.fill", tint: .blue) {
+            Menu {
+              Picker("Tema", selection: $colourScheme) {
+                Text("Sistema").tag(0)
+                Text("Chiaro").tag(1)
+                Text("Scuro").tag(2)
+              }
+            } label: {
+              SettingsMenuValue(text: themeValue)
+            }
+            .accessibilityLabel("Tema")
+            .accessibilityValue(themeValue)
+          }
+          SettingsDivider()
+          SettingsRowLayout(title: "Mostra centesimi", systemImage: "centsign.circle.fill", tint: .teal) {
+            Toggle("", isOn: $showCents).labelsHidden().tint(.green)
+          }
+          SettingsDivider()
+          SettingsNavigationRow(title: "Movimenti futuri", subtitle: upcomingValue, systemImage: "clock.arrow.circlepath", tint: .orange) {
+            SettingsUpcomingView()
+          }
+          SettingsDivider()
+          SettingsRowLayout(title: "Mostra simbolo +/-", systemImage: "plus.forwardslash.minus", tint: .pink) {
+            Toggle("", isOn: $showExpenseOrIncomeSign).labelsHidden().tint(.green)
+          }
+          SettingsDivider()
+          SettingsRowLayout(title: "Grafici animati", systemImage: "hare.fill", tint: .mint) {
+            Toggle("", isOn: $animated).labelsHidden().tint(.green)
+          }
+        }
+
+        SettingsCard(title: "DATI") {
+          Button { showCategoriesSheet = true } label: {
+            SettingsRowLayout(title: "Categorie", systemImage: "rectangle.grid.2x2.fill", tint: .blue) {
+              SettingsChevron()
+            }
+          }
+          .buttonStyle(.plain)
+          SettingsDivider()
+          SettingsNavigationRow(title: "iCloud", subtitle: iCloudValue, systemImage: "icloud.fill", tint: .blue) {
+            SettingsCloudView()
+          }
+          SettingsDivider()
+          Button { showImportGuide = true } label: {
+            SettingsRowLayout(title: "Importa dati", systemImage: "arrow.down.circle.fill", tint: .green) { EmptyView() }
+          }
+          .buttonStyle(.plain)
+          SettingsDivider()
+          Button { exportData() } label: {
+            SettingsRowLayout(title: "Esporta dati", systemImage: "arrow.up.circle.fill", tint: .orange) { EmptyView() }
+          }
+          .buttonStyle(.plain)
+          SettingsDivider()
+          SettingsNavigationRow(title: "Elimina dati", subtitle: nil, systemImage: "trash.fill", tint: .red) {
+            SettingsEraseView()
+          }
+        }
+
+        SettingsCard(title: "AVANZATE") {
+          SettingsNavigationRow(title: "Feedback aptico", subtitle: hapticValue, systemImage: "hand.tap.fill", tint: .pink) {
+            SettingsHapticsView()
+          }
+          SettingsDivider()
+          Button { } label: {
+            SettingsRowLayout(title: "Laboratorio funzioni", systemImage: "flame.fill", tint: .orange) { EmptyView() }
+          }
+          .buttonStyle(.plain)
         }
       }
-
-      Section("Sicurezza") {
-        Toggle(isOn: appLockBinding) {
-          SettingsNativeLabel(title: "Autenticazione", systemImage: "faceid", tint: .blue)
-        }
-      }
-
-      Section("Aspetto") {
-        Picker(selection: $colourScheme) {
-          Text("Sistema").tag(0)
-          Text("Chiaro").tag(1)
-          Text("Scuro").tag(2)
-        } label: {
-          SettingsNativeLabel(title: "Tema", systemImage: "circle.lefthalf.filled", tint: .gray)
-        }
-        .pickerStyle(.menu)
-        Toggle(isOn: $showCents) {
-          SettingsNativeLabel(title: "Mostra centesimi", systemImage: "centsign.circle.fill", tint: .teal)
-        }
-        NavigationLink(destination: SettingsUpcomingView()) {
-          SettingsNativeRow(title: "Movimenti futuri", systemImage: "clock.arrow.circlepath", tint: .orange, value: upcomingValue)
-        }
-        Toggle(isOn: $showExpenseOrIncomeSign) {
-          SettingsNativeLabel(title: "Mostra simbolo +/-", systemImage: "plus.forwardslash.minus", tint: .pink)
-        }
-        Toggle(isOn: $animated) {
-          SettingsNativeLabel(title: "Grafici animati", systemImage: "hare.fill", tint: .mint)
-        }
-      }
-
-      Section("Dati") {
-        Button {
-          showCategoriesSheet = true
-        } label: {
-          SettingsNativeRow(title: "Categorie", systemImage: "rectangle.grid.2x2.fill", tint: .blue)
-        }
-        NavigationLink(destination: SettingsCloudView()) {
-          SettingsNativeRow(title: "iCloud", systemImage: "icloud.fill", tint: .blue, value: iCloudValue)
-        }
-        Button { showImportGuide = true } label: {
-          SettingsNativeLabel(title: "Importa dati", systemImage: "arrow.down.circle.fill", tint: .green)
-        }
-        Button { exportData() } label: {
-          SettingsNativeLabel(title: "Esporta dati", systemImage: "arrow.up.circle.fill", tint: .orange)
-        }
-        NavigationLink(destination: SettingsEraseView()) {
-          SettingsNativeLabel(title: "Elimina dati", systemImage: "trash.fill", tint: .red)
-        }
-      }
-
-      Section("Avanzate") {
-        NavigationLink(destination: SettingsHapticsView()) {
-          SettingsNativeRow(title: "Feedback aptico", systemImage: "hand.tap.fill", tint: .pink, value: hapticValue)
-        }
-        NavigationLink(destination: SettingsGoofyView()) {
-          SettingsNativeLabel(title: "Laboratorio funzioni", systemImage: "flame.fill", tint: .orange)
-        }
-      }
-
+      .padding(.horizontal, 16)
+      .padding(.top, 8)
+      .padding(.bottom, 120)
     }
-    .listStyle(.insetGrouped)
     .navigationTitle("Impostazioni")
     .navigationBarTitleDisplayMode(.large)
     .dynamicTypeSize(...DynamicTypeSize.accessibility5)
@@ -313,6 +356,14 @@ struct SettingsView: View {
   }
   private var upcomingValue: String {
     showUpcoming ? "Mostrati" : "Nascosti"
+  }
+
+  private var themeValue: String {
+    switch colourScheme {
+    case 1: return "Chiaro"
+    case 2: return "Scuro"
+    default: return "Sistema"
+    }
   }
 
   private var iCloudValue: String {
@@ -430,6 +481,153 @@ struct SettingsView: View {
     if let windowScene = scene as? UIWindowScene {
       windowScene.keyWindow?.rootViewController?.present(av, animated: true, completion: nil)
     }
+  }
+}
+
+private struct SettingsCard<Content: View>: View {
+  let title: String
+  @ViewBuilder let content: Content
+
+  init(title: String, @ViewBuilder content: () -> Content) {
+    self.title = title
+    self.content = content()
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(title)
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 4)
+
+      VStack(spacing: 0) {
+        content
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 4)
+      .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+    }
+  }
+}
+
+private struct SettingsRowLayout<Trailing: View>: View {
+  let title: String
+  let subtitle: String?
+  let systemImage: String
+  let tint: Color
+  @ViewBuilder let trailing: Trailing
+
+  init(
+    title: String,
+    subtitle: String? = nil,
+    systemImage: String,
+    tint: Color,
+    @ViewBuilder trailing: () -> Trailing
+  ) {
+    self.title = title
+    self.subtitle = subtitle
+    self.systemImage = systemImage
+    self.tint = tint
+    self.trailing = trailing()
+  }
+
+  var body: some View {
+    HStack(spacing: 14) {
+      SettingsNativeIcon(systemImage: systemImage, tint: tint)
+
+      VStack(alignment: .leading, spacing: 2) {
+        Text(title)
+          .font(.body.weight(.medium))
+          .foregroundStyle(.primary)
+          .fixedSize(horizontal: false, vertical: true)
+        if let subtitle {
+          Text(subtitle)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+      .layoutPriority(1)
+
+      Spacer(minLength: 10)
+      trailing
+    }
+    .frame(minHeight: 66)
+    .contentShape(Rectangle())
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct SettingsNavigationRow<Destination: View>: View {
+  let title: String
+  let subtitle: String?
+  let systemImage: String
+  let tint: Color
+  @ViewBuilder let destination: Destination
+
+  init(
+    title: String,
+    subtitle: String?,
+    systemImage: String,
+    tint: Color,
+    @ViewBuilder destination: () -> Destination
+  ) {
+    self.title = title
+    self.subtitle = subtitle
+    self.systemImage = systemImage
+    self.tint = tint
+    self.destination = destination()
+  }
+
+  var body: some View {
+    NavigationLink {
+      destination
+    } label: {
+      SettingsRowLayout(
+        title: title,
+        subtitle: subtitle,
+        systemImage: systemImage,
+        tint: tint
+      ) {
+        SettingsChevron()
+      }
+    }
+    .buttonStyle(.plain)
+  }
+}
+
+private struct SettingsMenuValue: View {
+  let text: String
+
+  var body: some View {
+    HStack(spacing: 8) {
+      Text(text)
+        .font(.body)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+      Image(systemName: "chevron.down")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.tertiary)
+    }
+    .fixedSize(horizontal: true, vertical: false)
+  }
+}
+
+private struct SettingsChevron: View {
+  var body: some View {
+    Image(systemName: "chevron.right")
+      .font(.body.weight(.semibold))
+      .foregroundStyle(.tertiary)
+      .accessibilityHidden(true)
+  }
+}
+
+private struct SettingsDivider: View {
+  var body: some View {
+    Rectangle()
+      .fill(Color.primary.opacity(0.10))
+      .frame(height: 0.5)
+      .padding(.leading, 58)
   }
 }
 
