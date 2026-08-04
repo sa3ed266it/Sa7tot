@@ -15,46 +15,48 @@ struct PowerCategory: Hashable, Identifiable {
     let amount: Double
 }
 
-struct SuggestedCategory: Hashable {
+struct SuggestedCategory: Hashable, Identifiable {
+    let canonicalKey: String
     let name: String
+    var id: String { canonicalKey }
     var symbolName: String { CategoryIconRegistry.symbol(for: name) }
 
     static var expenses: [SuggestedCategory] {
         var holding = [SuggestedCategory]()
-        let food = SuggestedCategory(name: "Food")
+        let food = SuggestedCategory(canonicalKey: "expense.food", name: "Food")
         holding.append(food)
 
-        let transport = SuggestedCategory(name: "Transport")
+        let transport = SuggestedCategory(canonicalKey: "expense.transport", name: "Transport")
         holding.append(transport)
 
-        let housing = SuggestedCategory(name: "Rent")
+        let housing = SuggestedCategory(canonicalKey: "expense.rent", name: "Rent")
         holding.append(housing)
 
-        let subscriptions = SuggestedCategory(name: "Subscriptions")
+        let subscriptions = SuggestedCategory(canonicalKey: "expense.subscriptions", name: "Subscriptions")
         holding.append(subscriptions)
 
-        let groceries = SuggestedCategory(name: "Groceries")
+        let groceries = SuggestedCategory(canonicalKey: "expense.groceries", name: "Groceries")
         holding.append(groceries)
 
-        let family = SuggestedCategory(name: "Family")
+        let family = SuggestedCategory(canonicalKey: "expense.family", name: "Family")
         holding.append(family)
 
-        let utilities = SuggestedCategory(name: "Utilities")
+        let utilities = SuggestedCategory(canonicalKey: "expense.utilities", name: "Utilities")
         holding.append(utilities)
 
-        let fashion = SuggestedCategory(name: "Fashion")
+        let fashion = SuggestedCategory(canonicalKey: "expense.fashion", name: "Fashion")
         holding.append(fashion)
 
-        let healthcare = SuggestedCategory(name: "Healthcare")
+        let healthcare = SuggestedCategory(canonicalKey: "expense.healthcare", name: "Healthcare")
         holding.append(healthcare)
 
-        let pets = SuggestedCategory(name: "Pets")
+        let pets = SuggestedCategory(canonicalKey: "expense.pets", name: "Pets")
         holding.append(pets)
 
-        let sneakers = SuggestedCategory(name: "Sneakers")
+        let sneakers = SuggestedCategory(canonicalKey: "expense.sneakers", name: "Sneakers")
         holding.append(sneakers)
 
-        let gifts = SuggestedCategory(name: "Gifts")
+        let gifts = SuggestedCategory(canonicalKey: "expense.gifts", name: "Gifts")
         holding.append(gifts)
 
         return holding
@@ -62,24 +64,45 @@ struct SuggestedCategory: Hashable {
 
     static var incomes: [SuggestedCategory] {
         var holding = [SuggestedCategory]()
-        let paycheck = SuggestedCategory(name: "Paycheck")
+        let paycheck = SuggestedCategory(canonicalKey: "income.paycheck", name: "Paycheck")
         holding.append(paycheck)
 
-        let allowance = SuggestedCategory(name: "Allowance")
+        let allowance = SuggestedCategory(canonicalKey: "income.allowance", name: "Allowance")
         holding.append(allowance)
 
-        let parttime = SuggestedCategory(name: "Part-Time")
+        let parttime = SuggestedCategory(canonicalKey: "income.part-time", name: "Part-Time")
         holding.append(parttime)
 
-        let investments = SuggestedCategory(name: "Investments")
+        let investments = SuggestedCategory(canonicalKey: "income.investments", name: "Investments")
         holding.append(investments)
 
-        let gifts = SuggestedCategory(name: "Gifts")
+        let gifts = SuggestedCategory(canonicalKey: "income.gifts", name: "Gifts")
         holding.append(gifts)
 
-        let tips = SuggestedCategory(name: "Tips")
+        let tips = SuggestedCategory(canonicalKey: "income.tips", name: "Tips")
         holding.append(tips)
 
         return holding
+    }
+}
+
+enum CategoryCanonicalIdentity {
+    static func key(for suggestion: SuggestedCategory) -> String {
+        suggestion.canonicalKey
+    }
+
+    static func key(for category: Category) -> String {
+        let source = category.income ? SuggestedCategory.incomes : SuggestedCategory.expenses
+        let nameKey = CategoryNameNormalizer.key(category.wrappedName)
+
+        if let suggestion = source.first(where: { suggestion in
+            let localizedKey = CategoryNameNormalizer.key(NSLocalizedString(suggestion.name, comment: "category name"))
+            return localizedKey == nameKey || CategoryNameNormalizer.key(suggestion.name) == nameKey
+        }) {
+            return suggestion.canonicalKey
+        }
+
+        let kind = category.income ? "income" : "expense"
+        return "\(kind).custom.\(nameKey)"
     }
 }
