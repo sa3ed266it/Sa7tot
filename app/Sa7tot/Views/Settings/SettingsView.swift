@@ -689,9 +689,6 @@ struct SettingsCategoryView: View {
 
   var body: some View {
     CategoryView(mode: .settings, income: false)
-      .navigationTitle("Categorie")
-      .navigationBarTitleDisplayMode(.inline)
-      .navigationBarBackButtonHidden(false)
       .background(NativeTabBarVisibility(isHidden: true))
       .background(Color.PrimaryBackground)
       .onDisappear {

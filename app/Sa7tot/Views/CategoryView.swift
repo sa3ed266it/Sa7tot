@@ -39,63 +39,6 @@ private extension View {
     }
 }
 
-private struct CategoryHeaderFade: View {
-    var body: some View {
-        LinearGradient(
-            stops: [
-                .init(color: Color.PrimaryBackground.opacity(0.82), location: 0),
-                .init(color: Color.PrimaryBackground.opacity(0.42), location: 0.42),
-                .init(color: Color.PrimaryBackground.opacity(0), location: 1)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-            .frame(height: 30)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-    }
-}
-
-private struct CategoryTypeBarModifier: ViewModifier {
-    @Binding var income: Bool
-    let isVisible: Bool
-    let hasScrolled: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if isVisible {
-            if #available(iOS 26.0, *) {
-                content.safeAreaBar(edge: .top, spacing: 0) {
-                    picker
-                }
-            } else {
-                VStack(spacing: 0) {
-                    picker
-                    content
-                        .overlay(alignment: .top) {
-                            if hasScrolled {
-                                CategoryHeaderFade()
-                            }
-                        }
-                }
-            }
-        } else {
-            content
-        }
-    }
-
-    private var picker: some View {
-        Picker("Tipo", selection: $income) {
-            Text("Spesa").tag(false)
-            Text("Entrata").tag(true)
-        }
-        .pickerStyle(.segmented)
-        .frame(maxWidth: 360)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 8)
-    }
-}
-
 private struct CategoryNavigationBarVisibility: ViewModifier {
     let usesCustomHeader: Bool
 
@@ -113,9 +56,92 @@ private struct CategoryNavigationBarVisibility: ViewModifier {
     }
 }
 
+private struct CategoryFixedTopChrome: View {
+    static let topSpacing: CGFloat = 4
+    static let headerHeight: CGFloat = 35
+    static let headerBottomSpacing: CGFloat = 8
+    static let pickerVerticalPadding: CGFloat = 8
+    static let fadeHeight: CGFloat = 18
+
+    let safeAreaTop: CGFloat
+    @Binding var income: Bool
+    let onBack: () -> Void
+    let onAdd: () -> Void
+
+    static func runwayHeight(safeAreaTop: CGFloat) -> CGFloat {
+        safeAreaTop + topSpacing + headerHeight + headerBottomSpacing + 35 + pickerVerticalPadding * 2 + fadeHeight
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color.SubtitleText)
+                        .frame(width: 33, height: 33)
+                        .background(Color.SecondaryBackground, in: Circle())
+                }
+                .accessibilityLabel("Indietro")
+
+                Spacer()
+
+                Text("Categorie")
+                    .font(.system(.title3, design: .rounded).weight(.semibold))
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+
+                Spacer()
+
+                Button(action: onAdd) {
+                    Image(systemName: "plus")
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color.SubtitleText)
+                        .frame(width: 33, height: 33)
+                        .background(Color.SecondaryBackground, in: Circle())
+                }
+                .accessibilityLabel("Nuovo")
+            }
+            .frame(height: Self.headerHeight)
+            .padding(.horizontal, 20)
+            .padding(.top, safeAreaTop + Self.topSpacing)
+            .padding(.bottom, Self.headerBottomSpacing)
+
+            Picker("Tipo", selection: $income) {
+                Text("Spesa").tag(false)
+                Text("Entrata").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 360)
+            .padding(.horizontal, 24)
+            .padding(.vertical, Self.pickerVerticalPadding)
+
+            Color.clear
+                .frame(height: Self.fadeHeight)
+        }
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.98), location: 0),
+                            .init(color: .black.opacity(0.9), location: 0.7),
+                            .init(color: .black.opacity(0), location: 1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
 struct CategoryView: View {
     var mode: CategoryViewMode
 //    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @State var income = false
     @State var newCategory = false
 
@@ -131,7 +157,39 @@ struct CategoryView: View {
     }
 
     var body: some View {
-        CategoryListView(income: $income, mode: mode, hasScrolled: $categoryHasScrolled, showToast: $showToast, toastTitle: $toastTitle, toastImage: $toastImage, positive: $positive)
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                CategoryListView(
+                    income: $income,
+                    mode: mode,
+                    hasScrolled: $categoryHasScrolled,
+                    showToast: $showToast,
+                    toastTitle: $toastTitle,
+                    toastImage: $toastImage,
+                    positive: $positive,
+                    usesFixedChrome: true,
+                    topRunwayHeight: CategoryFixedTopChrome.runwayHeight(safeAreaTop: proxy.safeAreaInsets.top)
+                )
+                .ignoresSafeArea(.container, edges: .top)
+
+                CategoryFixedTopChrome(
+                    safeAreaTop: proxy.safeAreaInsets.top,
+                    income: $income,
+                    onBack: { dismiss() },
+                    onAdd: {
+                        if disabled {
+                            showToast = true
+                            toastImage = "exclamationmark.triangle.fill"
+                            toastTitle = "Limit Exceeded"
+                            positive = false
+                        } else {
+                            newCategory = true
+                        }
+                    }
+                )
+                .zIndex(10)
+            }
+        }
         .sheet(isPresented: $newCategory) {
             if #available(iOS 16.0, *) {
                 NewCategoryAlert(income: $income, bottomSpacers: false)
@@ -146,7 +204,7 @@ struct CategoryView: View {
             Color.PrimaryBackground
                 .ignoresSafeArea(.container, edges: .top)
         }
-        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode != .settings))
+        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: true))
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -202,6 +260,8 @@ struct CategoryListView: View {
     @Binding var toastTitle: String
     @Binding var toastImage: String
     @Binding var positive: Bool
+    let usesFixedChrome: Bool
+    let topRunwayHeight: CGFloat
 
     var toastColor: Color {
         positive ? Color.IncomeGreen : Color.AlertRed
@@ -219,7 +279,7 @@ struct CategoryListView: View {
 
     var body: some View {
         VStack(spacing: 5) {
-            if showToast {
+            if !usesFixedChrome && showToast {
                 HStack(spacing: 6.5) {
                     Image(systemName: toastImage)
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
@@ -240,7 +300,7 @@ struct CategoryListView: View {
                 .frame(maxWidth: 250)
                 .frame(height: 35)
                 .padding(20)
-            } else {
+            } else if !usesFixedChrome {
                 if mode == .welcome {
                     HStack(spacing: 8) {
                         if categories.count > 1 {
@@ -436,6 +496,11 @@ struct CategoryListView: View {
             VStack {
                 if #available(iOS 16.0, *) {
                     List {
+                        Color.clear
+                            .frame(height: topRunwayHeight)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+
                         Section(header: Text(sectionHeader).foregroundColor(Color.SubtitleText)) {
                             if categories.isEmpty {
                                 VStack(spacing: 10) {
@@ -515,9 +580,14 @@ struct CategoryListView: View {
                     .categorySoftScrollEdge()
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
-                    .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
+                    .ignoresSafeArea(.container, edges: .top)
                 } else {
                     List {
+                        Color.clear
+                            .frame(height: topRunwayHeight)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+
                         Section(header: Text("\(income ? "INCOME" : "EXPENSE") CATEGORIES").foregroundColor(Color.SubtitleText)) {
                             if categories.isEmpty {
                                 VStack(spacing: 10) {
@@ -589,7 +659,7 @@ struct CategoryListView: View {
                     .categorySoftScrollEdge()
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
-                    .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
+                    .ignoresSafeArea(.container, edges: .top)
                 }
             }
         }
@@ -675,7 +745,7 @@ struct CategoryListView: View {
         }
     }
 
-    init(income: Binding<Bool>, mode: CategoryViewMode, hasScrolled: Binding<Bool>, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>) {
+    init(income: Binding<Bool>, mode: CategoryViewMode, hasScrolled: Binding<Bool>, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>, usesFixedChrome: Bool, topRunwayHeight: CGFloat) {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: NSPredicate(format: "income = %d", income.wrappedValue))
@@ -686,6 +756,8 @@ struct CategoryListView: View {
         _toastTitle = toastTitle
         _toastImage = toastImage
         _positive = positive
+        self.usesFixedChrome = usesFixedChrome
+        self.topRunwayHeight = topRunwayHeight
         self.mode = mode
     }
 }
