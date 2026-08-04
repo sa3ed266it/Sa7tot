@@ -305,11 +305,10 @@ private struct NativeBrandNewBudgetView: View {
             }
         } label: {
             HStack(spacing: 14) {
-                Image(systemName: scope == .overall ? "chart.pie.fill" : "tag.fill")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.tint)
-                    .frame(width: BudgetFlowStyle.iconTileSize, height: BudgetFlowStyle.iconTileSize)
-                    .background(.tint.opacity(isSelected ? 0.13 : 0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                budgetIconTile(
+                    systemName: scope == .overall ? "chart.pie.fill" : "tag.fill",
+                    isSelected: isSelected
+                )
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(scope.title)
@@ -499,11 +498,7 @@ private struct NativeBrandNewBudgetView: View {
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Image(systemName: "calendar")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.tint)
-                        .frame(width: 38, height: 38)
-                        .background(.tint.opacity(isSelected ? 0.14 : 0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    budgetIconTile(systemName: "calendar", isSelected: isSelected)
 
                     Spacer(minLength: 4)
 
@@ -551,6 +546,18 @@ private struct NativeBrandNewBudgetView: View {
         case .month: "Ogni mese"
         case .year: "Ogni anno"
         }
+    }
+
+    private func budgetIconTile(systemName: String, isSelected: Bool) -> some View {
+        Image(systemName: systemName)
+            .font(.body.weight(.semibold))
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(isSelected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.accentColor))
+            .frame(width: BudgetFlowStyle.iconTileSize, height: BudgetFlowStyle.iconTileSize)
+            .background(
+                isSelected ? AnyShapeStyle(Color.black.opacity(0.16)) : AnyShapeStyle(Color.accentColor.opacity(0.10)),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
     }
 
     @ViewBuilder
@@ -654,7 +661,7 @@ private struct NativeBrandNewBudgetView: View {
             HStack(spacing: 12) {
                 summaryIcon
                     .frame(width: BudgetFlowStyle.iconTileSize, height: BudgetFlowStyle.iconTileSize)
-                    .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(summaryPrimary)
@@ -680,7 +687,8 @@ private struct NativeBrandNewBudgetView: View {
         } else {
             Image(systemName: "chart.pie.fill")
                 .font(.body.weight(.semibold))
-                .foregroundStyle(.tint)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(Color.accentColor)
                 .accessibilityHidden(true)
         }
     }
