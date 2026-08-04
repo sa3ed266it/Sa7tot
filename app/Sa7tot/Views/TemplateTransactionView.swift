@@ -478,7 +478,7 @@ struct TemplateTransactionView: View {
                                 if let itemToDelete = toDelete {
                                     moc.delete(itemToDelete)
                                 }
-                                dataController.save()
+                                do { try dataController.save() } catch { moc.rollback() }
                             }
 
                             dismiss()
@@ -699,9 +699,10 @@ struct TemplateTransactionView: View {
             do {
                 try dataController.saveAccountChanges()
             } catch {
-                toastTitle = error.localizedDescription
+                toastTitle = "Le modifiche non sono state salvate. Riprova."
                 toastImage = "exclamationmark.triangle"
                 showToast = true
+                return
             }
 
             dismiss()
@@ -731,9 +732,10 @@ struct TemplateTransactionView: View {
             do {
                 try dataController.saveAccountChanges()
             } catch {
-                toastTitle = error.localizedDescription
+                toastTitle = "Le modifiche non sono state salvate. Riprova."
                 toastImage = "exclamationmark.triangle"
                 showToast = true
+                return
             }
 
             dismiss()
@@ -1193,7 +1195,7 @@ class GridViewModel: ObservableObject {
                 transaction.order = Int16(index)
             }
         }
-        dataController.save()
+        do { try dataController.save() } catch { dataController.reportPersistenceFailure(error) }
     }
 }
 

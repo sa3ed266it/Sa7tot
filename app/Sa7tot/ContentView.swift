@@ -69,6 +69,14 @@ struct ContentView: View {
         } message: {
             Text(dataController.accountMigrationErrorMessage ?? "Impossibile completare la migrazione dei conti.")
         }
+        .alert("Impossibile salvare", isPresented: Binding(
+            get: { dataController.persistenceErrorMessage != nil },
+            set: { if !$0 { dataController.clearPersistenceError() } }
+        )) {
+            Button("OK", role: .cancel) { dataController.clearPersistenceError() }
+        } message: {
+            Text(dataController.persistenceErrorMessage ?? "Le modifiche non sono state salvate. Riprova.")
+        }
         .onAppear {
 //            UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(false, forKey: "newTransactionAdded")
 //            WidgetCenter.shared.reloadTimelines(ofKind: "TemplateTransactions")
@@ -120,7 +128,7 @@ struct ContentView: View {
                     category.order = Int64(categories.firstIndex(of: category) ?? 0)
                 }
 
-                dataController.save()
+                do { try dataController.save() } catch { dataController.reportPersistenceFailure(error) }
 
                 dataMigration1 = false
             }
@@ -139,7 +147,7 @@ struct ContentView: View {
                     }
                 }
 
-                dataController.save()
+                do { try dataController.save() } catch { dataController.reportPersistenceFailure(error) }
 
                 dataMigration2 = false
             }

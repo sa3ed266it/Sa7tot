@@ -827,10 +827,14 @@ struct TransactionView: View {
                                 if let itemToDelete = toDelete {
                                     moc.delete(itemToDelete)
                                 }
-                                dataController.save()
                             }
-
-                            dismiss()
+                            do {
+                                try dataController.save()
+                                dismiss()
+                            } catch {
+                                moc.rollback()
+                                deleteMode = true
+                            }
 
                         } label: {
                             Text("Delete")
@@ -1078,8 +1082,12 @@ struct TransactionView: View {
     private func deleteTransaction() {
         guard let itemToDelete = toEdit else { return }
         moc.delete(itemToDelete)
-        dataController.save()
-        dismiss()
+        do {
+            try dataController.save()
+            dismiss()
+        } catch {
+            moc.rollback()
+        }
     }
 
     func submit() {
@@ -1103,7 +1111,9 @@ struct TransactionView: View {
                 dismiss()
             } catch {
                 toastImage = "exclamationmark.triangle"
-                toastTitle = error.localizedDescription
+                toastTitle = error is AccountSaveError
+                    ? "La transazione non è stata salvata. Riprova."
+                    : error.localizedDescription
                 showToast = true
                 generator.notificationOccurred(.error)
             }
@@ -1144,8 +1154,6 @@ struct TransactionView: View {
             return
         }
 
-        generator.notificationOccurred(.success)
-
         if let editedTransaction = toEdit {
             if note.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
                 editedTransaction.note = category!.wrappedName
@@ -1173,31 +1181,30 @@ struct TransactionView: View {
 
                     editedTransaction.month = calendar.date(from: dateComponents) ?? Date.now
 
-                    if !income {
-                        if repeatType > 0 {
-                            editedTransaction.onceRecurring = true
-                            editedTransaction.recurringType = Int16(repeatType)
-                            editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
-
-                            dataController.updateRecurringTransaction(transaction: editedTransaction)
-                        } else {
-                            editedTransaction.onceRecurring = false
-                            editedTransaction.recurringType = Int16(repeatType)
-                            editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
-                        }
-                    }
-
                     do {
+                        if !income {
+                            if repeatType > 0 {
+                                editedTransaction.onceRecurring = true
+                                editedTransaction.recurringType = Int16(repeatType)
+                                editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
+
+                                try dataController.updateRecurringTransaction(transaction: editedTransaction)
+                            } else {
+                                editedTransaction.onceRecurring = false
+                                editedTransaction.recurringType = Int16(repeatType)
+                                editedTransaction.recurringCoefficient = Int16(repeatCoefficient)
+                            }
+                        }
                         try dataController.saveAccountChanges()
+                        generator.notificationOccurred(.success)
+                        dismiss()
                     } catch {
-                        toastTitle = error.localizedDescription
+                        toastTitle = "Le modifiche non sono state salvate. Riprova."
                         toastImage = "exclamationmark.triangle"
                         showToast = true
                     }
                 }
             }
-
-            dismiss()
 
             return
         }
@@ -1233,7 +1240,13 @@ struct TransactionView: View {
             transaction.onceRecurring = true
             transaction.recurringType = Int16(repeatType)
             transaction.recurringCoefficient = Int16(repeatCoefficient)
-            dataController.updateRecurringTransaction(transaction: transaction)
+            do {
+                try dataController.updateRecurringTransaction(transaction: transaction)
+            } catch {
+                moc.delete(transaction)
+                dataController.reportPersistenceFailure(error)
+                return
+            }
         } else if income {
             transaction.onceRecurring = false
             transaction.recurringType = 0
@@ -1242,8 +1255,9 @@ struct TransactionView: View {
 
         do {
             try dataController.saveAccountChanges()
+            generator.notificationOccurred(.success)
         } catch {
-            toastTitle = error.localizedDescription
+            toastTitle = "La transazione non è stata salvata. Riprova."
             toastImage = "exclamationmark.triangle"
             showToast = true
             return

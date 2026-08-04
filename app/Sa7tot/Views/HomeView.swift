@@ -101,7 +101,7 @@ struct HomeView: View {
             }
             transactionManager.toDelete = nil
         }, completion: {
-            dataController.save()
+            do { try dataController.save() } catch { moc.rollback() }
             transactionManager.toDelete = nil
         })
         .alert(deleteAlertTitle, isPresented: $transactionManager.showPopup) {
@@ -214,7 +214,7 @@ struct HomeView: View {
         if deleteAlertIsRecurring {
             withAnimation(.easeInOut(duration: 0.5)) {
                 transaction.recurringType = 0
-                dataController.save()
+                do { try dataController.save() } catch { moc.rollback() }
             }
         } else {
             withAnimation(.easeInOut(duration: 0.5)) {

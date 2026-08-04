@@ -708,7 +708,11 @@ struct SingleBudgetView: View {
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                                     withAnimation {
                                         moc.delete(budget)
-                                        dataController.save()
+                                        do { try dataController.save() } catch {
+                                            moc.rollback()
+                                            deleted = false
+                                            offset = 0
+                                        }
                                     }
                                 }
 
@@ -1035,12 +1039,15 @@ struct DeleteBudgetAlert: View {
                     .padding(.bottom, 25)
 
                 Button {
-                    dismiss()
-                    self.presentationMode.wrappedValue.dismiss()
-
                     withAnimation {
                         moc.delete(toDelete)
-                        dataController.save()
+                    }
+                    do {
+                        try dataController.save()
+                        dismiss()
+                        self.presentationMode.wrappedValue.dismiss()
+                    } catch {
+                        moc.rollback()
                     }
 
                 } label: {
@@ -1119,11 +1126,14 @@ struct DeleteMainBudgetAlert: View {
                     .padding(.bottom, 25)
 
                 Button {
-                    dismiss()
-
                     withAnimation {
                         moc.delete(toDelete)
-                        dataController.save()
+                    }
+                    do {
+                        try dataController.save()
+                        dismiss()
+                    } catch {
+                        moc.rollback()
                     }
 
                 } label: {

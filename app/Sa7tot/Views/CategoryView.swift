@@ -802,7 +802,7 @@ struct CategoryListView: View {
         }
 
         do {
-            dataController.save()
+            do { try dataController.save() } catch { moc.rollback() }
         } catch {
             print(error.localizedDescription)
         }
@@ -815,7 +815,7 @@ struct CategoryListView: View {
         guard let suggestion = source.first(where: { $0.canonicalKey == key }) else {
             withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
                 moc.delete(category)
-                dataController.save()
+                do { try dataController.save() } catch { moc.rollback() }
             }
             return
         }
@@ -886,7 +886,7 @@ struct CategoryListView: View {
 
         if let deletion = pendingDeletion, deletion.id == id {
             moc.delete(deletion.category)
-            dataController.save()
+            do { try dataController.save() } catch { moc.rollback() }
             withAnimation(transferAnimation) {
                 pendingDeletion = nil
                 movingCategoryRow = nil
@@ -1444,8 +1444,12 @@ private struct PremiumCategoryEditor: View {
     private func deleteCategory() {
         guard let category else { return }
         moc.delete(category)
-        dataController.save()
-        dismiss()
+        do {
+            try dataController.save()
+            dismiss()
+        } catch {
+            moc.rollback()
+        }
     }
 
     private func errorText(for error: CategoryError) -> String {

@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import OSLog
 import SwiftUI
 import WidgetKit
 
@@ -92,6 +93,8 @@ enum CustomError: Swift.Error, CustomLocalizedStringResourceConvertible {
 class DataController: ObservableObject {
     static let shared = DataController()
 
+    private let logger = Logger(subsystem: "com.saied.sa7tot", category: "Persistence")
+
     private let storeStateLock = NSLock()
     private let categoryMutationLock = NSLock()
     private var storeReady = false
@@ -99,6 +102,7 @@ class DataController: ObservableObject {
 
     @Published private(set) var accountMigrationError: Error?
     @Published private(set) var accountMigrationErrorMessage: String?
+    @Published private(set) var persistenceErrorMessage: String?
 
     var container: NSPersistentContainer
 
@@ -225,10 +229,15 @@ class DataController: ObservableObject {
         _ = try? container.viewContext.executeAndMergeChanges(using: batchDeleteRequest4)
     }
 
-    func save() {
-        if container.viewContext.hasChanges {
-            try? container.viewContext.save()
-            WidgetCenter.shared.reloadAllTimelines()
+    @discardableResult
+    func save() throws -> Bool {
+        do {
+            return try PersistenceSaveCoordinator.save(context: container.viewContext) {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+        } catch {
+            reportPersistenceFailure(error)
+            throw error
         }
     }
 
@@ -238,9 +247,19 @@ class DataController: ObservableObject {
             try container.viewContext.save()
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
+            reportPersistenceFailure(error)
             container.viewContext.rollback()
             throw AccountSaveError.persistence(error)
         }
+    }
+
+    func clearPersistenceError() {
+        persistenceErrorMessage = nil
+    }
+
+    func reportPersistenceFailure(_ error: Error) {
+        logger.error("Core Data save failed: \(String(describing: error), privacy: .public)")
+        persistenceErrorMessage = "Le modifiche non sono state salvate. Riprova."
     }
 
     func clearAccountMigrationError() {
@@ -263,7 +282,7 @@ class DataController: ObservableObject {
         throw WalletAutomationError.persistence
     }
 
-    func updateRecurringTransaction(transaction: Transaction) {
+    func updateRecurringTransaction(transaction: Transaction) throws {
         guard transaction.wrappedType != .transfer else {
             transaction.recurringType = 0
             transaction.recurringCoefficient = 0
@@ -313,7 +332,7 @@ class DataController: ObservableObject {
 
             transaction.recurringType = 0
 
-            save()
+            try save()
 
         } else if Calendar.current.isDateInToday(transaction.nextTransactionDate) {
             let newTransaction = Transaction(context: container.viewContext)
@@ -338,7 +357,7 @@ class DataController: ObservableObject {
 
             transaction.recurringType = 0
 
-            save()
+            try save()
         }
     }
 
@@ -346,7 +365,8 @@ class DataController: ObservableObject {
         let recurringTransactions = results(for: fetchRequestForRecurringTransactions())
 
         recurringTransactions.forEach { transaction in
-            updateRecurringTransaction(transaction: transaction)
+            do { try updateRecurringTransaction(transaction: transaction) }
+            catch { reportPersistenceFailure(error) }
         }
     }
 
@@ -366,10 +386,10 @@ class DataController: ObservableObject {
             }
         }
 
-        save()
+        do { try save() } catch { reportPersistenceFailure(error) }
     }
 
-    func newTransaction(note: String, category: Category?, account: Account? = nil, income: Bool, amount: Double, date: Date, repeatType: Int, repeatCoefficient: Int, delay _: Bool) -> Transaction {
+    func newTransaction(note: String, category: Category?, account: Account? = nil, income: Bool, amount: Double, date: Date, repeatType: Int, repeatCoefficient: Int, delay _: Bool) throws -> Transaction {
         let transaction = Transaction(context: container.viewContext)
 
         if note.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
@@ -405,10 +425,20 @@ class DataController: ObservableObject {
             transaction.onceRecurring = true
             transaction.recurringType = Int16(repeatType)
             transaction.recurringCoefficient = Int16(repeatCoefficient)
-            updateRecurringTransaction(transaction: transaction)
+            do {
+                try updateRecurringTransaction(transaction: transaction)
+            } catch {
+                container.viewContext.delete(transaction)
+                throw error
+            }
         }
 
-        save()
+        do {
+            try save()
+        } catch {
+            container.viewContext.delete(transaction)
+            throw error
+        }
 
         return transaction
     }
@@ -514,7 +544,12 @@ class DataController: ObservableObject {
     func newTemplateTransaction(order: Int) {
         if let match = getTemplateTransaction(order: order) {
             if let unwrappedCategory = match.category {
-                _ = newTransaction(note: match.note ?? "", category: unwrappedCategory, account: AccountAssignmentService.inheritedAccount(from: match), income: match.income, amount: match.amount, date: Date.now, repeatType: Int(match.recurringType), repeatCoefficient: Int(match.recurringCoefficient), delay: false)
+                do {
+                    _ = try newTransaction(note: match.note ?? "", category: unwrappedCategory, account: AccountAssignmentService.inheritedAccount(from: match), income: match.income, amount: match.amount, date: Date.now, repeatType: Int(match.recurringType), repeatCoefficient: Int(match.recurringCoefficient), delay: false)
+                } catch {
+                    reportPersistenceFailure(error)
+                    return
+                }
 
                 addedTransaction = true
             }
@@ -546,7 +581,7 @@ class DataController: ObservableObject {
                 container.viewContext.delete(results[i])
             }
 
-            save()
+            do { try save() } catch { reportPersistenceFailure(error) }
 
             return output
         } else {

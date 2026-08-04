@@ -904,7 +904,13 @@ struct ImportDataView: View {
             if let transactionDate = dateFormatter.date(from: row[dateColumnIndex]) {
                 if let rowCategory = categoryDictionary[row[categoryColumnIndex]] {
                     if let transactionAmount = Double(row[amountColumnIndex]) {
-                        _ = dataController.newTransaction(note: row[noteColumnIndex], category: rowCategory, income: rowCategory.income, amount: abs(transactionAmount), date: transactionDate, repeatType: 0, repeatCoefficient: 1, delay: false)
+                        do {
+                            _ = try dataController.newTransaction(note: row[noteColumnIndex], category: rowCategory, income: rowCategory.income, amount: abs(transactionAmount), date: transactionDate, repeatType: 0, repeatCoefficient: 1, delay: false)
+                        } catch {
+                            processingState = .error
+                            errorMessage = "Impossibile salvare le modifiche."
+                            return
+                        }
                     } else {
                         processingState = .error
                         errorMessage = "Invalid values in amount column."
@@ -922,7 +928,11 @@ struct ImportDataView: View {
             }
         }
 
-        dataController.save()
+        do { try dataController.save() } catch {
+            processingState = .error
+            errorMessage = "Impossibile salvare le modifiche."
+            return
+        }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {

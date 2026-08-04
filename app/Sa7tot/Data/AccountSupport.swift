@@ -1,6 +1,19 @@
 import CoreData
 import Foundation
 
+enum PersistenceSaveCoordinator {
+    @discardableResult
+    static func save(
+        context: NSManagedObjectContext,
+        onSuccess: () -> Void = {}
+    ) throws -> Bool {
+        guard context.hasChanges else { return false }
+        try context.save()
+        onSuccess()
+        return true
+    }
+}
+
 enum StatisticsTransactionFilter {
     static func excludingTransfersPredicate() -> NSPredicate {
         NSPredicate(

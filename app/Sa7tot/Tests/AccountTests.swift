@@ -29,6 +29,29 @@ final class AccountTests: XCTestCase {
         XCTAssertFalse(BudgetAmountParser.isValid(Decimal(string: "-1")!))
     }
 
+    func testPersistenceSaveCoordinatorPersistsTransactionAndReloadsOnlyAfterSuccess() throws {
+        let context = makeContext()
+        let transaction = makeTransaction(in: context, account: nil, amount: 42)
+        var reloadCount = 0
+
+        XCTAssertTrue(try PersistenceSaveCoordinator.save(context: context) { reloadCount += 1 })
+        XCTAssertEqual(reloadCount, 1)
+
+        let request = Transaction.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", transaction.id! as CVarArg)
+        XCTAssertEqual(try context.count(for: request), 1)
+    }
+
+    func testPersistenceSaveCoordinatorPropagatesFailureAndDoesNotRunSuccessCallback() throws {
+        let context = makeContext()
+        let invalidCategory = Category(context: context)
+        invalidCategory.setValue(nil, forKey: "name")
+        var reloadCount = 0
+
+        XCTAssertThrowsError(try PersistenceSaveCoordinator.save(context: context) { reloadCount += 1 })
+        XCTAssertEqual(reloadCount, 0)
+    }
+
     func testAccountTypeRawValuesAndItalianLabels() {
         XCTAssertEqual(AccountType.creditCard.rawValue, "creditCard")
         XCTAssertEqual(AccountType.creditCard.italianName, "Carta di credito")
