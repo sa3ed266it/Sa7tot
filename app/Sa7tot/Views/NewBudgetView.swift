@@ -45,6 +45,28 @@ private enum BudgetFlowStyle {
     static let iconTileSize: CGFloat = 40
 }
 
+private extension View {
+    @ViewBuilder
+    func budgetGlassSurface<S: Shape>(isSelected: Bool, in shape: S) -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(
+                .regular
+                    .interactive()
+                    .tint(isSelected ? .accentColor : nil),
+                in: shape
+            )
+        } else {
+            background(.thinMaterial, in: shape)
+                .overlay {
+                    shape.stroke(
+                        isSelected ? AnyShapeStyle(.tint.opacity(0.65)) : AnyShapeStyle(Color.Outline.opacity(0.7)),
+                        lineWidth: 1
+                    )
+                }
+        }
+    }
+}
+
 private struct BudgetCreationDraft {
     var scope: BudgetScope = .overall
     var category: Category?
@@ -154,7 +176,9 @@ private struct NativeBrandNewBudgetView: View {
 
     var body: some View {
         Group {
-            if #available(iOS 16.4, *) {
+            if #available(iOS 26.0, *) {
+                navigationContent
+            } else if #available(iOS 16.4, *) {
                 navigationContent
                     .presentationBackground(.ultraThinMaterial)
             } else {
@@ -251,9 +275,11 @@ private struct NativeBrandNewBudgetView: View {
                     .padding(.top, BudgetFlowStyle.sectionTopPadding)
                     .padding(.bottom, 12)
 
-                VStack(spacing: 12) {
-                    ForEach(BudgetScope.allCases) { scope in
-                        scopeSelectionCard(scope)
+                budgetGlassGroup {
+                    VStack(spacing: 12) {
+                        ForEach(BudgetScope.allCases) { scope in
+                            scopeSelectionCard(scope)
+                        }
                     }
                 }
 
@@ -315,14 +341,7 @@ private struct NativeBrandNewBudgetView: View {
             .padding(.horizontal, 16)
             .frame(minHeight: 76)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                budgetGlassFill(isSelected: isSelected),
-                in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
-                    .stroke(isSelected ? AnyShapeStyle(.tint.opacity(0.65)) : AnyShapeStyle(Color.Outline.opacity(0.7)), lineWidth: 1)
-            }
+            .budgetGlassSurface(isSelected: isSelected, in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -361,20 +380,22 @@ private struct NativeBrandNewBudgetView: View {
                     .padding(.horizontal, 16)
                     .frame(minHeight: 60)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous))
+                    .budgetGlassSurface(isSelected: false, in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Nessuna categoria disponibile. Aggiungi categoria")
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 12) {
-                        ForEach(activeExpenseCategories, id: \.objectID) { category in
-                            budgetCategoryChip(category)
+                budgetGlassGroup {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 12) {
+                            ForEach(activeExpenseCategories, id: \.objectID) { category in
+                                budgetCategoryChip(category)
+                            }
                         }
+                        .padding(.horizontal, 2)
                     }
-                    .padding(.horizontal, 2)
+                    .frame(minHeight: 52)
                 }
-                .frame(minHeight: 52)
             }
         }
     }
@@ -407,10 +428,7 @@ private struct NativeBrandNewBudgetView: View {
             .foregroundStyle(.primary)
             .padding(.horizontal, 15)
             .frame(minHeight: 44)
-            .background(
-                isSelected ? AnyShapeStyle(Color.SecondaryBackground) : AnyShapeStyle(.thinMaterial),
-                in: Capsule()
-            )
+            .budgetGlassSurface(isSelected: isSelected, in: Capsule())
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -441,12 +459,14 @@ private struct NativeBrandNewBudgetView: View {
                     .padding(.top, BudgetFlowStyle.sectionTopPadding)
                     .padding(.bottom, 12)
 
-                LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
-                    spacing: 12
-                ) {
-                    ForEach(BudgetTimeFrame.allCases, id: \.self) { period in
-                        periodSelectionCard(period)
+                budgetGlassGroup {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                        spacing: 12
+                    ) {
+                        ForEach(BudgetTimeFrame.allCases, id: \.self) { period in
+                            periodSelectionCard(period)
+                        }
                     }
                 }
             }
@@ -506,14 +526,7 @@ private struct NativeBrandNewBudgetView: View {
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
             .contentShape(Rectangle())
-            .background(
-                budgetGlassFill(isSelected: isSelected),
-                in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
-                    .stroke(isSelected ? AnyShapeStyle(.tint.opacity(0.7)) : AnyShapeStyle(Color.Outline.opacity(0.7)), lineWidth: 1)
-            }
+            .budgetGlassSurface(isSelected: isSelected, in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
@@ -540,10 +553,15 @@ private struct NativeBrandNewBudgetView: View {
         }
     }
 
-    private func budgetGlassFill(isSelected: Bool) -> AnyShapeStyle {
-        isSelected
-            ? AnyShapeStyle(Color.SecondaryBackground.opacity(0.78))
-            : AnyShapeStyle(.thinMaterial)
+    @ViewBuilder
+    private func budgetGlassGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 12) {
+                content()
+            }
+        } else {
+            content()
+        }
     }
 
     private var amountStep: some View {
