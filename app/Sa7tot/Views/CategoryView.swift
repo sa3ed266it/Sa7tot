@@ -147,19 +147,19 @@ struct CategoryView: View {
             Color.PrimaryBackground
                 .ignoresSafeArea(.container, edges: .top)
         }
-        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode != .settings))
+        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode == .welcome))
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
-                    if mode == .settings {
+                    if mode == .settings || mode == .transaction {
                         dismiss()
                     }
                 } label: {
                     Image(systemName: "xmark")
                 }
-                .opacity(mode == .settings ? 1 : 0)
-                .disabled(mode != .settings)
-                .accessibilityHidden(mode != .settings)
+                .opacity(mode == .settings || mode == .transaction ? 1 : 0)
+                .disabled(mode != .settings && mode != .transaction)
+                .accessibilityHidden(mode != .settings && mode != .transaction)
                 .accessibilityLabel("Chiudi")
             }
 
@@ -176,10 +176,10 @@ struct CategoryView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .disabled(mode != .settings || disabled)
-                .opacity(mode == .settings ? 1 : 0)
-                .accessibilityHidden(mode != .settings)
-                .accessibilityLabel("Nuovo")
+                .disabled((mode != .settings && mode != .transaction) || disabled)
+                .opacity(mode == .settings || mode == .transaction ? 1 : 0)
+                .accessibilityHidden(mode != .settings && mode != .transaction)
+                .accessibilityLabel("Nuova categoria")
             }
         }
     }
@@ -346,7 +346,7 @@ struct CategoryListView: View {
                     .padding(.top, 4)
                     .padding(.bottom, 8)
 
-                } else if mode != .settings {
+                } else if mode != .settings && mode != .transaction {
                     HStack(spacing: 8) {
                         if mode == .settings {
                             Circle()

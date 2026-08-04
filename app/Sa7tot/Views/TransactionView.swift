@@ -986,7 +986,21 @@ struct TransactionView: View {
             }
         }
         .sheet(isPresented: $showCategorySheet) {
-            CategoryView(mode: .transaction, income: income)
+            if #available(iOS 16.0, *) {
+                NavigationStack {
+                    CategoryView(mode: .transaction, income: income)
+                        .navigationTitle("Categorie")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            } else {
+                NavigationView {
+                    CategoryView(mode: .transaction, income: income)
+                        .navigationTitle("Categorie")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            }
         }
         .sheet(isPresented: $showPicker) {
             if #available(iOS 16.0, *) {
