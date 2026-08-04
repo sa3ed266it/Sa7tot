@@ -15,14 +15,18 @@ struct BudgetView: View {
     @State private var newBudget = false
 
     var body: some View {
-        Group {
+        ZStack {
+            Color(uiColor: .systemBackground)
+                .ignoresSafeArea()
+
             if #available(iOS 16.0, *) {
                 NavigationStack { budgetContent }
+                    .background(Color.clear)
             } else {
                 NavigationView { budgetContent }
+                    .background(Color.clear)
             }
         }
-        .background(Color.PrimaryBackground.ignoresSafeArea())
         .sheet(isPresented: $newBudget) {
             BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)
         }
@@ -31,30 +35,33 @@ struct BudgetView: View {
     private var budgetContent: some View {
         ActualBudgetView()
             .navigationTitle("Budget")
-            .navigationBarTitleDisplayMode(.large)
-            .budgetNavigationBackground(Color.PrimaryBackground)
+            .navigationBarTitleDisplayMode(.inline)
+            .budgetNavigationBackground()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        guard !newBudget else { return }
-                        newBudget = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Nuovo budget")
-                    .disabled(newBudget)
+                    budgetAddButton
                 }
             }
+    }
+
+    private var budgetAddButton: some View {
+        Button {
+            guard !newBudget else { return }
+            newBudget = true
+        } label: {
+            Image(systemName: "plus")
+        }
+        .accessibilityLabel("Nuovo budget")
+        .disabled(newBudget)
     }
 }
 
 private extension View {
     @ViewBuilder
-    func budgetNavigationBackground(_ background: Color) -> some View {
+    func budgetNavigationBackground() -> some View {
         if #available(iOS 16.0, *) {
             self
-                .toolbarBackground(background, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbarBackground(.hidden, for: .navigationBar)
         } else {
             self
         }
@@ -143,7 +150,7 @@ struct ActualBudgetView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .background(Color.PrimaryBackground.ignoresSafeArea())
+        .background(Color.clear)
         .sheet(item: $toEdit, onDismiss: {
             toEdit = nil
         }) { budget in
