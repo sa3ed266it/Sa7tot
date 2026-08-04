@@ -103,8 +103,10 @@ private struct NativeBrandNewBudgetView: View {
     @State private var showSaveError = false
     @State private var saveErrorMessage = ""
     @State private var saveSucceeded = false
+    @State private var isSaving = false
     @State private var showCategoryCreation = false
     @State private var categoryCreationIsIncome = false
+    @State private var selectedSheetDetent: PresentationDetent = .fraction(0.74)
     @FocusState private var amountFieldFocused: Bool
 
     let overallBudgetCreated: Bool
@@ -117,17 +119,17 @@ private struct NativeBrandNewBudgetView: View {
     }
     private var stepNumber: Int { path.count + 1 }
     private var parsedAmount: Decimal? {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale.current
-        return formatter.number(from: amountText)?.decimalValue
+        BudgetAmountParser.decimal(from: amountText)
     }
-    private var currentAmount: Decimal { parsedAmount ?? draft.amount }
     private var stepIsValid: Bool {
         switch stepNumber {
-        case 1: draft.scope == .overall || draft.category != nil
-        case 2: true
-        default: currentAmount > 0 && draft.currencyCode.isEmpty == false
+        case 1:
+            return draft.scope == .overall || draft.category != nil
+        case 2:
+            return true
+        default:
+            guard let amount = parsedAmount else { return false }
+            return BudgetAmountParser.isValid(amount) && draft.currencyCode.isEmpty == false && !isSaving
         }
     }
 
@@ -151,7 +153,7 @@ private struct NativeBrandNewBudgetView: View {
                 navigationContent
             }
         }
-        .presentationDetents([.fraction(0.74)])
+        .presentationDetents([.fraction(0.74), .large], selection: $selectedSheetDetent)
         .presentationDragIndicator(.visible)
         .alert("Impossibile salvare il budget", isPresented: $showSaveError) {
             Button("OK", role: .cancel) {}
@@ -163,6 +165,9 @@ private struct NativeBrandNewBudgetView: View {
                 .presentationDetents([.fraction(0.47)])
         }
         .onAppear(perform: loadDraft)
+        .onChange(of: amountFieldFocused) { focused in
+            selectedSheetDetent = focused ? .large : .fraction(0.74)
+        }
     }
 
     private var navigationContent: some View {
@@ -529,59 +534,123 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     private var amountStep: some View {
-        Form {
-            Section { progressView }
-            Section {
-                Text("Quanto vuoi spendere?")
-                    .font(.headline)
-                Text("Inserisci il limite del budget. Potrai modificarlo in seguito.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                progressView
+                    .padding(.top, 4)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Quanto vuoi spendere?")
+                        .font(.title2.weight(.semibold))
+                    Text("Inserisci il limite del budget.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 24)
+
+                amountEntry
+                    .padding(.top, 36)
+
+                Divider()
+                    .padding(.top, 36)
+
+                inlineBudgetSummary
+                    .padding(.top, 22)
             }
-            Section("IMPORTO") {
-                TextField("Importo", text: $amountText)
-                    .keyboardType(.decimalPad)
-                    .focused($amountFieldFocused)
-                    .onChange(of: amountText) { value in
-                        if let value = decimalValue(from: value) { draft.amount = value }
-                    }
-                LabeledContent("Valuta") {
-                    Text(draft.currencyCode)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Section("RIEPILOGO") {
-                LabeledContent("Tipo") {
-                    Text(draft.scope == .overall ? "Budget complessivo" : "Budget per categoria")
-                        .foregroundStyle(.secondary)
-                }
-                if draft.scope == .category, let category = draft.category {
-                    LabeledContent("Categoria") {
-                        Text(category.wrappedName)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                LabeledContent("Periodo") {
-                    Text(periodTitle)
-                        .foregroundStyle(.secondary)
-                }
-                LabeledContent("Inizio") {
-                    Text(startDateString)
-                        .foregroundStyle(.secondary)
-                }
-                LabeledContent("Valuta") {
-                    Text(draft.currencyCode)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         }
-        .formStyle(.automatic)
-        .toolbar { toolbarContent }
+        .scrollIndicators(.hidden)
+        .navigationTitle("Nuovo budget")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { amountToolbarContent }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Fine") { amountFieldFocused = false }
             }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var amountToolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .confirmationAction) {
+            Button("Crea") {
+                saveDraft()
+            }
+            .disabled(!stepIsValid)
+        }
+    }
+
+    private var amountEntry: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(currencySymbol)
+                .font(.title.weight(.regular))
+                .foregroundStyle(.secondary)
+
+            TextField("0,00", text: $amountText)
+                .font(.system(size: 64, weight: .regular, design: .rounded, relativeTo: .largeTitle))
+                .keyboardType(.decimalPad)
+                .textInputAutocapitalization(.never)
+                .multilineTextAlignment(.center)
+                .focused($amountFieldFocused)
+                .onChange(of: amountText) { value in
+                    if let value = BudgetAmountParser.decimal(from: value) {
+                        draft.amount = value
+                    }
+                }
+                .accessibilityLabel("Importo in \(draft.currencyCode)")
+                .accessibilityValue(amountText.isEmpty ? "Vuoto" : amountText)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { amountFieldFocused = true }
+        .overlay(alignment: .bottom) {
+            Text(periodAmountSubtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .offset(y: 30)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private var inlineBudgetSummary: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("RIEPILOGO")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                summaryIcon
+                    .frame(width: 40, height: 40)
+                    .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(summaryPrimary)
+                        .font(.body.weight(.semibold))
+                    Text(summarySecondary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Riepilogo: \(summaryPrimary), \(summarySecondary)")
+    }
+
+    @ViewBuilder
+    private var summaryIcon: some View {
+        if let category = draft.category, draft.scope == .category {
+            CategoryIconView(
+                descriptor: category.iconDescriptor,
+                role: .inline,
+                accessibilityLabel: category.wrappedName
+            )
+        } else {
+            Image(systemName: "chart.pie.fill")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
         }
     }
 
@@ -592,6 +661,30 @@ private struct NativeBrandNewBudgetView: View {
         case .month: "Mensile"
         case .year: "Annuale"
         }
+    }
+
+    private var periodAmountSubtitle: String {
+        switch draft.period {
+        case .day: "Importo giornaliero"
+        case .week: "Importo settimanale"
+        case .month: "Importo mensile"
+        case .year: "Importo annuale"
+        }
+    }
+
+    private var currencySymbol: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = draft.currencyCode
+        return formatter.currencySymbol ?? draft.currencyCode
+    }
+
+    private var summaryPrimary: String {
+        draft.scope == .overall ? "Budget complessivo" : (draft.category?.wrappedName ?? "Budget per categoria")
+    }
+
+    private var summarySecondary: String {
+        "\(periodTitle) · dal \(startDateString)"
     }
 
     private var computedStartDate: Date {
@@ -615,13 +708,6 @@ private struct NativeBrandNewBudgetView: View {
         formatter.dateStyle = .long
         formatter.timeStyle = .none
         return formatter.string(from: computedStartDate)
-    }
-
-    private func decimalValue(from string: String) -> Decimal? {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = Locale.current
-        return formatter.number(from: string)?.decimalValue
     }
 
     private func advanceOrSave() {
@@ -676,8 +762,12 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     private func saveDraft() {
-        guard currentAmount > 0,
+        guard !isSaving,
+              let amount = parsedAmount,
+              BudgetAmountParser.isValid(amount),
               draft.scope == .overall || draft.category != nil else { return }
+
+        isSaving = true
 
         let startDate = computedStartDate
         let type = Int16(budgetType(for: draft.period))
@@ -686,24 +776,24 @@ private struct NativeBrandNewBudgetView: View {
             if let budget = toEditBudget {
                 budget.category = draft.category
                 budget.startDate = startDate
-                budget.amount = NSDecimalNumber(decimal: currentAmount).doubleValue
+                budget.amount = NSDecimalNumber(decimal: amount).doubleValue
                 budget.type = type
             } else if let mainBudget = toEditMainBudget {
                 mainBudget.startDate = startDate
-                mainBudget.amount = NSDecimalNumber(decimal: currentAmount).doubleValue
+                mainBudget.amount = NSDecimalNumber(decimal: amount).doubleValue
                 mainBudget.type = type
             } else if draft.scope == .category, let category = draft.category {
                 let budget = Budget(context: moc)
                 budget.category = category
                 budget.startDate = startDate
-                budget.amount = NSDecimalNumber(decimal: currentAmount).doubleValue
+                budget.amount = NSDecimalNumber(decimal: amount).doubleValue
                 budget.dateCreated = Date.now
                 budget.type = type
                 budget.id = UUID()
             } else {
                 let budget = MainBudget(context: moc)
                 budget.startDate = startDate
-                budget.amount = NSDecimalNumber(decimal: currentAmount).doubleValue
+                budget.amount = NSDecimalNumber(decimal: amount).doubleValue
                 budget.type = type
             }
 
@@ -713,6 +803,7 @@ private struct NativeBrandNewBudgetView: View {
             dismiss()
         } catch {
             moc.rollback()
+            isSaving = false
             saveErrorMessage = error.localizedDescription
             showSaveError = true
         }

@@ -17,6 +17,18 @@ final class AccountTests: XCTestCase {
         super.tearDown()
     }
 
+    func testBudgetAmountParserAcceptsItalianCommaDecimal() {
+        XCTAssertEqual(BudgetAmountParser.decimal(from: "10,50"), Decimal(string: "10.50"))
+        XCTAssertEqual(BudgetAmountParser.decimal(from: "999999,99"), Decimal(string: "999999.99"))
+    }
+
+    func testBudgetAmountParserRejectsBlankMalformedZeroAndNegativeValues() {
+        XCTAssertNil(BudgetAmountParser.decimal(from: ""))
+        XCTAssertNil(BudgetAmountParser.decimal(from: "abc"))
+        XCTAssertFalse(BudgetAmountParser.isValid(Decimal.zero))
+        XCTAssertFalse(BudgetAmountParser.isValid(Decimal(string: "-1")!))
+    }
+
     func testAccountTypeRawValuesAndItalianLabels() {
         XCTAssertEqual(AccountType.creditCard.rawValue, "creditCard")
         XCTAssertEqual(AccountType.creditCard.italianName, "Carta di credito")
