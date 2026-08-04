@@ -291,13 +291,19 @@ struct HomeView: View {
 }
 
 private struct TransactionEditorSheetPresentation: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
     func body(content: Content) -> some View {
         if #available(iOS 16.4, *) {
             content
                 .presentationDetents([.height(600), .large])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
-                .presentationBackground(.thinMaterial)
+                .presentationBackground(
+                    colorScheme == .dark
+                        ? AnyShapeStyle(Color.black.opacity(0.14))
+                        : AnyShapeStyle(Color.white.opacity(0.14))
+                )
         } else if #available(iOS 16.0, *) {
             content
                 .presentationDetents([.height(600), .large])
