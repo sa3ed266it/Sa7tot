@@ -127,7 +127,16 @@ struct CategoryView: View {
     }
 
     var body: some View {
-        CategoryListView(income: $income, mode: mode, hasScrolled: $categoryHasScrolled, showToast: $showToast, toastTitle: $toastTitle, toastImage: $toastImage, positive: $positive)
+        CategoryListView(income: $income, mode: mode, hasScrolled: $categoryHasScrolled, showToast: $showToast, toastTitle: $toastTitle, toastImage: $toastImage, positive: $positive) {
+            if disabled {
+                showToast = true
+                toastImage = "exclamationmark.triangle.fill"
+                toastTitle = "Limit Exceeded"
+                positive = false
+            } else {
+                newCategory = true
+            }
+        }
         .sheet(isPresented: $newCategory) {
             if #available(iOS 16.0, *) {
                 NewCategoryAlert(income: $income, bottomSpacers: false)
@@ -142,27 +151,7 @@ struct CategoryView: View {
             Color.PrimaryBackground
                 .ignoresSafeArea(.container, edges: .top)
         }
-        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode != .settings))
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    if disabled {
-                        showToast = true
-                        toastImage = "exclamationmark.triangle.fill"
-                        toastTitle = "Limit Exceeded"
-                        positive = false
-                    } else {
-                        newCategory = true
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .disabled(mode != .settings || disabled)
-                .opacity(mode == .settings ? 1 : 0)
-                .accessibilityHidden(mode != .settings)
-                .accessibilityLabel("Nuovo")
-            }
-        }
+        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: true))
     }
 
     @State private var categoryHasScrolled = false
@@ -198,6 +187,7 @@ struct CategoryListView: View {
     @Binding var toastTitle: String
     @Binding var toastImage: String
     @Binding var positive: Bool
+    let onAdd: () -> Void
 
     var toastColor: Color {
         positive ? Color.IncomeGreen : Color.AlertRed
@@ -318,7 +308,7 @@ struct CategoryListView: View {
                     .frame(height: 35)
                     .frame(maxWidth: .infinity)
                     .overlay {
-                        Text("Categories")
+                        Text("Categorie")
                             .font(.system(.title3, design: .rounded).weight(.medium))
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                            .font(.system(size: 20, weight: .medium, design: .rounded))
@@ -327,7 +317,7 @@ struct CategoryListView: View {
                     .padding(.top, 4)
                     .padding(.bottom, 8)
 
-                } else if mode != .settings {
+                } else {
                     HStack(spacing: 8) {
                         if mode == .settings {
                             Circle()
@@ -362,24 +352,37 @@ struct CategoryListView: View {
 
                         Spacer()
 
-                        Circle()
-                            .fill(Color.SecondaryBackground)
-                            .frame(width: 33, height: 33)
-                            .overlay {
-                                Image(systemName: showSuggestions ? "eye.slash" : "eye")
-                                    .font(.system(.callout, design: .rounded).weight(.semibold))
-                                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color.SubtitleText)
-                                    .offset(y: 0.8)
-                            }
-                            .onTapGesture {
-                                withAnimation {
-                                    showSuggestions.toggle()
+                        if mode == .settings {
+                            Circle()
+                                .fill(Color.SecondaryBackground)
+                                .frame(width: 33, height: 33)
+                                .overlay {
+                                    Image(systemName: "plus")
+                                        .font(.system(.body, design: .rounded).weight(.semibold))
+                                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                        .foregroundColor(Color.SubtitleText)
                                 }
-                            }
+                                .onTapGesture(perform: onAdd)
+                                .accessibilityLabel("Nuovo")
+                        } else {
+                            Circle()
+                                .fill(Color.SecondaryBackground)
+                                .frame(width: 33, height: 33)
+                                .overlay {
+                                    Image(systemName: showSuggestions ? "eye.slash" : "eye")
+                                        .font(.system(.callout, design: .rounded).weight(.semibold))
+                                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                        .foregroundColor(Color.SubtitleText)
+                                        .offset(y: 0.8)
+                                }
+                                .onTapGesture {
+                                    withAnimation {
+                                        showSuggestions.toggle()
+                                    }
+                                }
+                        }
 
-                        if categories.count > 1 {
+                        if mode != .settings && categories.count > 1 {
                             if isEditing {
                                 Circle()
                                     .fill(Color.IncomeGreen.opacity(0.23))
@@ -418,7 +421,7 @@ struct CategoryListView: View {
                     .frame(height: 35)
                     .frame(maxWidth: .infinity)
                     .overlay {
-                        Text("Categories")
+                        Text("Categorie")
                             .font(.system(.title3, design: .rounded).weight(mode == .settings ? .semibold : .medium))
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                            .font(.system(size: 20, weight: mode == .settings ? .semibold : .medium, design: .rounded))
@@ -670,7 +673,7 @@ struct CategoryListView: View {
         }
     }
 
-    init(income: Binding<Bool>, mode: CategoryViewMode, hasScrolled: Binding<Bool>, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>) {
+    init(income: Binding<Bool>, mode: CategoryViewMode, hasScrolled: Binding<Bool>, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>, onAdd: @escaping () -> Void) {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: NSPredicate(format: "income = %d", income.wrappedValue))
@@ -681,6 +684,7 @@ struct CategoryListView: View {
         _toastTitle = toastTitle
         _toastImage = toastImage
         _positive = positive
+        self.onAdd = onAdd
         self.mode = mode
     }
 }
