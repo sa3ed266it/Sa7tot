@@ -138,6 +138,25 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     var body: some View {
+        Group {
+            if #available(iOS 16.4, *) {
+                navigationContent
+                    .presentationBackground(.ultraThinMaterial)
+            } else {
+                navigationContent
+            }
+        }
+        .presentationDetents([.fraction(0.74)])
+        .presentationDragIndicator(.visible)
+        .alert("Impossibile salvare il budget", isPresented: $showSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage)
+        }
+        .onAppear(perform: loadDraft)
+    }
+
+    private var navigationContent: some View {
         NavigationStack(path: $path) {
             stepView
                 .navigationTitle("Nuovo budget")
@@ -152,14 +171,6 @@ private struct NativeBrandNewBudgetView: View {
                     }
                 }
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .alert("Impossibile salvare il budget", isPresented: $showSaveError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(saveErrorMessage)
-        }
-        .onAppear(perform: loadDraft)
     }
 
     @ViewBuilder
@@ -170,12 +181,17 @@ private struct NativeBrandNewBudgetView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         if path.isEmpty {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .cancellationAction) {
                 Button("Annulla") { dismiss() }
             }
         }
 
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .principal) {
+            Text("Nuovo budget")
+                .font(.headline)
+        }
+
+        ToolbarItem(placement: .confirmationAction) {
             Button(path.count == 2 ? "Crea" : "Avanti") {
                 advanceOrSave()
             }
@@ -184,83 +200,154 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     private var progressView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Passaggio \(stepNumber) di 3")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
             ProgressView(value: Double(stepNumber), total: 3)
                 .progressViewStyle(.linear)
+            Text("\(stepNumber) di 3")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize()
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Passaggio \(stepNumber) di 3")
     }
 
     private var scopeStep: some View {
-        Form {
-            Section { progressView }
-            Section {
-                Text("Che cosa vuoi monitorare?")
-                    .font(.headline)
-                Text("Scegli se controllare tutte le spese oppure una categoria specifica.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                progressView
+                    .padding(.top, 4)
 
-            Section("TIPO DI BUDGET") {
-                ForEach(BudgetScope.allCases) { scope in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Che cosa vuoi monitorare?")
+                        .font(.title2.weight(.semibold))
+                    Text("Scegli se controllare tutte le spese oppure una categoria specifica.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 30)
+
+                Text("TIPO DI BUDGET")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 30)
+                    .padding(.bottom, 12)
+
+                VStack(spacing: 12) {
+                    ForEach(BudgetScope.allCases) { scope in
+                        scopeSelectionCard(scope)
+                    }
+                }
+
+                if draft.scope == .category {
+                    categorySelection
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    private func scopeSelectionCard(_ scope: BudgetScope) -> some View {
+        let isSelected = draft.scope == scope
+
+        return Button {
+            withAnimation(.snappy) {
+                draft.scope = scope
+                if scope == .overall { draft.category = nil }
+            }
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: scope == .overall ? "chart.pie.fill" : "tag.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.tint)
+                    .frame(width: 48, height: 48)
+                    .background(.tint.opacity(isSelected ? 0.16 : 0.09), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(scope.title)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text(scope.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                ZStack {
+                    if isSelected {
+                        Circle()
+                            .fill(.tint)
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.primary)
+                    } else {
+                        Circle()
+                            .stroke(.secondary, lineWidth: 1.5)
+                    }
+                }
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 88)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary.opacity(0.35)), lineWidth: isSelected ? 1.5 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(scope.title), \(scope.subtitle)")
+        .accessibilityValue(isSelected ? "Selezionato" : "Non selezionato")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var categorySelection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("CATEGORIA")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.top, 28)
+
+            VStack(spacing: 0) {
+                ForEach(categories, id: \.objectID) { category in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            draft.scope = scope
-                            if scope == .overall { draft.category = nil }
+                        withAnimation(.snappy) {
+                            draft.category = category
                         }
                     } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(scope.title)
-                                Text(scope.subtitle)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
+                        HStack(spacing: 12) {
+                            CategoryIconView(
+                                descriptor: category.iconDescriptor,
+                                role: .inline,
+                                accessibilityLabel: category.wrappedName
+                            )
+                            Text(category.wrappedName)
+                                .font(.body)
                             Spacer()
-                            if draft.scope == scope {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
-                            }
+                            Image(systemName: draft.category?.objectID == category.objectID ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(draft.category?.objectID == category.objectID ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                         }
+                        .frame(minHeight: 52)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.primary)
-                }
-            }
-
-            if draft.scope == .category {
-                Section("CATEGORIA") {
-                    ForEach(categories, id: \.objectID) { category in
-                        Button {
-                            draft.category = category
-                        } label: {
-                            HStack(spacing: 12) {
-                                CategoryIconView(
-                                    descriptor: category.iconDescriptor,
-                                    role: .inline,
-                                    accessibilityLabel: category.wrappedName
-                                )
-                                Text(category.wrappedName)
-                                Spacer()
-                                if draft.category?.objectID == category.objectID {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.tint)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.primary)
+                    if category.objectID != categories.last?.objectID {
+                        Divider()
+                            .padding(.leading, 44)
                     }
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
+            .padding(.horizontal, 14)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
-        .formStyle(.automatic)
     }
 
     private var periodStep: some View {
