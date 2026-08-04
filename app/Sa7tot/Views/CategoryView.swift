@@ -52,7 +52,7 @@ private struct CategoryTransferRow: View {
         .padding(.vertical, 5)
         .padding(.horizontal, 16)
         .foregroundColor(Color.PrimaryText)
-        .background(Color.SettingsBackground)
+        .background(Color.AppSecondarySurface)
     }
 }
 
@@ -97,9 +97,9 @@ private struct CategoryHeaderFade: View {
     var body: some View {
         LinearGradient(
             stops: [
-                .init(color: Color.PrimaryBackground.opacity(0.82), location: 0),
-                .init(color: Color.PrimaryBackground.opacity(0.42), location: 0.42),
-                .init(color: Color.PrimaryBackground.opacity(0), location: 1)
+                .init(color: Color.AppPageBackground.opacity(0.82), location: 0),
+                .init(color: Color.AppPageBackground.opacity(0.42), location: 0.42),
+                .init(color: Color.AppPageBackground.opacity(0), location: 1)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -198,7 +198,7 @@ struct CategoryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea(.keyboard, edges: .all)
         .background {
-            Color.PrimaryBackground
+            Color.AppPageBackground
                 .ignoresSafeArea(.container, edges: .top)
         }
         .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode == .welcome))
@@ -336,7 +336,7 @@ struct CategoryListView: View {
                                     }
                             } else {
                                 Circle()
-                                    .fill(Color.SecondaryBackground)
+                                    .fill(Color.AppSecondarySurface)
                                     .frame(width: 33, height: 33)
                                     .overlay {
                                         Image(systemName: "arrow.up.arrow.down")
@@ -353,7 +353,7 @@ struct CategoryListView: View {
                         }
 
                         Circle()
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .frame(width: 33, height: 33)
                             .overlay {
                                 Image(systemName: showSuggestions ? "eye.slash" : "eye")
@@ -409,7 +409,7 @@ struct CategoryListView: View {
                     HStack(spacing: 8) {
                         if mode == .settings {
                             Circle()
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.AppSecondarySurface)
                                 .frame(width: 33, height: 33)
                                 .overlay {
                                     Image(systemName: "chevron.left")
@@ -424,7 +424,7 @@ struct CategoryListView: View {
                                 }
                         } else {
                             Circle()
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.AppSecondarySurface)
                                 .frame(width: 33, height: 33)
                                 .overlay {
                                     Image(systemName: "chevron.down")
@@ -441,7 +441,7 @@ struct CategoryListView: View {
                         Spacer()
 
                         Circle()
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .frame(width: 33, height: 33)
                             .overlay {
                                 Image(systemName: showSuggestions ? "eye.slash" : "eye")
@@ -476,7 +476,7 @@ struct CategoryListView: View {
                                     }
                             } else {
                                 Circle()
-                                    .fill(Color.SecondaryBackground)
+                                    .fill(Color.AppSecondarySurface)
                                     .frame(width: 33, height: 33)
                                     .overlay {
                                         Image(systemName: "arrow.up.arrow.down")
@@ -535,7 +535,7 @@ struct CategoryListView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 37)
-                                .listRowBackground(Color.SettingsBackground)
+                                .listRowBackground(Color.AppSecondarySurface)
                             } else {
                                 if let pendingAddition {
                                     HStack(spacing: 10) {
@@ -548,7 +548,7 @@ struct CategoryListView: View {
                                     }
                                     .padding(.vertical, 5)
                                     .foregroundColor(Color.PrimaryText)
-                                    .listRowBackground(Color.SettingsBackground)
+                                    .listRowBackground(Color.AppSecondarySurface)
                                     .listRowSeparatorTint(Color.Outline)
                                     .categoryTransferFrame("active.\(pendingAddition.canonicalKey)")
                                     .opacity(movingCategoryRow?.id == pendingAddition.canonicalKey ? 0 : 1)
@@ -568,7 +568,7 @@ struct CategoryListView: View {
                                         Spacer()
                                     }
                                     .padding(.vertical, 5)
-                                    .listRowBackground(Color.SettingsBackground)
+                                    .listRowBackground(Color.AppSecondarySurface)
                                     .listRowSeparatorTint(Color.Outline)
                                     .contentShape(Rectangle())
                                     .categoryTransferFrame("active.\(CategoryCanonicalIdentity.key(for: category))")
@@ -635,7 +635,7 @@ struct CategoryListView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 37)
-                                .listRowBackground(Color.SettingsBackground)
+                                .listRowBackground(Color.AppSecondarySurface)
                             } else {
                                 if let pendingAddition {
                                     HStack(spacing: 10) {
@@ -648,7 +648,7 @@ struct CategoryListView: View {
                                     }
                                     .padding(.vertical, 5)
                                     .foregroundColor(Color.PrimaryText)
-                                    .listRowBackground(Color.SettingsBackground)
+                                    .listRowBackground(Color.AppSecondarySurface)
                                     .listRowSeparatorTint(Color.Outline)
                                     .categoryTransferFrame("active.\(pendingAddition.canonicalKey)")
                                     .opacity(movingCategoryRow?.id == pendingAddition.canonicalKey ? 0 : 1)
@@ -668,7 +668,7 @@ struct CategoryListView: View {
                                         Spacer()
                                     }
                                     .padding(.vertical, 5)
-                                    .listRowBackground(Color.SettingsBackground)
+                                    .listRowBackground(Color.AppSecondarySurface)
                                     .listRowSeparatorTint(Color.Outline)
                                     .contentShape(Rectangle())
                                     .categoryTransferFrame("active.\(CategoryCanonicalIdentity.key(for: category))")
@@ -716,7 +716,7 @@ struct CategoryListView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .animation(.easeOut(duration: 0.2), value: showToast)
         .onChange(of: toDelete) { _ in
             if toDelete != nil {
@@ -956,12 +956,12 @@ struct SuggestedCategoriesView: View {
 //                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Color.SubtitleText)
                             .padding(4)
-                            .background(Color.SecondaryBackground, in: Circle())
+                            .background(Color.AppSecondarySurface, in: Circle())
                             .contentShape(Circle())
                     }
                     .padding(.vertical, 5)
                     .foregroundColor(Color.PrimaryText)
-                    .listRowBackground(Color.SettingsBackground)
+                    .listRowBackground(Color.AppSecondarySurface)
                     .listRowSeparatorTint(Color.Outline)
                     .contentShape(Rectangle())
                     .categoryTransferFrame("suggestion.\(category.canonicalKey)")
@@ -1072,7 +1072,7 @@ struct ColourPickerView: View {
                             .fill(AngularGradient(gradient: Gradient(colors: [.red, .yellow, .green, .blue, .purple, .pink]), center: .center))
 
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground"))
+                            .fill(Color.AppPageBackground)
                             .padding(4)
 
                         RoundedRectangle(cornerRadius: 3)
@@ -1120,7 +1120,7 @@ struct ColourPickerView: View {
         }
         .padding(6)
         .frame(width: 282)
-        .background(RoundedRectangle(cornerRadius: 9).fill(darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
+        .background(RoundedRectangle(cornerRadius: 9).fill(Color.AppPageBackground).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(darkMode ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
     }
 
@@ -1282,7 +1282,7 @@ private struct PremiumCategoryEditor: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
             }
-            .background(Color.PrimaryBackground)
+            .background(Color.AppPageBackground)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1322,7 +1322,7 @@ private struct PremiumCategoryEditor: View {
                 .font(.system(size: 25, weight: .semibold))
                 .foregroundStyle(Color.PrimaryText)
                 .frame(width: 58, height: 58)
-                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             Text(trimmedName.isEmpty ? "Nome categoria" : trimmedName)
                 .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -1355,7 +1355,7 @@ private struct PremiumCategoryEditor: View {
                 .submitLabel(.done)
                 .padding(.horizontal, 14)
                 .frame(height: 48)
-                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
     }
 

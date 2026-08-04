@@ -98,7 +98,7 @@ struct SettingsUpcomingView: View {
         .padding(.vertical, 9)
       }
       .padding(.horizontal, 15)
-      .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+      .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
 
       Text(
         "Don't worry, even if you do hide them there, you will aways be able to find all upcoming transactions right here."

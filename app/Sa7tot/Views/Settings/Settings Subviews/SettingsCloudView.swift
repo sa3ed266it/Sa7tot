@@ -60,7 +60,7 @@ struct SettingsCloudView: View {
         .padding(.vertical, 9)
       }
       .padding(.horizontal, 15)
-      .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+      .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
 
       Text("Close and reload app for change to take effect.")
         .font(.system(.caption, design: .rounded).weight(.medium))

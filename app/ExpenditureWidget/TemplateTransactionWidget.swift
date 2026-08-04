@@ -118,7 +118,7 @@
 //                        .multilineTextAlignment(.center)
 //                }
 //                .containerBackground(for: .widget) {
-//                    Color.PrimaryBackground
+//                    Color.AppPageBackground
 //                }
 //                .transition(.push(from: .bottom))
 //            } else {
@@ -137,7 +137,7 @@
 //                                    .buttonStyle(PlainButtonStyle())
 //                                } else {
 //                                    RoundedRectangle(cornerRadius: individualGridCornerRadius)
-//                                        .fill(Color.SecondaryBackground)
+//                                        .fill(Color.AppSecondarySurface)
 //                                        .frame(width: square, height:square)
 //                                }
 //
@@ -148,7 +148,7 @@
 //                }
 //                .frame(maxWidth: .infinity, maxHeight: .infinity)
 //                .containerBackground(for: .widget) {
-//                    Color.PrimaryBackground
+//                    Color.AppPageBackground
 //                }
 //                .id(entry)
 //                .transition(.push(from: .bottom))
@@ -157,12 +157,12 @@
 //        } else {
 //            ZStack {
 //                Circle()
-//                    .fill(Color.SecondaryBackground.opacity(0.5))
+//                    .fill(Color.AppSecondarySurface.opacity(0.5))
 //
 //
 //                Text("\(currencySymbol.count < 3 ? "+" : "")\(currencySymbol)")
 //                    .font(.system(size: currencySymbol.count < 3 ? 13 : 11, weight: .bold, design: .rounded))
-//                    .foregroundColor(Color.SecondaryBackground)
+//                    .foregroundColor(Color.AppSecondarySurface)
 //                    .padding(.vertical, 2)
 //                    .frame(maxWidth: .infinity)
 //                    .background(Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))

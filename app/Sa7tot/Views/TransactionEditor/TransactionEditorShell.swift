@@ -289,7 +289,7 @@ struct TransactionEditorShell: View {
                                 .lineLimit(1)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
-                                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .accessibilityLabel("Suggerimento " + transaction.wrappedNote)
                     }
@@ -481,7 +481,7 @@ private struct TransactionEditorCategoryCarousel: View {
                         .foregroundStyle(.primary)
                         .frame(minHeight: 44)
                         .padding(.horizontal, 14)
-                        .background(Color.SecondaryBackground, in: Capsule())
+                        .background(Color.AppSecondarySurface, in: Capsule())
                 }
                 .accessibilityLabel("Aggiungi categoria")
             } else {
@@ -498,7 +498,7 @@ private struct TransactionEditorCategoryCarousel: View {
                                     .foregroundStyle(.primary)
                                     .frame(minHeight: 44)
                                     .padding(.horizontal, 14)
-                                    .background(Color.SecondaryBackground, in: Capsule())
+                                    .background(Color.AppSecondarySurface, in: Capsule())
                             }
                             .accessibilityLabel("Gestisci categorie")
                         }
@@ -539,7 +539,7 @@ private struct TransactionEditorCategoryCarousel: View {
             .frame(minHeight: 44)
             .padding(.horizontal, 13)
             .background(
-                selected ? Color.SecondaryBackground : Color.SecondaryBackground,
+                selected ? Color.AppSecondarySurface : Color.AppSecondarySurface,
                 in: Capsule()
             )
         }
@@ -587,7 +587,7 @@ private struct TransactionEditorNoteSheet: View {
                         .font(.body)
                         .frame(minHeight: 130, maxHeight: 150)
                         .padding(4)
-                        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .onChange(of: draft) { value in
                             if value.count > 50 { draft = String(value.prefix(50)) }
                         }

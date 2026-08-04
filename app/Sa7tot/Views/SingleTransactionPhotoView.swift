@@ -49,14 +49,14 @@ struct SingleDayPhotoView: View {
             }
             .padding(30)
             .frame(maxWidth: .infinity)
-            .background(Color.PrimaryBackground, in: RoundedRectangle(cornerRadius: 40))
+            .background(Color.AppPageBackground, in: RoundedRectangle(cornerRadius: 40))
             .shadow(color: Color.Outline, radius: 30)
 //            .background(Color.neuBackground, in: RoundedRectangle(cornerRadius: 40))
 //            .shadow(color: .dropShadow, radius: 45, x: 40, y: 40)
 //            .shadow(color: .dropLight, radius: 45, x: -40, y: -40)
         }
         .padding(60)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .frame(width: 1100, alignment: .top)
     }
 }
@@ -95,7 +95,7 @@ struct SingleTransactionPhotoView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(Color.DarkIcon)
                             .padding(3)
-                            .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
+                            .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 6))
                             .offset(x: 5, y: 5)
                     }
                 }
@@ -152,7 +152,7 @@ struct SingleTransactionPhotoView: View {
                     .layoutPriority(1)
             }
         }
-//        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 40))
+//        .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 40))
 
         .frame(maxWidth: .infinity)
     }

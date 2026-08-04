@@ -227,8 +227,8 @@ private struct NativeBrandNewBudgetView: View {
 
     private var sharedBudgetSheetTone: AnyShapeStyle {
         colorScheme == .dark
-            ? AnyShapeStyle(Color.black.opacity(0.14))
-            : AnyShapeStyle(Color.white.opacity(0.14))
+            ? AnyShapeStyle(Color.AppPageBackground.opacity(0.14))
+            : AnyShapeStyle(Color.AppPageBackground.opacity(0.14))
     }
 
     @ToolbarContentBuilder

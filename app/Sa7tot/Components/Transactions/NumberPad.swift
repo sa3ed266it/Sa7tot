@@ -54,7 +54,7 @@ struct NumberPad: View {
                             Text(",")
                                 .font(.system(size: 34, weight: .regular, design: .rounded))
                                 .frame(width: keyWidth, height: keyHeight)
-                                .background(Color.SecondaryBackground)
+                                .background(Color.AppSecondarySurface)
                                 .foregroundColor(Color.PrimaryText)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
@@ -79,7 +79,7 @@ struct NumberPad: View {
                             Text(".")
                                 .font(.system(size: 34, weight: .regular, design: .rounded))
                                 .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                .background(Color.SecondaryBackground)
+                                .background(Color.AppSecondarySurface)
                                 .foregroundColor(Color.PrimaryText)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
@@ -96,7 +96,7 @@ struct NumberPad: View {
                                 .font(.system(size: 25, weight: .medium, design: .rounded))
                                 .frame(width: keyWidth, height: keyHeight)
                                 .foregroundColor(Color.PrimaryText)
-                                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(NumPadButton())
                         .accessibilityLabel("Cancella ultima cifra")
@@ -247,7 +247,7 @@ struct NumberPad: View {
             Text("\(number)")
                 .font(.system(size: 34, weight: .regular, design: .rounded))
                 .frame(width: keyWidth, height: keyHeight)
-                .background(Color.SecondaryBackground)
+                .background(Color.AppSecondarySurface)
                 .foregroundColor(Color.PrimaryText)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .opacity(disabled ? 0.6 : 1)
@@ -367,7 +367,7 @@ struct NumberPadTextView: View {
            .font(.system(size: 16, weight: .semibold))
            .foregroundColor(Color.SubtitleText)
            .padding(7)
-           .background(Color.SecondaryBackground, in: Circle())
+           .background(Color.AppSecondarySurface, in: Circle())
            .contentShape(Circle())
        }
        .disabled(price == 0 && !isEditingDecimal)

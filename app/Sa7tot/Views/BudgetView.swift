@@ -16,7 +16,7 @@ struct BudgetView: View {
 
     var body: some View {
         ZStack {
-            Color(uiColor: .systemBackground)
+            Color.AppPageBackground
                 .ignoresSafeArea()
 
             if #available(iOS 16.0, *) {
@@ -346,7 +346,7 @@ struct MainBudgetView: View {
             ZStack(alignment: .bottom) {
                 ZStack {
                     DonutSemicircle(percent: 1, cornerRadius: 6.5, width: soloBudget ? 35 : 25)
-                        .fill(Color.SecondaryBackground)
+                        .fill(Color.AppSecondarySurface)
                         .frame(width: width, height: width / 2)
 
                     if totalSpent / budgetAmount < 0.97 {
@@ -405,7 +405,7 @@ struct MainBudgetView: View {
         }
         .padding(.bottom)
         .frame(width: width + 30, height: soloBudget ? 230 : 200, alignment: .bottom)
-        .background(soloBudget ? Color.Outline.opacity(0.2) : Color.PrimaryBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .background(soloBudget ? Color.Outline.opacity(0.2) : Color.AppPageBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 13))
         .contextMenu {
             Button {
@@ -622,7 +622,7 @@ struct SingleBudgetView: View {
 //                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(deleteConfirm ? Color.AlertRed : Color.SubtitleText)
                         .padding(5)
-                        .background(deleteConfirm ? Color.AlertRed.opacity(0.23) : Color.SecondaryBackground, in: Circle())
+                        .background(deleteConfirm ? Color.AlertRed.opacity(0.23) : Color.AppSecondarySurface, in: Circle())
                         .scaleEffect(deleteConfirm ? 1.1 : 1)
                         .contentShape(Circle())
                         .opacity(deleted ? 0 : 1)
@@ -787,7 +787,7 @@ struct SingleBudgetView: View {
                     GeometryReader { proxy in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.AppSecondarySurface)
                                 .frame(width: proxy.size.width)
 
                             if totalSpent / budgetAmount < 0.98 {
@@ -1058,7 +1058,7 @@ struct DeleteBudgetAlert: View {
                 }
             }
             .padding(13)
-            .background(RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
+            .background(RoundedRectangle(cornerRadius: 13).fill(Color.AppPageBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
             .overlay(RoundedRectangle(cornerRadius: 13).stroke(systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
             .offset(y: offset)
             .gesture(
@@ -1143,7 +1143,7 @@ struct DeleteMainBudgetAlert: View {
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(13)
-            .background(RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
+            .background(RoundedRectangle(cornerRadius: 13).fill(Color.AppPageBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
             .overlay(RoundedRectangle(cornerRadius: 13).stroke(systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
             .offset(y: offset)
             .gesture(
@@ -1203,7 +1203,7 @@ struct DetailedBudgetView: View {
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
                     .fixedSize(horizontal: false, vertical: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-                    .background(Color.SecondaryBackground, in: Capsule())
+                    .background(Color.AppSecondarySurface, in: Capsule())
                 }
 
                 Spacer()
@@ -1229,7 +1229,7 @@ struct DetailedBudgetView: View {
         .navigationBarBackButtonHidden(true)
         .navigationBarTitle("")
         .navigationBarHidden(true)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .sheet(item: $toEdit, onDismiss: {
             toEdit = nil
         }) { budget in
@@ -1275,7 +1275,7 @@ struct DetailedMainBudgetView: View {
                     .padding(.horizontal, 8)
                     .fixedSize(horizontal: false, vertical: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
 //                    .frame(height: 30, alignment: .center)
-                    .background(Color.SecondaryBackground, in: Capsule())
+                    .background(Color.AppSecondarySurface, in: Capsule())
                 }
 
                 Spacer()
@@ -1297,7 +1297,7 @@ struct DetailedMainBudgetView: View {
         .navigationBarBackButtonHidden(true)
         .navigationBarTitle("")
         .navigationBarHidden(true)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .fullScreenCover(item: $toEdit, onDismiss: {
             toEdit = nil
         }) { budget in
@@ -1512,7 +1512,7 @@ struct TimeBudgetView: View {
                     .foregroundColor(Color.SubtitleText)
                     .padding(4)
                     .padding(.horizontal, 7)
-                    .background(Color.SecondaryBackground, in: Capsule())
+                    .background(Color.AppSecondarySurface, in: Capsule())
             }
             .padding(.bottom, 15)
 
@@ -1561,7 +1561,7 @@ struct TimeBudgetView: View {
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .frame(width: proxy.size.width)
 
                         if totalSpent / budgetAmount < 0.98 {
@@ -2002,7 +2002,7 @@ struct TimeMainBudgetView: View {
                     .foregroundColor(Color.SubtitleText)
                     .padding(4)
                     .padding(.horizontal, 7)
-                    .background(Color.SecondaryBackground, in: Capsule())
+                    .background(Color.AppSecondarySurface, in: Capsule())
             }
             .padding(.bottom, 15)
 
@@ -2049,7 +2049,7 @@ struct TimeMainBudgetView: View {
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .frame(width: proxy.size.width)
 
                         if totalSpent / budgetAmount < 0.98 {

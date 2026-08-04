@@ -81,7 +81,7 @@ struct SettingsCurrencyView: View {
               .id(currency.code)
             }
           }
-          .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+          .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
           .padding(.bottom, 60)
           .onAppear {
             value.scrollTo(currencyCode, anchor: .center)

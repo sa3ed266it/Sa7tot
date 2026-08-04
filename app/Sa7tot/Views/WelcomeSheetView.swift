@@ -112,6 +112,6 @@ struct WelcomeSheetView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
     }
 }

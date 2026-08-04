@@ -390,7 +390,7 @@ struct InsightsWidgetEntryView: View {
                                                 VStack(spacing: 3) {
                                                     ZStack(alignment: .bottom) {
                                                         RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                                                            .fill(Color.SecondaryBackground)
+                                                            .fill(Color.AppSecondarySurface)
                                                             .frame(height: proxy.size.height * 0.85)
 
                                                         RoundedRectangle(cornerRadius: 3.5, style: .continuous)
@@ -411,7 +411,7 @@ struct InsightsWidgetEntryView: View {
                                             ForEach(entry.dates, id: \.self) { day in
                                                 ZStack(alignment: .bottom) {
                                                     Capsule()
-                                                        .fill(Color.SecondaryBackground)
+                                                        .fill(Color.AppSecondarySurface)
                                                         .frame(height: proxy.size.height * 0.85)
 
                                                     Capsule()
@@ -437,7 +437,7 @@ struct InsightsWidgetEntryView: View {
                                             ForEach(entry.dates, id: \.self) { day in
                                                 ZStack(alignment: .bottom) {
                                                     RoundedRectangle(cornerRadius: 2.7, style: .continuous)
-                                                        .fill(Color.SecondaryBackground)
+                                                        .fill(Color.AppSecondarySurface)
                                                         .frame(height: proxy.size.height * 0.85)
 
                                                     RoundedRectangle(cornerRadius: 2.7, style: .continuous)
@@ -485,7 +485,7 @@ struct InsightsWidgetEntryView: View {
                     .padding([.trailing], 20)
                     .frame(width: 185)
                     .frame(maxHeight: .infinity)
-                    .background(Color.PrimaryBackground)
+                    .background(Color.AppPageBackground)
 
                     InsightsWidgetCategoryBreakdownView(amount: entry.amount, income: entry.income, categories: entry.categories, duration: entry.duration, ios17: true)
 //                    .frame(width: proxy.size.width * 0.43)
@@ -496,7 +496,7 @@ struct InsightsWidgetEntryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .widgetURL(URL(string: "sa7totapp://insights"))
             .containerBackground(for: .widget) {
-                Color.PrimaryBackground
+                Color.AppPageBackground
             }
         } else {
             GeometryReader { proxy in
@@ -535,7 +535,7 @@ struct InsightsWidgetEntryView: View {
                                                 VStack(spacing: 3) {
                                                     ZStack(alignment: .bottom) {
                                                         RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                                                            .fill(Color.SecondaryBackground)
+                                                            .fill(Color.AppSecondarySurface)
                                                             .frame(height: proxy.size.height * 0.85)
 
                                                         RoundedRectangle(cornerRadius: 3.5, style: .continuous)
@@ -556,7 +556,7 @@ struct InsightsWidgetEntryView: View {
                                             ForEach(entry.dates, id: \.self) { day in
                                                 ZStack(alignment: .bottom) {
                                                     Capsule()
-                                                        .fill(Color.SecondaryBackground)
+                                                        .fill(Color.AppSecondarySurface)
                                                         .frame(height: proxy.size.height * 0.85)
 
                                                     Capsule()
@@ -582,7 +582,7 @@ struct InsightsWidgetEntryView: View {
                                             ForEach(entry.dates, id: \.self) { day in
                                                 ZStack(alignment: .bottom) {
                                                     RoundedRectangle(cornerRadius: 2.7, style: .continuous)
-                                                        .fill(Color.SecondaryBackground)
+                                                        .fill(Color.AppSecondarySurface)
                                                         .frame(height: proxy.size.height * 0.85)
 
                                                     RoundedRectangle(cornerRadius: 2.7, style: .continuous)
@@ -630,13 +630,13 @@ struct InsightsWidgetEntryView: View {
                     .padding(15)
                     .frame(width: proxy.size.width * 0.57)
                     .frame(maxHeight: .infinity)
-                    .background(Color.PrimaryBackground)
+                    .background(Color.AppPageBackground)
 
                     InsightsWidgetCategoryBreakdownView(amount: entry.amount, income: entry.income, categories: entry.categories, duration: entry.duration, ios17: false)
                     .padding(15)
                     .frame(width: proxy.size.width * 0.43)
                     .frame(maxHeight: .infinity)
-                    .background(Color.SecondaryBackground)
+                    .background(Color.AppSecondarySurface)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -847,7 +847,7 @@ struct InsightsWidgetCategoryBreakdownView: View {
                 }
                 .padding(.vertical, 4)
                 .frame(maxWidth: .infinity)
-                .background(RoundedRectangle(cornerRadius: 5).fill(ios17 ? Color.SecondaryBackground : Color.PrimaryBackground))
+                .background(RoundedRectangle(cornerRadius: 5).fill(ios17 ? Color.AppSecondarySurface : Color.AppPageBackground))
             }
         }
     }

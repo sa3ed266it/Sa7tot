@@ -101,7 +101,7 @@ struct SettingsNotificationsView: View {
         .padding(.vertical, 9)
       }
       .padding(.horizontal, 15)
-      .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+      .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
       .padding(.bottom, 20)
 
       if showNotifications {
@@ -188,7 +188,7 @@ struct SettingsNotificationsView: View {
           .padding(.vertical, 9)
         }
         .padding(.horizontal, 15)
-        .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+        .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
         .onChange(of: option) { newValue in
           UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(
             option, forKey: "notificationOption")

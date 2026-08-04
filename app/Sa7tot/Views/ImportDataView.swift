@@ -220,7 +220,7 @@ struct ImportDataView: View {
 
                                 .foregroundColor(Color.SubtitleText)
                                 .padding(8)
-                                .background(Color.SecondaryBackground, in: Circle())
+                                .background(Color.AppSecondarySurface, in: Circle())
                         }
                         .contentTransition(.symbolEffect(.replace.downUp.wholeSymbol))
                     } else {
@@ -237,13 +237,13 @@ struct ImportDataView: View {
                                 .font(.system(.callout, design: .rounded).weight(.semibold))
                                 .foregroundColor(Color.SubtitleText)
                                 .padding(8)
-                                .background(Color.SecondaryBackground, in: Circle())
+                                .background(Color.AppSecondarySurface, in: Circle())
                         }
                     }
 
                     Spacer()
 
-                    CustomCapsuleProgress(percent: Double(progress) / 7, width: 4, topStroke: Color.DarkBackground, bottomStroke: Color.SecondaryBackground)
+                    CustomCapsuleProgress(percent: Double(progress) / 7, width: 4, topStroke: Color.DarkBackground, bottomStroke: Color.AppSecondarySurface)
                         .frame(width: 60)
                 }
                 .fixedSize(horizontal: false, vertical: true)
@@ -308,7 +308,7 @@ struct ImportDataView: View {
                                         .font(.system(.footnote, design: .rounded).weight(.semibold))
                                         .foregroundColor(Color.SubtitleText)
                                         .padding(4)
-                                        .background(Color.SecondaryBackground, in: Circle())
+                                        .background(Color.AppSecondarySurface, in: Circle())
                                         .contentShape(Circle())
                                 }
                             }
@@ -365,7 +365,7 @@ struct ImportDataView: View {
                                     ForEach(0 ..< (numberOfRows + 1)) { number in
                                         if number == 0 {
                                             Rectangle()
-                                                .fill(Color.PrimaryBackground)
+                                                .fill(Color.AppPageBackground)
                                                 .frame(width: indexColumnWidth, height: 30, alignment: .leading)
                                         } else {
                                             Text("\(number)")
@@ -379,7 +379,7 @@ struct ImportDataView: View {
                                         }
                                     }
                                 }
-                                .background(Color.SecondaryBackground.opacity(0.6))
+                                .background(Color.AppSecondarySurface.opacity(0.6))
 
                                 HStack(spacing: 0) {
                                     ForEach(displayedColumns.indices, id: \.self) { columnIndex in
@@ -406,7 +406,7 @@ struct ImportDataView: View {
                                                 }
                                             } else {
                                                 Rectangle()
-                                                    .fill(Color.PrimaryBackground)
+                                                    .fill(Color.AppPageBackground)
                                                     .frame(width: columnWidth, height: 30, alignment: .leading)
                                             }
 
@@ -516,7 +516,7 @@ struct ImportDataView: View {
                         .background {
                             RoundedRectangle(cornerRadius: 11, style: .continuous)
                                 .stroke(Color.SubtitleText, lineWidth: 2)
-                                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                         }
                         .onChange(of: dateFormatString) { newValue in
                             let dateFormatter = DateFormatter()
@@ -591,7 +591,7 @@ struct ImportDataView: View {
 
                                             ZStack {
                                                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                                    .fill(Color.PrimaryBackground)
+                                                    .fill(Color.AppPageBackground)
 
                                                 Image(systemName: income ? "plus" : "minus")
                                                     .font(.system(size: 18, weight: .semibold))
@@ -765,7 +765,7 @@ struct ImportDataView: View {
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea(.keyboard)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .fileImporter(
             isPresented: $importing,
             allowedContentTypes: [.commaSeparatedText]
@@ -965,7 +965,7 @@ struct ImportDataView: View {
         HStack(alignment: .top, spacing: 15) {
             ZStack {
                 Circle()
-                    .fill(Color.SecondaryBackground)
+                    .fill(Color.AppSecondarySurface)
 
                 Text("\(number)")
                     .font(.system(.body, design: .rounded).weight(.bold))
@@ -1072,7 +1072,7 @@ struct MatchCategoryStepperView: View {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .stroke(Color.Outline, lineWidth: 2)
         }
-//        .background(Color.PrimaryBackground, in: )
+//        .background(Color.AppPageBackground, in: )
     }
 
     func getRows() -> [[Category]] {
@@ -1144,7 +1144,7 @@ struct MatchCategoryStepperView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .foregroundColor(Color.PrimaryText)
-            .background(category == categoryInput ? Color.SecondaryBackground : Color.PrimaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(category == categoryInput ? Color.AppSecondarySurface : Color.AppPageBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
                 if category != categoryInput {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)

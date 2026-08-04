@@ -37,7 +37,7 @@ struct SettingsEraseView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .padding(.vertical, 12)
           .padding(.horizontal, 15)
-          .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+          .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
       }
 
       Text(
@@ -164,7 +164,7 @@ struct DeleteAllAlert: View {
       }
       .padding(13)
       .background(
-        RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(
+        RoundedRectangle(cornerRadius: 13).fill(Color.AppPageBackground).shadow(
           color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6)
       )
       .overlay(

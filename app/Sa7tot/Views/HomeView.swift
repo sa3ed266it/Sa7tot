@@ -301,8 +301,8 @@ private struct TransactionEditorSheetPresentation: ViewModifier {
                 .presentationCornerRadius(28)
                 .presentationBackground(
                     colorScheme == .dark
-                        ? AnyShapeStyle(Color.black.opacity(0.14))
-                        : AnyShapeStyle(Color.white.opacity(0.14))
+                        ? AnyShapeStyle(Color.AppPageBackground.opacity(0.14))
+                        : AnyShapeStyle(Color.AppPageBackground.opacity(0.14))
                 )
         } else if #available(iOS 16.0, *) {
             content
@@ -470,6 +470,6 @@ struct AppLockView: View {
         }
         .padding(.horizontal, 30)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
     }
 }

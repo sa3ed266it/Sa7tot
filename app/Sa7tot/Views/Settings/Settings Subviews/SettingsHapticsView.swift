@@ -74,7 +74,7 @@ struct SettingsHapticsView: View {
                 }
             }
             .padding(.horizontal, 15)
-            .background(Color.SettingsBackground, in: RoundedRectangle(cornerRadius: 9))
+            .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
             .offset(x: shake ? -5 : 5)
             .offset(x: alternateShake ? 0 : -5)
 

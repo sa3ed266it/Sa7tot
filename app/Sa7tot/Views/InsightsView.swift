@@ -57,7 +57,7 @@ struct InsightsView: View {
             .frame(height: 250, alignment: .top)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea(.all)
-            .background(Color.PrimaryBackground)
+            .background(Color.AppPageBackground)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 
         } else {
@@ -94,7 +94,7 @@ struct InsightsView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.PrimaryBackground)
+            .background(Color.AppPageBackground)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .onReceive(self.didSave) { _ in
                 self.refreshID = UUID()
@@ -271,7 +271,7 @@ struct HorizontalPieChartView: View {
                                                 .font(.system(.footnote, design: .rounded).weight(.bold))
                                                 .foregroundColor(Color.SubtitleText)
                                                 .padding(5)
-                                                .background(Color.SecondaryBackground, in: Circle())
+                                                .background(Color.AppSecondarySurface, in: Circle())
                                         }
 
                                     } else {
@@ -286,7 +286,7 @@ struct HorizontalPieChartView: View {
                                 }
                                 .padding(.vertical, categoryFilterMode && categoryFilter == category.category ? 10 : 5)
                                 .padding(.horizontal, categoryFilterMode && categoryFilter == category.category ? 10 : 0)
-                                .background(RoundedRectangle(cornerRadius: 12).fill(categoryFilterMode && categoryFilter == category.category ? Color.TertiaryBackground : Color.PrimaryBackground))
+                                .background(RoundedRectangle(cornerRadius: 12).fill(categoryFilterMode && categoryFilter == category.category ? Color.AppTertiarySurface : Color.AppPageBackground))
                                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(categoryFilterMode && categoryFilter == category.category ? Color.Outline : Color.clear, lineWidth: 1.3))
                                 .fixedSize(horizontal: false, vertical: true)
                                 .contentShape(Rectangle())
@@ -1242,7 +1242,7 @@ struct SingleWeekBarGraphView: View {
                         VStack(spacing: 5) {
                             ZStack(alignment: .bottom) {
                                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(Color.SecondaryBackground)
+                                    .fill(Color.AppSecondarySurface)
                                     .frame(height: barHeight)
 
                                 AnimatedBarGraph(index: daysOfWeek.firstIndex(of: day) ?? 0)
@@ -1611,7 +1611,7 @@ struct SingleMonthBarGraphView: View {
                     ForEach(daysOfMonth, id: \.self) { day in
                         ZStack(alignment: .bottom) {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.AppSecondarySurface)
                                 .frame(height: barHeight)
                                 .zIndex(0)
 
@@ -1967,7 +1967,7 @@ struct SingleYearBarGraphView: View {
                     ForEach(monthsOfYear, id: \.self) { month in
                         ZStack(alignment: .bottom) {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.AppSecondarySurface)
                                 .frame(height: barHeight)
                                 .zIndex(0)
 
@@ -2217,13 +2217,13 @@ struct SwipeArrowView: View {
                 .font(.system(.body, design: .rounded).weight(.medium))
 //                                        .font(.system(size: 18, weight: .medium))
                 //                                .scaleEffect(changeTime ? 1.3 : 1)
-                .foregroundColor(changeTime ? Color.PrimaryText : Color.SecondaryBackground)
+                .foregroundColor(changeTime ? Color.PrimaryText : Color.AppSecondarySurface)
 
             Text(swipeString)
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
 //                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .multilineTextAlignment(.center)
-                .foregroundColor(changeTime ? Color.PrimaryText : Color.SecondaryBackground)
+                .foregroundColor(changeTime ? Color.PrimaryText : Color.AppSecondarySurface)
         }
         .drawingGroup()
     }

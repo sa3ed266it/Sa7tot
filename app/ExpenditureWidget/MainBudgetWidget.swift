@@ -312,7 +312,7 @@ struct MainBudgetWidgetEntryView: View {
                         .foregroundColor(Color.SubtitleText)
                         .padding(15)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .containerBackground(for: .widget) { Color.PrimaryBackground }
+                        .containerBackground(for: .widget) { Color.AppPageBackground }
                 } else {
                     VStack(spacing: 12) {
                         HStack(alignment: .top) {
@@ -329,7 +329,7 @@ struct MainBudgetWidgetEntryView: View {
 
                             Spacer()
 
-                            RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.SecondaryBackground)
+                            RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.AppSecondarySurface)
                                 .frame(width: 13, height: 13)
                                 .padding(3)
                         }
@@ -340,7 +340,7 @@ struct MainBudgetWidgetEntryView: View {
                                 ZStack(alignment: .bottom) {
                                     ZStack {
                                         DonutSemicircle(percent: 1, cornerRadius: 4, width: 15)
-                                            .fill(Color.SecondaryBackground)
+                                            .fill(Color.AppSecondarySurface)
                                             .frame(width: proxy.size.width, height: proxy.size.width / 2)
 
                                         if entry.totalSpent / entry.budgetAmount < 0.97 {
@@ -397,7 +397,7 @@ struct MainBudgetWidgetEntryView: View {
                         .frame(maxHeight: .infinity, alignment: .bottom)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .containerBackground(for: .widget) { Color.PrimaryBackground }
+                    .containerBackground(for: .widget) { Color.AppPageBackground }
                 }
             } else {
                 if !entry.found {
@@ -407,7 +407,7 @@ struct MainBudgetWidgetEntryView: View {
                         .foregroundColor(Color.SubtitleText)
                         .padding(15)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.PrimaryBackground)
+                        .background(Color.AppPageBackground)
                 } else {
                     VStack(spacing: 12) {
                         HStack(alignment: .top) {
@@ -424,7 +424,7 @@ struct MainBudgetWidgetEntryView: View {
 
                             Spacer()
 
-                            RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.SecondaryBackground)
+                            RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.AppSecondarySurface)
                                 .frame(width: 13, height: 13)
                                 .padding(3)
                         }
@@ -435,7 +435,7 @@ struct MainBudgetWidgetEntryView: View {
                                 ZStack(alignment: .bottom) {
                                     ZStack {
                                         DonutSemicircle(percent: 1, cornerRadius: 4, width: 15)
-                                            .fill(Color.SecondaryBackground)
+                                            .fill(Color.AppSecondarySurface)
                                             .frame(width: proxy.size.width, height: proxy.size.width / 2)
 
                                         if entry.totalSpent / entry.budgetAmount < 0.97 {
@@ -493,7 +493,7 @@ struct MainBudgetWidgetEntryView: View {
                     }
                     .padding(15)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.PrimaryBackground)
+                    .background(Color.AppPageBackground)
                 }
             }
 

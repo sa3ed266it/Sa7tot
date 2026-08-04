@@ -6,7 +6,7 @@ struct ToolbarButton: View {
 
     var body: some View {
         Circle()
-            .fill(Color.SecondaryBackground)
+            .fill(Color.AppSecondarySurface)
             .frame(width: 33, height: 33)
             .overlay {
                 Image(systemName: systemName)

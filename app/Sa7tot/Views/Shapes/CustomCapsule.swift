@@ -39,7 +39,7 @@ struct CustomCapsuleProgress: View {
 
     var body: some View {
         ZStack {
-            CustomCapsule().foregroundColor(Color.PrimaryBackground)
+            CustomCapsule().foregroundColor(Color.AppPageBackground)
                 .shadow(color: percent == 1 ? Color.IncomeGreen.opacity(0.6) : Color.clear, radius: 5)
 
             CustomCapsule()

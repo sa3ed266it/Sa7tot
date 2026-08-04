@@ -72,7 +72,7 @@ struct NewExpenseWidgetEntryView: View {
 
                 Text("\(currencySymbol.count < 3 ? "+" : "")\(currencySymbol)")
                     .font(.system(size: currencySymbol.count < 3 ? 13 : 11, weight: .bold, design: .rounded))
-                    .foregroundColor(Color.SecondaryBackground)
+                    .foregroundColor(Color.AppSecondarySurface)
                     .padding(.vertical, 2)
                     .frame(maxWidth: .infinity)
                     .background(Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
@@ -85,11 +85,11 @@ struct NewExpenseWidgetEntryView: View {
         } else {
             ZStack {
                 Circle()
-                    .fill(Color.SecondaryBackground.opacity(0.5))
+                    .fill(Color.AppSecondarySurface.opacity(0.5))
 
                 Text("\(currencySymbol.count < 3 ? "+" : "")\(currencySymbol)")
                     .font(.system(size: currencySymbol.count < 3 ? 13 : 11, weight: .bold, design: .rounded))
-                    .foregroundColor(Color.SecondaryBackground)
+                    .foregroundColor(Color.AppSecondarySurface)
                     .padding(.vertical, 2)
                     .frame(maxWidth: .infinity)
                     .background(Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))

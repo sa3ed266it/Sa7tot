@@ -154,11 +154,7 @@ struct TemplateTransactionView: View {
     }
 
     var backgroundColor: Color {
-        if darkMode {
-            return Color("AlwaysDarkBackground")
-        } else {
-            return Color("AlwaysLightBackground")
-        }
+        Color.AppPageBackground
     }
 
     @State var showPicker = false
@@ -198,7 +194,7 @@ struct TemplateTransactionView: View {
                                 .background {
                                     if income == false {
                                         Capsule()
-                                            .fill(Color.SecondaryBackground)
+                                            .fill(Color.AppSecondarySurface)
                                             .matchedGeometryEffect(id: "TAB1", in: animation)
                                     }
                                 }
@@ -220,7 +216,7 @@ struct TemplateTransactionView: View {
                                 .background {
                                     if income == true {
                                         Capsule()
-                                            .fill(Color.SecondaryBackground)
+                                            .fill(Color.AppSecondarySurface)
                                             .matchedGeometryEffect(id: "TAB1", in: animation)
                                     }
                                 }
@@ -249,7 +245,7 @@ struct TemplateTransactionView: View {
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Color.SubtitleText)
                                 .padding(7)
-                                .background(Color.SecondaryBackground, in: Circle())
+                                .background(Color.AppSecondarySurface, in: Circle())
                                 .contentShape(Circle())
                         }
 
@@ -293,7 +289,7 @@ struct TemplateTransactionView: View {
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(Color.SubtitleText)
                                     .padding(7)
-                                    .background(Color.SecondaryBackground, in: Circle())
+                                    .background(Color.AppSecondarySurface, in: Circle())
                                     .contentShape(Circle())
                             }
                         }
@@ -411,7 +407,7 @@ struct TemplateTransactionView: View {
                                     Text(".")
                                         .font(.system(size: 34, weight: .regular, design: .rounded))
                                         .frame(width: proxy.size.width * 0.3, height: proxy.size.height * 0.22)
-                                        .background(Color.SecondaryBackground)
+                                        .background(Color.AppSecondarySurface)
                                         .foregroundColor(Color.PrimaryText)
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         .opacity(numbers1.contains(".") ? 0.6 : 1)
@@ -451,7 +447,7 @@ struct TemplateTransactionView: View {
             }
             .padding(17)
             .frame(width: proxy.size.width, height: proxy.size.height)
-            .background(Color.PrimaryBackground)
+            .background(Color.AppPageBackground)
             .onTapGesture {
                 self.hideKeyboard()
             }
@@ -509,11 +505,11 @@ struct TemplateTransactionView: View {
                                 .foregroundColor(Color.PrimaryText.opacity(0.9))
                                 .frame(height: 45)
                                 .frame(maxWidth: .infinity)
-                                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                         }
                     }
                     .padding(13)
-                    .background(RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
+                    .background(RoundedRectangle(cornerRadius: 13).fill(Color.AppPageBackground).shadow(color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6))
                     .overlay(RoundedRectangle(cornerRadius: 13).stroke(systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3))
                     .offset(y: offset)
                     .gesture(
@@ -546,7 +542,7 @@ struct TemplateTransactionView: View {
         .animation(.easeOut(duration: 0.2), value: showToast)
         .ignoresSafeArea(.keyboard, edges: .all)
         .frame(maxHeight: .infinity)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .edgesIgnoringSafeArea(.all)
         .onChange(of: showToast) { newValue in
             if newValue {
@@ -604,7 +600,7 @@ struct TemplateTransactionView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(Color.SubtitleText)
                 .padding(7)
-                .background(Color.SecondaryBackground, in: Circle())
+                .background(Color.AppSecondarySurface, in: Circle())
                 .contentShape(Circle())
         }
         .disabled(numbers1.isEmpty)
@@ -639,7 +635,7 @@ struct TemplateTransactionView: View {
             Text("\(number)")
                 .font(.system(size: 34, weight: .regular, design: .rounded))
                 .frame(width: size.width * 0.3, height: size.height * 0.22)
-                .background(Color.SecondaryBackground)
+                .background(Color.AppSecondarySurface)
                 .foregroundColor(Color.PrimaryText)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .opacity(numberArrayCount == 9 ? 0.6 : 1)
@@ -869,8 +865,8 @@ struct CategoryRowPickerView: View {
                         Rectangle()
                             .fill(
                                 LinearGradient(gradient: Gradient(stops: [
-                                    .init(color: Color.PrimaryBackground.opacity(0.01), location: 0),
-                                    .init(color: Color.PrimaryBackground, location: 1)
+                                    .init(color: Color.AppPageBackground.opacity(0.01), location: 0),
+                                    .init(color: Color.AppPageBackground, location: 1)
                                 ]), startPoint: .leading, endPoint: .trailing)
                             ).frame(width: 0.1 * gp.size.width)
                             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -900,7 +896,7 @@ struct CategoryRowPickerView: View {
             }
             .padding(.horizontal, 9)
             .frame(height: 36)
-            .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 //                    .overlay(
 //                        RoundedRectangle(cornerRadius: 11.5, style: .continuous)
 //                            .stroke(Color.Outline, lineWidth: 1.5)
@@ -918,15 +914,15 @@ struct CategoryRowPickerView: View {
     func getBackground(category: Category) -> Color {
         if category.income {
             if category == selectedCategory {
-                return Color.SecondaryBackground
+                return Color.AppSecondarySurface
             } else {
-                return Color.PrimaryBackground
+                return Color.AppPageBackground
             }
         } else {
             if category == selectedCategory {
-                return Color.SecondaryBackground
+                return Color.AppSecondarySurface
             } else {
-                return Color.PrimaryBackground
+                return Color.AppPageBackground
             }
         }
     }
@@ -955,7 +951,7 @@ struct SettingsQuickAddWidgetView: View {
                         self.presentationMode.wrappedValue.dismiss()
                     } label: {
                         Circle()
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .frame(width: 30, height: 30)
                             .overlay {
                                 Image(systemName: "chevron.left")
@@ -973,7 +969,7 @@ struct SettingsQuickAddWidgetView: View {
         .navigationBarHidden(true)
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
     }
 }
 
@@ -1007,7 +1003,7 @@ struct SettingsQuickAddWidgetDraggingView: View {
                         .font(.system(size: 25, weight: .semibold, design: .rounded))
                         .foregroundStyle(Color.SubtitleText)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(RoundedRectangle(cornerRadius: 15).fill(Color.SecondaryBackground).shadow(color: gridData.gridItems[index].transaction == nil ? Color.gray.opacity(0.25) : Color.clear, radius: 6))
+                        .background(RoundedRectangle(cornerRadius: 15).fill(Color.AppSecondarySurface).shadow(color: gridData.gridItems[index].transaction == nil ? Color.gray.opacity(0.25) : Color.clear, radius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.Outline, lineWidth: 1.3))
                         .frame(height: 100)
                 }
@@ -1067,7 +1063,7 @@ struct SettingsQuickAddWidgetDraggingView: View {
         }
         .padding(15)
         .frame(width: 245)
-        .background(RoundedRectangle(cornerRadius: 25).fill(Color.PrimaryBackground).shadow(color: Color.gray.opacity(0.2), radius: 12))
+        .background(RoundedRectangle(cornerRadius: 25).fill(Color.AppPageBackground).shadow(color: Color.gray.opacity(0.2), radius: 12))
         .fullScreenCover(item: $selectedItem, onDismiss: {
             gridData.reset()
             refreshID = UUID()

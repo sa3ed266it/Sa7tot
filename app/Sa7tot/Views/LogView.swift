@@ -121,7 +121,7 @@ struct LogView: View {
                 }
                 .padding(.vertical, 24)
                 .frame(maxWidth: .infinity, minHeight: 250)
-            .background(Color.PrimaryBackground)
+            .background(Color.AppPageBackground)
 
         } else {
             VStack(spacing: 0) {
@@ -219,7 +219,7 @@ struct LogView: View {
 
                     if #unavailable(iOS 26.0) {
                         LinearGradient(
-                            colors: [Color.PrimaryBackground.opacity(0.82), .clear],
+                            colors: [Color.AppPageBackground.opacity(0.82), .clear],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -284,7 +284,7 @@ struct LogView: View {
             }
 //            .onAppear(perform: scrollDelegate.addGesture)
 //            .onDisappear(perform: scrollDelegate.removeGesture)
-            .background(Color.PrimaryBackground)
+            .background(Color.AppPageBackground)
             .onChange(of: cloudSyncSucceeded) { succeeded in
                 if succeeded && !updatedRecurring {
                     dataController.updateRecurringTransactions()
@@ -401,7 +401,7 @@ struct LogView: View {
         }
         .padding(4)
         .padding(.horizontal, 6)
-        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
 //        .font(.system(size: 17, weight: .medium, design: .rounded))
         .foregroundColor(Color.PrimaryText)
     }
@@ -782,7 +782,7 @@ struct SearchView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
     }
 }
 
@@ -1207,7 +1207,7 @@ struct SingleTransactionView: View {
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(Color.PrimaryText)
                         .frame(width: 34, height: 34)
-                        .background(Color.SecondaryBackground, in: Circle())
+                        .background(Color.AppSecondarySurface, in: Circle())
                 } else {
                     CategoryLogIconView(iconIdentifier: transaction.category?.iconIdentifier ?? "sf:tag.fill",
                                  categoryName: transaction.category?.wrappedName,
@@ -1219,7 +1219,7 @@ struct SingleTransactionView: View {
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(Color.DarkIcon)
                                 .padding(3)
-                                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
+                                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 6))
                                 .offset(x: 5, y: 5)
                         }
                     }
@@ -1646,9 +1646,9 @@ struct CategoryStepperView: View {
 
     func getBackground(category: Category) -> Color {
         if category == categoryFilter {
-            return Color.SecondaryBackground
+            return Color.AppSecondarySurface
         } else {
-            return Color.PrimaryBackground
+            return Color.AppPageBackground
         }
     }
 
@@ -1674,7 +1674,7 @@ struct IncomeFilterToggleView: View {
                 .background {
                     if income == false {
                         Capsule()
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .matchedGeometryEffect(id: "TAB1", in: animation)
                     }
                 }
@@ -1697,7 +1697,7 @@ struct IncomeFilterToggleView: View {
                 .background {
                     if income == true {
                         Capsule()
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .matchedGeometryEffect(id: "TAB1", in: animation)
                     }
                 }

@@ -63,7 +63,7 @@ struct SuggestedTransactions: View {
                         }
                         .padding(5)
                         .background(
-                            Color.SecondaryBackground,
+                            Color.AppSecondarySurface,
                             in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
                         )
                     }

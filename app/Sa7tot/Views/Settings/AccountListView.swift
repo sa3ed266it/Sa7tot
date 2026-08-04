@@ -39,7 +39,7 @@ struct AccountMenuView: View {
                         .foregroundColor(Color.PrimaryText)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
-                        .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
+                        .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
                 }
                 .accessibilityLabel("Conto: \(selectedAccountName)")
             }
@@ -326,7 +326,7 @@ private struct AccountIconPickerView: View {
                                 .font(.system(size: 23, weight: .semibold))
                                 .frame(width: 50, height: 50)
                                 .foregroundStyle(Color.PrimaryText)
-                                .background(Color.SecondaryBackground, in: Circle())
+                                .background(Color.AppSecondarySurface, in: Circle())
                                 .overlay {
                                     Circle()
                                         .stroke(selection == option.symbolName ? Color.accentColor : .clear, lineWidth: 2)
@@ -344,7 +344,7 @@ private struct AccountIconPickerView: View {
             }
             .padding(20)
         }
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .navigationTitle("Icona")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

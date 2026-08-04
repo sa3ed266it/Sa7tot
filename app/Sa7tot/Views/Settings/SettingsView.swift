@@ -508,10 +508,9 @@ private struct SettingsCard<Content: View>: View {
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 2)
-      .background(
+        .background(
         RoundedRectangle(cornerRadius: 23, style: .continuous)
-          .fill(Color(uiColor: .secondarySystemBackground).opacity(0.94))
-          .overlay(.regularMaterial.opacity(0.18), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
+          .fill(Color.AppSecondarySurface)
       )
     }
   }
@@ -742,7 +741,7 @@ struct TipJarAlert: View {
 
   var body: some View {
     ZStack(alignment: .bottom) {
-      Color.PrimaryBackground.opacity(opacity)
+      Color.AppPageBackground.opacity(opacity)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -812,7 +811,7 @@ struct TipJarAlert: View {
                   //                                    .font(.system(size: 14, weight: .semibold))
                   .foregroundColor(Color.SubtitleText)
                   .padding(7)
-                  .background(Color.SecondaryBackground, in: Circle())
+                  .background(Color.AppSecondarySurface, in: Circle())
                   .contentShape(Circle())
               }
               .offset(x: 5, y: -5)
@@ -846,7 +845,7 @@ struct TipJarAlert: View {
       .padding(18)
       .animation(.easeInOut, value: unlockManager.failedTransaction)
       .background(
-        RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(
+        RoundedRectangle(cornerRadius: 13).fill(Color.AppPageBackground).shadow(
           color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6)
       )
       .overlay(
@@ -914,7 +913,7 @@ struct ProductView: View {
               .monospacedDigit()
               .padding(6)
               .background(
-                Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous)
               )
           }
         }

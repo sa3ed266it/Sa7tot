@@ -10,6 +10,20 @@ import Foundation
 import SwiftUI
 
 extension Color {
+    /// The system-owned page and grouped surface palette used throughout the app.
+    /// These resolve to OLED black/white and native grouped surfaces per appearance.
+    static var AppPageBackground: Color {
+        Color(uiColor: .systemBackground)
+    }
+
+    static var AppSecondarySurface: Color {
+        Color(uiColor: .secondarySystemBackground)
+    }
+
+    static var AppTertiarySurface: Color {
+        Color(uiColor: .tertiarySystemBackground)
+    }
+
     static let colourMigrationDictionary: [String: String] = [
         "1": "#279AF4",
         "2": "#EC7A58",
@@ -114,15 +128,15 @@ extension Color {
     }
 
     static var PrimaryBackground: Color {
-        return Color("PrimaryBackground")
+        return AppPageBackground
     }
 
     static var SecondaryBackground: Color {
-        return Color("SecondaryBackground")
+        return AppSecondarySurface
     }
 
     static var DarkBackground: Color {
-        return Color("DarkBackground")
+        return AppPageBackground
     }
 
     static var PrimaryText: Color {
@@ -138,7 +152,7 @@ extension Color {
     }
 
     static var BudgetBackground: Color {
-        return Color("BudgetBackground")
+        return AppSecondarySurface
     }
 
     static var SubtitleText: Color {
@@ -170,11 +184,11 @@ extension Color {
     }
 
     static var TertiaryBackground: Color {
-        return Color("TertiaryBackground")
+        return AppTertiarySurface
     }
 
     static var SettingsBackground: Color {
-        return Color("Settings")
+        return AppSecondarySurface
     }
 
     static var EvenLighterText: Color {

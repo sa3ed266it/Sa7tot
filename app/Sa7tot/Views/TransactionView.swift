@@ -153,11 +153,7 @@ struct TransactionView: View {
     }
 
     var backgroundColor: Color {
-        if darkMode {
-            return Color("AlwaysDarkBackground")
-        } else {
-            return Color("AlwaysLightBackground")
-        }
+        Color.AppPageBackground
     }
 
     @State var showPicker = false
@@ -291,7 +287,7 @@ struct TransactionView: View {
                     } else {
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.AppSecondarySurface)
                                 .frame(width: capsuleWidth)
                                 .offset(x: swipingOffset)
 
@@ -350,7 +346,7 @@ struct TransactionView: View {
                                 .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                                 .foregroundColor(Color.SubtitleText)
                                 .padding(7)
-                                .background(Color.SecondaryBackground, in: Circle())
+                                .background(Color.AppSecondarySurface, in: Circle())
                                 .contentShape(Circle())
                         }
 
@@ -398,7 +394,7 @@ struct TransactionView: View {
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(Color.SubtitleText)
                                     .padding(7)
-                                    .background(Color.SecondaryBackground, in: Circle())
+                                    .background(Color.AppSecondarySurface, in: Circle())
                                     .contentShape(Circle())
                             }
                         }
@@ -442,13 +438,13 @@ struct TransactionView: View {
                         .foregroundColor(isTransfer ? Color.PrimaryText : Color.SubtitleText)
                         .padding(.vertical, 7)
                         .padding(.horizontal, 11)
-                        .background(isTransfer ? Color.SecondaryBackground : Color.clear, in: Capsule())
+                        .background(isTransfer ? Color.AppSecondarySurface : Color.clear, in: Capsule())
                 }
                 .accessibilityLabel("Trasferimento")
 
                 ZStack {
                     // swipe to change between income and expense
-                    Color.PrimaryBackground
+                    Color.AppPageBackground
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .simultaneousGesture(
                             DragGesture()
@@ -542,7 +538,7 @@ struct TransactionView: View {
                                     .font(.system(.body, design: .rounded).weight(.semibold))
                                     .padding(5)
                                     .background(
-                                        Color.SecondaryBackground,
+                                        Color.AppSecondarySurface,
                                         in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
                                 }
                             }
@@ -663,7 +659,7 @@ struct TransactionView: View {
                                         .padding(.horizontal, 10)
                                         .foregroundColor(Color.PrimaryText)
                                         .background(
-                                            Color.SecondaryBackground,
+                                            Color.AppSecondarySurface,
                                             in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
                                         )
     //                                    .popover(
@@ -800,7 +796,7 @@ struct TransactionView: View {
             }
             .padding(17)
             .frame(width: proxy.size.width, height: proxy.size.height)
-            .background(Color.PrimaryBackground)
+            .background(Color.AppPageBackground)
             .onTapGesture {
                 self.hideKeyboard()
             }
@@ -860,13 +856,13 @@ struct TransactionView: View {
                                 .frame(height: 45)
                                 .frame(maxWidth: .infinity)
                                 .background(
-                                    Color.SecondaryBackground,
+                                    Color.AppSecondarySurface,
                                     in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                         }
                     }
                     .padding(13)
                     .background(
-                        RoundedRectangle(cornerRadius: 13).fill(Color.PrimaryBackground).shadow(
+                        RoundedRectangle(cornerRadius: 13).fill(Color.AppPageBackground).shadow(
                             color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6)
                     )
                     .overlay(
@@ -905,7 +901,7 @@ struct TransactionView: View {
                     GeometryReader { _ in
                         EmptyView()
                     }
-                    .background(Color.black)
+                    .background(Color.AppPageBackground)
                     .opacity(showingDatePicker ? 0.3 : 0)
                     .onTapGesture {
                         showingDatePicker = false
@@ -941,7 +937,7 @@ struct TransactionView: View {
         .animation(.easeOut(duration: 0.2), value: showToast)
         .ignoresSafeArea(.keyboard, edges: .all)
         .frame(maxHeight: .infinity)
-        .background(Color.PrimaryBackground)
+        .background(Color.AppPageBackground)
         .edgesIgnoringSafeArea(.all)
         .onChange(of: showToast) { newValue in
             if newValue {
@@ -1384,19 +1380,11 @@ struct CategoryPickerView: View {
     var darkMode: Bool
 
     var backgroundColor: Color {
-        if darkMode {
-            return Color("AlwaysDarkBackground")
-        } else {
-            return Color("AlwaysLightBackground")
-        }
+        Color.AppPageBackground
     }
 
     var secondaryBackgroundColor: Color {
-        if darkMode {
-            return Color("AlwaysDarkSecondaryBackground")
-        } else {
-            return Color("AlwaysLightSecondaryBackground")
-        }
+        Color.AppSecondarySurface
     }
 
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
@@ -1448,9 +1436,7 @@ struct CategoryPickerView: View {
                 .foregroundColor(darkMode ? Color("AlwaysLightBackground") : Color("AlwaysDarkBackground"))
                 .background(
                     RoundedRectangle(cornerRadius: 11.5, style: .continuous)
-                        .fill(
-                            darkMode
-                            ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground"))
+                        .fill(Color.AppSecondarySurface)
                 )
                 .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                 .onTapGesture {
@@ -1671,8 +1657,7 @@ struct RecurringPickerView: View {
                     if repeatType == (stringArray.firstIndex(of: string) ?? 0) && repeatCoefficient == 1 {
                         RoundedRectangle(cornerRadius: 6)
                             .fill(
-                                darkMode
-                                ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground")
+                                Color.AppSecondarySurface
                             )
                             .matchedGeometryEffect(id: "TAB", in: animation)
                     }
@@ -1726,8 +1711,7 @@ struct RecurringPickerView: View {
                 if repeatCoefficient > 1 {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(
-                            darkMode
-                            ? Color("AlwaysDarkSecondaryBackground") : Color("AlwaysLightSecondaryBackground")
+                            Color.AppSecondarySurface
                         )
                         .matchedGeometryEffect(id: "TAB", in: animation)
                 }
@@ -1759,9 +1743,8 @@ struct RecurringPickerView: View {
         .padding(4)
         .frame(width: 150)
         .background(
-            RoundedRectangle(cornerRadius: 9).fill(
-                darkMode ? Color("AlwaysDarkBackground") : Color("AlwaysLightBackground")
-            ).shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6)
+            RoundedRectangle(cornerRadius: 9).fill(Color.AppPageBackground)
+                .shadow(color: darkMode ? Color.clear : Color.gray.opacity(0.25), radius: 6)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 9).stroke(
@@ -1799,7 +1782,7 @@ struct CustomRecurringView: View {
                     //                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color.SubtitleText)
                         .padding(7)
-                        .background(Color.SecondaryBackground, in: Circle())
+                        .background(Color.AppSecondarySurface, in: Circle())
                         .contentShape(Circle())
                 }
 
@@ -1847,7 +1830,7 @@ struct CustomRecurringView: View {
                             .foregroundColor(Color.SubtitleText)
                             .padding(7)
                             .background(
-                                Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
                             )
                             .contentShape(Circle())
                             .opacity(holdingCoefficient == 30 ? 0.25 : 1)
@@ -1859,7 +1842,7 @@ struct CustomRecurringView: View {
                         .padding(7)
                         .background {
                             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(Color.SecondaryBackground)
+                                .fill(Color.AppSecondarySurface)
                                 .frame(width: 40, height: 40)
                         }
 
@@ -1871,7 +1854,7 @@ struct CustomRecurringView: View {
                             .foregroundColor(Color.SubtitleText)
                             .padding(7)
                             .background(
-                                Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
                             )
                             .contentShape(Circle())
                             .opacity(holdingCoefficient == 2 ? 0.25 : 1)
@@ -1888,7 +1871,7 @@ struct CustomRecurringView: View {
                             .foregroundColor(Color.SubtitleText)
                             .padding(7)
                             .background(
-                                Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
                             )
                             .contentShape(Circle())
                             .opacity(holdingType == 1 ? 0.25 : 1)
@@ -1908,7 +1891,7 @@ struct CustomRecurringView: View {
                     .padding(7)
                     .background {
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(Color.SecondaryBackground)
+                            .fill(Color.AppSecondarySurface)
                             .frame(height: 40)
                     }
 
@@ -1920,7 +1903,7 @@ struct CustomRecurringView: View {
                             .foregroundColor(Color.SubtitleText)
                             .padding(7)
                             .background(
-                                Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 6, style: .continuous)
                             )
                             .contentShape(Circle())
                             .opacity(holdingType == 3 ? 0.25 : 1)
@@ -1947,7 +1930,7 @@ struct ButtonView: View {
         Text("\(number)")
             .font(.system(size: 34, weight: .regular, design: .rounded))
             .frame(width: size.width * 0.3, height: size.height * 0.22)
-            .background(Color.SecondaryBackground)
+            .background(Color.AppSecondarySurface)
             .foregroundColor(Color.PrimaryText)
             .clipShape(RoundedRectangle(cornerRadius: 10))
     }

@@ -159,7 +159,7 @@ struct BudgetWidgetEntryView: View {
                     .padding(15)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .containerBackground(for: .widget) {
-                        Color.PrimaryBackground
+                        Color.AppPageBackground
                     }
             } else {
                 Text("Select budget in widget options")
@@ -168,7 +168,7 @@ struct BudgetWidgetEntryView: View {
                     .foregroundColor(Color.SubtitleText)
                     .padding(15)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.PrimaryBackground)
+                    .background(Color.AppPageBackground)
             }
 
         } else if entry.budget.iconIdentifier == "failed" {
@@ -180,7 +180,7 @@ struct BudgetWidgetEntryView: View {
                     .padding(15)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .containerBackground(for: .widget) {
-                        Color.PrimaryBackground
+                        Color.AppPageBackground
                     }
             } else {
                 Text("Budget no longer exists - please select new budget from widget options.")
@@ -189,7 +189,7 @@ struct BudgetWidgetEntryView: View {
                     .foregroundColor(Color.SubtitleText)
                     .padding(15)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.PrimaryBackground)
+                    .background(Color.AppPageBackground)
             }
 
         } else {
@@ -213,7 +213,7 @@ struct BudgetWidgetEntryView: View {
 
                         Spacer()
 
-                        RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.SecondaryBackground)
+                        RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.AppSecondarySurface)
                             .frame(width: 13, height: 13)
                             .padding(3)
                     }
@@ -224,7 +224,7 @@ struct BudgetWidgetEntryView: View {
                             ZStack(alignment: .bottom) {
                                 ZStack {
                                     DonutSemicircle(percent: 1, cornerRadius: 4, width: 15)
-                                        .fill(Color.SecondaryBackground)
+                                        .fill(Color.AppSecondarySurface)
                                         .frame(width: proxy.size.width, height: proxy.size.width / 2)
 
                                     if entry.totalSpent / entry.budget.budgetAmount < 0.97 {
@@ -282,7 +282,7 @@ struct BudgetWidgetEntryView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .containerBackground(for: .widget) {
-                    Color.PrimaryBackground
+                    Color.AppPageBackground
                 }
                 .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
             } else {
@@ -305,7 +305,7 @@ struct BudgetWidgetEntryView: View {
 
                         Spacer()
 
-                        RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.SecondaryBackground)
+                        RingView(percent: entry.percentageOfDays, width: 2.4, topStroke: Color.DarkBackground, bottomStroke: Color.AppSecondarySurface)
                             .frame(width: 13, height: 13)
                             .padding(3)
                     }
@@ -316,7 +316,7 @@ struct BudgetWidgetEntryView: View {
                             ZStack(alignment: .bottom) {
                                 ZStack {
                                     DonutSemicircle(percent: 1, cornerRadius: 4, width: 15)
-                                        .fill(Color.SecondaryBackground)
+                                        .fill(Color.AppSecondarySurface)
                                         .frame(width: proxy.size.width, height: proxy.size.width / 2)
 
                                     if entry.totalSpent / entry.budget.budgetAmount < 0.97 {
@@ -374,7 +374,7 @@ struct BudgetWidgetEntryView: View {
                 }
                 .padding(15)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.PrimaryBackground)
+                .background(Color.AppPageBackground)
                 .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
             }
         }

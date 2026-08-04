@@ -291,7 +291,7 @@ struct ExpenditureWidgetEntryView: View {
                                 }
                                 .padding(.vertical, 5)
                                 .frame(maxWidth: .infinity)
-                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.SecondaryBackground))
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.AppSecondarySurface))
                                 .frame(maxHeight: .infinity, alignment: .bottom)
                             }
                             .padding(.top, 12)
@@ -341,7 +341,7 @@ struct ExpenditureWidgetEntryView: View {
                                     }
                                     .padding(.vertical, 5)
                                     .frame(maxWidth: .infinity)
-                                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.SecondaryBackground))
+                                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.AppSecondarySurface))
                                     .frame(maxHeight: .infinity, alignment: .bottom)
                                 }
                             }
@@ -352,7 +352,7 @@ struct ExpenditureWidgetEntryView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .containerBackground(for: .widget) {
-                    Color.PrimaryBackground
+                    Color.AppPageBackground
                 }
                 .widgetURL(entry.transactions.count < 2 ? URL(string: "sa7totapp://newExpense") : nil)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -387,7 +387,7 @@ struct ExpenditureWidgetEntryView: View {
                                 }
                                 .padding(.vertical, 5)
                                 .frame(maxWidth: .infinity)
-                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.SecondaryBackground))
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.AppSecondarySurface))
                                 .frame(maxHeight: .infinity, alignment: .bottom)
                             }
                             .padding(.top, 12)
@@ -437,7 +437,7 @@ struct ExpenditureWidgetEntryView: View {
                                     }
                                     .padding(.vertical, 5)
                                     .frame(maxWidth: .infinity)
-                                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.SecondaryBackground))
+                                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.AppSecondarySurface))
                                     .frame(maxHeight: .infinity, alignment: .bottom)
                                 }
                             }
@@ -448,7 +448,7 @@ struct ExpenditureWidgetEntryView: View {
                     .padding(15)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.PrimaryBackground)
+                .background(Color.AppPageBackground)
                 .widgetURL(entry.transactions.count < 2 ? URL(string: "sa7totapp://newExpense") : nil)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
@@ -488,7 +488,7 @@ struct ExpenditureWidgetEntryView: View {
                                     }
                                     .padding(.vertical, 6)
                                     .frame(width: 200)
-                                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.SecondaryBackground))
+                                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.AppSecondarySurface))
                                 }
                             }
                             .frame(maxHeight: .infinity)
@@ -539,7 +539,7 @@ struct ExpenditureWidgetEntryView: View {
                                         }
                                         .padding(.vertical, 6)
                                         .frame(width: 200)
-                                        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.SecondaryBackground))
+                                        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.AppSecondarySurface))
                                     }
                                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                                 }
@@ -550,7 +550,7 @@ struct ExpenditureWidgetEntryView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .containerBackground(for: .widget) {
-                    Color.PrimaryBackground
+                    Color.AppPageBackground
                 }
             }
 
