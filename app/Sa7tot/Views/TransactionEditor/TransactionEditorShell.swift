@@ -354,6 +354,7 @@ struct TransactionEditorShell: View {
             }
             .accessibilityLabel("Ripeti")
             .accessibilityValue(repeatSummary)
+            .tint(.secondary)
         }
     }
 
