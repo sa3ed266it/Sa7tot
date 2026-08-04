@@ -408,27 +408,137 @@ private struct NativeBrandNewBudgetView: View {
     }
 
     private var periodStep: some View {
-        Form {
-            Section { progressView }
-            Section {
-                Text("Con quale frequenza?")
-                    .font(.headline)
-                Text("Il budget si rinnova automaticamente in base al periodo scelto.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Section("PERIODO") {
-                Picker("Periodo", selection: $draft.period) {
-                    Text("Giornaliero").tag(BudgetTimeFrame.day)
-                    Text("Settimanale").tag(BudgetTimeFrame.week)
-                    Text("Mensile").tag(BudgetTimeFrame.month)
-                    Text("Annuale").tag(BudgetTimeFrame.year)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                progressView
+                    .padding(.top, 4)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Con quale frequenza?")
+                        .font(.title2.weight(.semibold))
+                    Text("Il budget si rinnova automaticamente in base al periodo scelto.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .pickerStyle(.inline)
+                .padding(.top, 24)
+
+                Text("PERIODO")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 24)
+                    .padding(.bottom, 12)
+
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(BudgetTimeFrame.allCases, id: \.self) { period in
+                        periodSelectionCard(period)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+        .navigationBarBackButtonHidden(true)
+        .toolbar { periodToolbarContent }
+    }
+
+    @ToolbarContentBuilder
+    private var periodToolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button {
+                path.removeLast()
+            } label: {
+                Image(systemName: "chevron.left")
+            }
+            .buttonStyle(.bordered)
+            .frame(width: 44, height: 44)
+            .clipShape(Circle())
+            .accessibilityLabel("Indietro")
+        }
+
+        ToolbarItem(placement: .principal) {
+            Text("Nuovo budget")
+                .font(.headline)
+        }
+
+        ToolbarItem(placement: .confirmationAction) {
+            Button("Avanti") {
+                advanceOrSave()
+            }
+            .disabled(!stepIsValid)
+        }
+    }
+
+    private func periodSelectionCard(_ period: BudgetTimeFrame) -> some View {
+        let isSelected = draft.period == period
+
+        return Button {
+            withAnimation(.snappy) {
+                draft.period = period
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "calendar")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.tint)
+                        .frame(width: 38, height: 38)
+                        .background(.tint.opacity(isSelected ? 0.14 : 0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    Spacer(minLength: 4)
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                        .accessibilityHidden(true)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(periodTitle(for: period))
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text(periodSubtitle(for: period))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+            .background(
+                isSelected ? Color.SecondaryBackground.opacity(0.78) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isSelected ? AnyShapeStyle(.tint.opacity(0.7)) : AnyShapeStyle(Color.Outline.opacity(0.7)), lineWidth: 1)
             }
         }
-        .formStyle(.automatic)
-        .toolbar { toolbarContent }
+        .buttonStyle(.plain)
+        .accessibilityLabel(periodTitle(for: period))
+        .accessibilityValue(isSelected ? "Selezionato" : "Non selezionato")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func periodTitle(for period: BudgetTimeFrame) -> String {
+        switch period {
+        case .day: "Giornaliero"
+        case .week: "Settimanale"
+        case .month: "Mensile"
+        case .year: "Annuale"
+        }
+    }
+
+    private func periodSubtitle(for period: BudgetTimeFrame) -> String {
+        switch period {
+        case .day: "Ogni giorno"
+        case .week: "Ogni settimana"
+        case .month: "Ogni mese"
+        case .year: "Ogni anno"
+        }
     }
 
     private var amountStep: some View {
