@@ -899,9 +899,9 @@ struct TransactionsList: View {
             case .day:
                 FilteredDateView(date: date)
             case .week:
-                FilteredInsightsView(startDate: week, type: 1)
+                FilteredInsightsView(startDate: week, period: .week)
             case .month:
-                FilteredInsightsView(startDate: month, type: 2)
+                FilteredInsightsView(startDate: month, period: .month)
             case .recurring:
                 FilteredRecurringView()
             case .type:

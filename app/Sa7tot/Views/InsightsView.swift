@@ -363,7 +363,12 @@ struct HorizontalPieChartView: View {
             }
         }
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, incomePredicate])
+        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+            startPredicate,
+            endPredicate,
+            incomePredicate,
+            StatisticsTransactionFilter.excludingTransfersPredicate()
+        ])
 
         _transactions = FetchRequest<Transaction>(sortDescriptors: [], predicate: andPredicate)
     }
@@ -420,7 +425,13 @@ struct FilteredCategoryInsightsView: View {
                 }
             }
 
-            let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, categoryPredicate, incomePredicate])
+            let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+                startPredicate,
+                endPredicate,
+                categoryPredicate,
+                incomePredicate,
+                StatisticsTransactionFilter.excludingTransfersPredicate()
+            ])
 
             _transactions = SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
                 SortDescriptor(\.day, order: .reverse),
@@ -479,7 +490,12 @@ struct FilteredDateInsightsView: View {
 
         let incomePredicate = NSPredicate(format: "income = %d", income)
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, incomePredicate, endPredicate])
+        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+            startPredicate,
+            incomePredicate,
+            endPredicate,
+            StatisticsTransactionFilter.excludingTransfersPredicate()
+        ])
 
         _transactions = FetchRequest<Transaction>(sortDescriptors: [
             SortDescriptor(\.date, order: .reverse)
@@ -501,7 +517,7 @@ struct FilteredInsightsView: View {
         .frame(maxHeight: .infinity)
     }
 
-    init(startDate: Date, income: Bool? = nil, type: Int) {
+    init(startDate: Date, income: Bool? = nil, period: InsightsPeriod) {
         let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
 
         let endPredicate: NSPredicate
@@ -511,14 +527,14 @@ struct FilteredInsightsView: View {
         calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
         calendar.minimumDaysInFirstWeek = 4
 
-        if type == 1 {
+        if period == .week {
             if calendar.isDate(startDate, equalTo: Date.now, toGranularity: .weekOfYear) {
                 endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
             } else {
                 let next = calendar.date(byAdding: .day, value: 7, to: startDate) ?? Date.now
                 endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), next as CVarArg)
             }
-        } else if type == 2 {
+        } else if period == .month {
             if calendar.isDate(startDate, equalTo: Date.now, toGranularity: .month) {
                 endPredicate = NSPredicate(format: "%K < %@", #keyPath(Transaction.date), Date.now as CVarArg)
             } else {
@@ -538,10 +554,19 @@ struct FilteredInsightsView: View {
 
         if let unwrappedIncome = income {
             let incomePredicate = NSPredicate(format: "income = %d", unwrappedIncome)
-            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, incomePredicate])
+            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+                startPredicate,
+                endPredicate,
+                incomePredicate,
+                StatisticsTransactionFilter.excludingTransfersPredicate()
+            ])
 
         } else {
-            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate])
+            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+                startPredicate,
+                endPredicate,
+                StatisticsTransactionFilter.excludingTransfersPredicate()
+            ])
         }
 
         _transactions = SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
@@ -1100,7 +1125,7 @@ struct WeekGraphView: View {
 
                 Group {
                     if !incomeFiltering {
-                        FilteredInsightsView(startDate: showingWeek, type: 1)
+                        FilteredInsightsView(startDate: showingWeek, period: .week)
                             .padding(.bottom, 70)
                             .padding(.horizontal, 20)
                     } else {
@@ -1510,7 +1535,7 @@ struct MonthGraphView: View {
                 
                 Group {
                     if !incomeFiltering {
-                        FilteredInsightsView(startDate: showingMonth, type: 2)
+                        FilteredInsightsView(startDate: showingMonth, period: .month)
                             .padding(.bottom, 70)
                             .padding(.horizontal, 20)
                     } else {
@@ -1887,7 +1912,7 @@ struct YearGraphView: View {
 
                 Group {
                     if !incomeFiltering {
-                        FilteredInsightsView(startDate: showingYear, type: 3)
+                        FilteredInsightsView(startDate: showingYear, period: .year)
                             .padding(.bottom, 70)
                             .padding(.horizontal, 20)
                     } else {
@@ -1903,7 +1928,7 @@ struct YearGraphView: View {
                                     .padding(.horizontal, 20)
                             }
                         } else {
-                            FilteredInsightsView(startDate: selectedDate ?? Date.now, income: income, type: 2)
+                            FilteredInsightsView(startDate: selectedDate ?? Date.now, income: income, period: .year)
                                 .padding(.bottom, 70)
                                 .padding(.horizontal, 20)
                         }

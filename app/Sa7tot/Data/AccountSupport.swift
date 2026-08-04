@@ -1,5 +1,22 @@
 import CoreData
 import Foundation
+
+enum StatisticsTransactionFilter {
+    static func excludingTransfersPredicate() -> NSPredicate {
+        NSPredicate(
+            format: "%K != %@ OR %K == nil",
+            #keyPath(Transaction.typeRawValue),
+            TransactionType.transfer.rawValue,
+            #keyPath(Transaction.typeRawValue)
+        )
+    }
+}
+
+enum InsightsPeriod: Int, CaseIterable {
+    case week = 1
+    case month = 2
+    case year = 3
+}
 import UserNotifications
 
 enum AccountType: String, CaseIterable, Identifiable {

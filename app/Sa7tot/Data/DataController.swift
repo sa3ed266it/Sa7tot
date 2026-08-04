@@ -1383,7 +1383,7 @@ class DataController: ObservableObject {
     func fetchRequestForLineGraph(optionalIncome: Bool?) -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
         itemRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Transaction.date, ascending: true)]
-        let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+        let nonTransferPredicate = StatisticsTransactionFilter.excludingTransfersPredicate()
 
         if let income = optionalIncome {
             itemRequest.predicate = NSCompoundPredicate(type: .and, subpredicates: [NSPredicate(format: "income = %d", income), nonTransferPredicate])
@@ -1398,7 +1398,7 @@ class DataController: ObservableObject {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
         itemRequest.predicate = NSCompoundPredicate(type: .and, subpredicates: [
             NSPredicate(format: "income = %d", income),
-            NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+            StatisticsTransactionFilter.excludingTransfersPredicate()
         ])
         return itemRequest
     }
@@ -1635,11 +1635,11 @@ class DataController: ObservableObject {
 
         if let unwrappedIncome = income {
             let incomePredicate = NSPredicate(format: "income = %d", unwrappedIncome)
-            let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+            let nonTransferPredicate = StatisticsTransactionFilter.excludingTransfersPredicate()
 
             andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, incomePredicate, endPredicate, nonTransferPredicate])
         } else {
-            let nonTransferPredicate = NSPredicate(format: "%K != %@ OR %K == nil", #keyPath(Transaction.typeRawValue), TransactionType.transfer.rawValue, #keyPath(Transaction.typeRawValue))
+            let nonTransferPredicate = StatisticsTransactionFilter.excludingTransfersPredicate()
             andPredicate = NSCompoundPredicate(type: .and, subpredicates: [startPredicate, endPredicate, nonTransferPredicate])
         }
 

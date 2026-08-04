@@ -363,6 +363,93 @@ final class AccountTests: XCTestCase {
         XCTAssertNil(transfer.category)
     }
 
+    func testStatisticsTransferPredicateExcludesTransfersFromMainIncomeExpenseAndPeriodQueries() throws {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank)
+        let destination = makeAccount(in: context, type: .cash)
+        let expense = makeTransaction(in: context, account: source, amount: 30, income: false)
+        let income = makeTransaction(in: context, account: destination, amount: 40, income: true)
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 100)
+        let legacyExpense = makeTransaction(in: context, account: source, amount: 5, income: false)
+        legacyExpense.typeRawValue = nil
+
+        let periodStart = Calendar.current.startOfDay(for: Date.now)
+        let periodEnd = Calendar.current.date(byAdding: .day, value: 1, to: periodStart)!
+        let periodPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+            NSPredicate(format: "%K >= %@ AND %K < %@", #keyPath(Transaction.date), periodStart as CVarArg, #keyPath(Transaction.date), periodEnd as CVarArg),
+            StatisticsTransactionFilter.excludingTransfersPredicate()
+        ])
+
+        let incomeRows = try fetchTransactions(in: context, predicate: NSCompoundPredicate(type: .and, subpredicates: [
+            NSPredicate(format: "income = %d", true),
+            periodPredicate
+        ]))
+        let expenseRows = try fetchTransactions(in: context, predicate: NSCompoundPredicate(type: .and, subpredicates: [
+            NSPredicate(format: "income = %d", false),
+            periodPredicate
+        ]))
+
+        XCTAssertEqual(Set(incomeRows.map(\.id)), Set([income.id]))
+        XCTAssertEqual(Set(expenseRows.map(\.id)), Set([expense.id, legacyExpense.id]))
+        XCTAssertFalse(incomeRows.contains(transfer))
+        XCTAssertFalse(expenseRows.contains(transfer))
+    }
+
+    func testStatisticsTransferPredicateExcludesTransfersFromCategoryAndDateQueries() throws {
+        let context = makeContext()
+        let source = makeAccount(in: context, type: .bank)
+        let destination = makeAccount(in: context, type: .cash)
+        let category = makeCategory(in: context, name: "Cibo", income: false)
+        let expense = makeTransaction(in: context, account: source, amount: 30)
+        expense.category = category
+        let transfer = makeTransfer(in: context, source: source, destination: destination, amount: 100)
+        transfer.category = category
+
+        let start = Calendar.current.startOfDay(for: Date.now)
+        let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
+        let sharedFilters = [
+            NSPredicate(format: "%K >= %@ AND %K < %@", #keyPath(Transaction.date), start as CVarArg, #keyPath(Transaction.date), end as CVarArg),
+            NSPredicate(format: "%K == %@", #keyPath(Transaction.category), category),
+            NSPredicate(format: "income = %d", false),
+            StatisticsTransactionFilter.excludingTransfersPredicate()
+        ]
+
+        let categoryRows = try fetchTransactions(in: context, predicate: NSCompoundPredicate(type: .and, subpredicates: sharedFilters))
+        let dateRows = try fetchTransactions(in: context, predicate: NSCompoundPredicate(type: .and, subpredicates: [
+            sharedFilters[0],
+            sharedFilters[2],
+            sharedFilters[3]
+        ]))
+
+        XCTAssertEqual(categoryRows, [expense])
+        XCTAssertEqual(dateRows, [expense])
+        XCTAssertFalse(categoryRows.contains(transfer))
+        XCTAssertFalse(dateRows.contains(transfer))
+    }
+
+    func testStatisticsPeriodContractKeepsWeekMonthAndYearModesDistinct() {
+        XCTAssertEqual(InsightsPeriod.week.rawValue, 1)
+        XCTAssertEqual(InsightsPeriod.month.rawValue, 2)
+        XCTAssertEqual(InsightsPeriod.year.rawValue, 3)
+        XCTAssertNotEqual(InsightsPeriod.year, .month)
+    }
+
+    func testStatisticsTotalsReconcileWithTheSameFilteredDetailRows() throws {
+        let context = makeContext()
+        let account = makeAccount(in: context, type: .bank)
+        let expense = makeTransaction(in: context, account: account, amount: 30)
+        let income = makeTransaction(in: context, account: account, amount: 40, income: true)
+        let transfer = makeTransfer(in: context, source: account, destination: makeAccount(in: context, type: .cash), amount: 100)
+
+        let request: NSFetchRequest<Transaction> = Transaction.fetchRequest()
+        request.predicate = StatisticsTransactionFilter.excludingTransfersPredicate()
+        let detailRows = try context.fetch(request)
+
+        XCTAssertEqual(TransactionTotalsService.expenseTotal(detailRows), expense.amount)
+        XCTAssertEqual(TransactionTotalsService.incomeTotal(detailRows), income.amount)
+        XCTAssertFalse(detailRows.contains(transfer))
+    }
+
     func testEditingTransferKeepsUUIDAndUpdatesAllBalanceEffects() {
         let context = makeContext()
         let sourceA = makeAccount(in: context, type: .bank, openingBalance: 500)
@@ -644,6 +731,12 @@ final class AccountTests: XCTestCase {
         template.recurringType = 2
         template.recurringCoefficient = 1
         return template
+    }
+
+    private func fetchTransactions(in context: NSManagedObjectContext, predicate: NSPredicate) throws -> [Transaction] {
+        let request: NSFetchRequest<Transaction> = Transaction.fetchRequest()
+        request.predicate = predicate
+        return try context.fetch(request)
     }
 
     private enum TestError: Error { case injected }
