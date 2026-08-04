@@ -28,7 +28,8 @@ struct TransactionEditorShell: View {
     @State private var showCategorySheet = false
     @State private var showCustomRecurring = false
     @State private var showNoteSheet = false
-    @State private var showDeleteConfirmation = false
+    @State private var showDeletePopover = false
+    @State private var showFinalDeleteConfirmation = false
     @State private var noteDraft = ""
     @State private var amountText = ""
     @FocusState private var amountFocused: Bool
@@ -157,8 +158,8 @@ struct TransactionEditorShell: View {
                 }
             }
             .confirmationDialog(
-                isTransfer ? "Eliminare questo trasferimento?" : "Eliminare questo movimento?",
-                isPresented: $showDeleteConfirmation,
+                isTransfer ? "Eliminare definitivamente questo trasferimento?" : "Eliminare definitivamente questo movimento?",
+                isPresented: $showFinalDeleteConfirmation,
                 titleVisibility: .visible
             ) {
                 Button("Elimina", role: .destructive, action: onDeleteConfirmed)
@@ -413,12 +414,46 @@ struct TransactionEditorShell: View {
 
     @ViewBuilder private var deleteSection: some View {
         if isEditing {
-            Button(role: .destructive) { showDeleteConfirmation = true } label: {
+            Button(role: .destructive) { showDeletePopover = true } label: {
                 Label(isTransfer ? "Elimina trasferimento" : "Elimina movimento", systemImage: "trash")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .transactionDeleteButtonStyle()
             .accessibilityLabel(isTransfer ? "Elimina trasferimento" : "Elimina movimento")
+            .popover(
+                isPresented: $showDeletePopover,
+                attachmentAnchor: .rect(.bounds),
+                arrowEdge: .bottom
+            ) {
+                deletePopoverContent
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var deletePopoverContent: some View {
+        let content = VStack(alignment: .leading, spacing: 12) {
+            Text(isTransfer ? "Eliminare questo trasferimento?" : "Eliminare questo movimento?")
+                .font(.headline)
+
+            Text("Questa azione non può essere annullata.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Button("Elimina", role: .destructive) {
+                showDeletePopover = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    showFinalDeleteConfirmation = true
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding()
+
+        if #available(iOS 16.4, *) {
+            content.presentationCompactAdaptation(.popover)
+        } else {
+            content
         }
     }
 
