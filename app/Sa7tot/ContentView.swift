@@ -87,6 +87,7 @@ struct ContentView: View {
                 firstLaunch = false
                 showUpdateSheet = false
 
+                defaults.set(0, forKey: "colourScheme")
                 defaults.set(1, forKey: "firstWeekday")
                 defaults.set(1, forKey: "haptics")
                 defaults.set(1, forKey: "notificationOption")
