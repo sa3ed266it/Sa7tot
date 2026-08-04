@@ -22,6 +22,53 @@ struct PendingCategoryDeletion: Identifiable {
     var id: String { suggestion.canonicalKey }
 }
 
+private struct CategoryTransferFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+private struct MovingCategoryRow: Identifiable {
+    let id: String
+    let name: String
+    let symbolName: String
+    var frame: CGRect
+}
+
+private struct CategoryTransferRow: View {
+    let name: String
+    let symbolName: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            CategoryIconView(descriptor: .sfSymbol(symbolName), role: .category, accessibilityLabel: name)
+            Text(LocalizedStringKey(name))
+                .font(.system(.body, design: .rounded))
+                .lineLimit(1)
+            Spacer()
+        }
+        .padding(.vertical, 5)
+        .padding(.horizontal, 16)
+        .foregroundColor(Color.PrimaryText)
+        .background(Color.SettingsBackground)
+    }
+}
+
+private extension View {
+    func categoryTransferFrame(_ id: String) -> some View {
+        background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: CategoryTransferFramePreferenceKey.self,
+                    value: [id: proxy.frame(in: .named("category-transfer"))]
+                )
+            }
+        }
+    }
+}
+
 private extension View {
     @ViewBuilder
     func categoryScrollObservation(_ action: @escaping (Bool) -> Void) -> some View {
@@ -218,9 +265,10 @@ struct CategoryListView: View {
     @State private var toDelete: Category?
     // edit mode
     @State private var toEdit: Category?
-    @Namespace private var categoryMoveNamespace
     @State private var pendingAddition: SuggestedCategory?
     @State private var pendingDeletion: PendingCategoryDeletion?
+    @State private var categoryTransferFrames: [String: CGRect] = [:]
+    @State private var movingCategoryRow: MovingCategoryRow?
 
     // toasts
     @Binding var showToast: Bool
@@ -241,6 +289,7 @@ struct CategoryListView: View {
     }
 
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 5) {
@@ -462,7 +511,7 @@ struct CategoryListView: View {
                 if #available(iOS 16.0, *) {
                     List {
                         Section(header: Text(sectionHeader).foregroundColor(Color.SubtitleText)) {
-                            if categories.isEmpty {
+                            if categories.isEmpty && pendingAddition == nil {
                                 VStack(spacing: 10) {
                                     Image(systemName: "tray")
                                         .font(.system(.largeTitle, design: .rounded).weight(.light))
@@ -501,7 +550,8 @@ struct CategoryListView: View {
                                     .foregroundColor(Color.PrimaryText)
                                     .listRowBackground(Color.SettingsBackground)
                                     .listRowSeparatorTint(Color.Outline)
-                                    .matchedGeometryEffect(id: pendingAddition.canonicalKey, in: categoryMoveNamespace, isSource: false)
+                                    .categoryTransferFrame("active.\(pendingAddition.canonicalKey)")
+                                    .opacity(movingCategoryRow?.id == pendingAddition.canonicalKey ? 0 : 1)
                                     .accessibilityHidden(true)
                                 }
                                 ForEach(categories) { category in
@@ -521,11 +571,8 @@ struct CategoryListView: View {
                                     .listRowBackground(Color.SettingsBackground)
                                     .listRowSeparatorTint(Color.Outline)
                                     .contentShape(Rectangle())
-                                    .matchedGeometryEffect(
-                                        id: CategoryCanonicalIdentity.key(for: category),
-                                        in: categoryMoveNamespace,
-                                        isSource: pendingDeletion == nil || pendingDeletion?.category.objectID == category.objectID
-                                    )
+                                    .categoryTransferFrame("active.\(CategoryCanonicalIdentity.key(for: category))")
+                                    .opacity(movingCategoryRow?.id == CategoryCanonicalIdentity.key(for: category) ? 0 : 1)
                                     .onTapGesture {
                                         toEdit = category
                                     }
@@ -555,9 +602,9 @@ struct CategoryListView: View {
                         if showSuggestions {
                             SuggestedCategoriesView(
                                 income: income,
-                                moveNamespace: categoryMoveNamespace,
                                 pendingAddition: $pendingAddition,
-                                pendingDeletion: $pendingDeletion
+                                pendingDeletion: $pendingDeletion,
+                                onAddSuggestion: beginAdd
                             )
                         }
                     }
@@ -570,7 +617,7 @@ struct CategoryListView: View {
                 } else {
                     List {
                         Section(header: Text("\(income ? "INCOME" : "EXPENSE") CATEGORIES").foregroundColor(Color.SubtitleText)) {
-                            if categories.isEmpty {
+                            if categories.isEmpty && pendingAddition == nil {
                                 VStack(spacing: 10) {
                                     Image(systemName: "tray")
                                         .font(.system(.largeTitle, design: .rounded).weight(.light))
@@ -603,7 +650,8 @@ struct CategoryListView: View {
                                     .foregroundColor(Color.PrimaryText)
                                     .listRowBackground(Color.SettingsBackground)
                                     .listRowSeparatorTint(Color.Outline)
-                                    .matchedGeometryEffect(id: pendingAddition.canonicalKey, in: categoryMoveNamespace, isSource: false)
+                                    .categoryTransferFrame("active.\(pendingAddition.canonicalKey)")
+                                    .opacity(movingCategoryRow?.id == pendingAddition.canonicalKey ? 0 : 1)
                                     .accessibilityHidden(true)
                                 }
                                 ForEach(categories) { category in
@@ -623,11 +671,8 @@ struct CategoryListView: View {
                                     .listRowBackground(Color.SettingsBackground)
                                     .listRowSeparatorTint(Color.Outline)
                                     .contentShape(Rectangle())
-                                    .matchedGeometryEffect(
-                                        id: CategoryCanonicalIdentity.key(for: category),
-                                        in: categoryMoveNamespace,
-                                        isSource: pendingDeletion == nil || pendingDeletion?.category.objectID == category.objectID
-                                    )
+                                    .categoryTransferFrame("active.\(CategoryCanonicalIdentity.key(for: category))")
+                                    .opacity(movingCategoryRow?.id == CategoryCanonicalIdentity.key(for: category) ? 0 : 1)
                                     .onTapGesture {
                                         toEdit = category
                                     }
@@ -657,9 +702,9 @@ struct CategoryListView: View {
                         if showSuggestions {
                             SuggestedCategoriesView(
                                 income: income,
-                                moveNamespace: categoryMoveNamespace,
                                 pendingAddition: $pendingAddition,
-                                pendingDeletion: $pendingDeletion
+                                pendingDeletion: $pendingDeletion,
+                                onAddSuggestion: beginAdd
                             )
                         }
                     }
@@ -714,6 +759,20 @@ struct CategoryListView: View {
                 positive = true
             }
         }
+        .overlay {
+            if let movingCategoryRow {
+                CategoryTransferRow(name: movingCategoryRow.name, symbolName: movingCategoryRow.symbolName)
+                    .frame(width: movingCategoryRow.frame.width, height: movingCategoryRow.frame.height)
+                    .position(x: movingCategoryRow.frame.midX, y: movingCategoryRow.frame.midY)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .coordinateSpace(name: "category-transfer")
+        .onPreferenceChange(CategoryTransferFramePreferenceKey.self) { frames in
+            categoryTransferFrames = frames
+            startPendingTransferIfReady()
+        }
     }
 
     private func moveItem(at sets: IndexSet, destination: Int) {
@@ -762,18 +821,87 @@ struct CategoryListView: View {
         }
 
         let pending = PendingCategoryDeletion(category: category, suggestion: suggestion)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
             pendingDeletion = pending
         }
+    }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
-            guard pendingDeletion?.id == pending.id else { return }
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                moc.delete(category)
-                dataController.save()
-                pendingDeletion = nil
+    private func beginAdd(_ suggestion: SuggestedCategory) {
+        guard pendingAddition == nil, pendingDeletion == nil, movingCategoryRow == nil else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        pendingAddition = suggestion
+    }
+
+    private func startPendingTransferIfReady() {
+        guard movingCategoryRow == nil else { return }
+
+        if let addition = pendingAddition,
+           let source = categoryTransferFrames["suggestion.\(addition.canonicalKey)"],
+           let destination = categoryTransferFrames["active.\(addition.canonicalKey)"] {
+            startMovingRow(id: addition.canonicalKey, name: addition.name, symbolName: addition.symbolName, source: source, destination: destination)
+            return
+        }
+
+        if let deletion = pendingDeletion,
+           let source = categoryTransferFrames["active.\(deletion.id)"],
+           let destination = categoryTransferFrames["suggestion.\(deletion.id)"] {
+            startMovingRow(id: deletion.id, name: deletion.suggestion.name, symbolName: deletion.suggestion.symbolName, source: source, destination: destination)
+        }
+    }
+
+    private func startMovingRow(id: String, name: String, symbolName: String, source: CGRect, destination: CGRect) {
+        movingCategoryRow = MovingCategoryRow(id: id, name: name, symbolName: symbolName, frame: source)
+
+        DispatchQueue.main.async {
+            withAnimation(transferAnimation) {
+                movingCategoryRow?.frame = destination
             }
         }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + transferDuration) {
+            commitPendingTransfer(id: id)
+        }
+    }
+
+    private func commitPendingTransfer(id: String) {
+        if let addition = pendingAddition, addition.canonicalKey == id {
+            do {
+                let name = NSLocalizedString(addition.name, comment: "category name")
+                try dataController.createCategory(name: name, iconIdentifier: "sf:\(addition.symbolName)", income: income)
+                withAnimation(transferAnimation) {
+                    pendingAddition = nil
+                    movingCategoryRow = nil
+                }
+            } catch {
+                pendingAddition = nil
+                movingCategoryRow = nil
+                toastTitle = "Unable to save category"
+                toastImage = "exclamationmark.triangle.fill"
+                positive = false
+                showToast = true
+            }
+            return
+        }
+
+        if let deletion = pendingDeletion, deletion.id == id {
+            moc.delete(deletion.category)
+            dataController.save()
+            withAnimation(transferAnimation) {
+                pendingDeletion = nil
+                movingCategoryRow = nil
+            }
+        }
+    }
+
+    private var transferDuration: TimeInterval {
+        reduceMotion ? 0.12 : 0.42
+    }
+
+    private var transferAnimation: Animation {
+        reduceMotion
+            ? .easeOut(duration: transferDuration)
+            : .spring(response: transferDuration, dampingFraction: 0.86)
     }
 
     init(income: Binding<Bool>, mode: CategoryViewMode, hasScrolled: Binding<Bool>, showToast: Binding<Bool>, toastTitle: Binding<String>, toastImage: Binding<String>, positive: Binding<Bool>) {
@@ -794,13 +922,10 @@ struct CategoryListView: View {
 
 struct SuggestedCategoriesView: View {
     let income: Bool
-    let moveNamespace: Namespace.ID
     @Binding var pendingAddition: SuggestedCategory?
     @Binding var pendingDeletion: PendingCategoryDeletion?
+    let onAddSuggestion: (SuggestedCategory) -> Void
     @FetchRequest private var categories: FetchedResults<Category>
-
-    @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
 
     var suggestions: [SuggestedCategory] {
         let existingKeys = Set(categories.filter { !$0.isDeleted }.map(CategoryCanonicalIdentity.key))
@@ -810,8 +935,6 @@ struct SuggestedCategoriesView: View {
                 pendingDeletion?.suggestion.canonicalKey == suggestion.canonicalKey
         }
     }
-
-    @State private var addingNames: Set<String> = []
 
     var body: some View {
         if !suggestions.isEmpty {
@@ -841,58 +964,24 @@ struct SuggestedCategoriesView: View {
                     .listRowBackground(Color.SettingsBackground)
                     .listRowSeparatorTint(Color.Outline)
                     .contentShape(Rectangle())
-                    .matchedGeometryEffect(
-                        id: CategoryCanonicalIdentity.key(for: category),
-                        in: moveNamespace,
-                        isSource: pendingDeletion?.suggestion.canonicalKey != category.canonicalKey
-                    )
-                    .onTapGesture { addSuggestion(category) }
-                    .opacity(addingNames.contains(category.canonicalKey) ? 0.55 : 1)
-                    .allowsHitTesting(pendingAddition?.canonicalKey != category.canonicalKey && pendingDeletion == nil)
+                    .categoryTransferFrame("suggestion.\(category.canonicalKey)")
+                    .onTapGesture { onAddSuggestion(category) }
+                    .opacity(pendingAddition?.canonicalKey == category.canonicalKey ? 0 : 1)
+                    .allowsHitTesting(pendingAddition == nil && pendingDeletion == nil)
                 }
             }
         }
     }
 
-    private func addSuggestion(_ suggestion: SuggestedCategory) {
-        let name = NSLocalizedString(suggestion.name, comment: "category name")
-        let key = suggestion.canonicalKey
-        guard pendingAddition == nil, pendingDeletion == nil else { return }
-        guard addingNames.insert(key).inserted else { return }
-
-        let impactMed = UIImpactFeedbackGenerator(style: .light)
-        impactMed.impactOccurred()
-        withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-            pendingAddition = suggestion
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
-            guard pendingAddition?.canonicalKey == key else { return }
-            do {
-                try dataController.createCategory(name: name, iconIdentifier: "sf:\(suggestion.symbolName)", income: income)
-                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                    pendingAddition = nil
-                }
-                addingNames.remove(key)
-            } catch CategoryMutationError.duplicateName {
-                pendingAddition = nil
-                addingNames.remove(key)
-            } catch {
-                pendingAddition = nil
-                addingNames.remove(key)
-            }
-        }
-    }
-
-    init(income: Bool, moveNamespace: Namespace.ID, pendingAddition: Binding<SuggestedCategory?>, pendingDeletion: Binding<PendingCategoryDeletion?>) {
+    init(income: Bool, pendingAddition: Binding<SuggestedCategory?>, pendingDeletion: Binding<PendingCategoryDeletion?>, onAddSuggestion: @escaping (SuggestedCategory) -> Void) {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: NSPredicate(format: "income = %d", income))
 
         self.income = income
-        self.moveNamespace = moveNamespace
         _pendingAddition = pendingAddition
         _pendingDeletion = pendingDeletion
+        self.onAddSuggestion = onAddSuggestion
     }
 }
 
