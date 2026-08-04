@@ -24,21 +24,11 @@ struct SettingsView: View {
 
   @AppStorage("showNotifications", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showNotifications: Bool = false
-  @AppStorage("notificationOption", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var option: Int = 1
-  var notificationString: String {
-    if showNotifications {
-      if option == 1 {
-        return String(localized: "Mornings")
-      } else if option == 2 {
-        return String(localized: "Evenings")
-      } else {
-        return String(localized: "Custom")
-      }
-    } else {
-      return String(localized: "Off")
-    }
-  }
+  @AppStorage("notificationsEnabled", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
+  var notificationsEnabled: Bool = true
+  @Environment(\.scenePhase) private var scenePhase
+  @State private var notificationPermission: UNAuthorizationStatus = .notDetermined
+  @State private var showingNotificationPermissionAlert = false
 
   @EnvironmentObject var appLockVM: AppLockViewModel
   @Namespace var animation
@@ -129,12 +119,17 @@ struct SettingsView: View {
   private var settingsList: some View {
     List {
       Section("Generale") {
-        NavigationLink(destination: SettingsNotificationsView()) {
-          SettingsNativeRow(title: "Notifiche", systemImage: "bell.fill", tint: .yellow, value: notificationValue)
+        Toggle(isOn: notificationBinding) {
+          SettingsNativeLabel(title: "Notifiche", systemImage: "bell.fill", tint: .yellow)
         }
-        NavigationLink(destination: SettingsCurrencyView()) {
-          SettingsNativeRow(title: "Valuta", systemImage: "eurosign.circle.fill", tint: .green, value: currency)
+        Picker("Valuta", selection: $currency) {
+          ForEach(Currency.allCurrencies, id: \.code) { item in
+            Text("\(item.code) — \(item.name)").tag(item.code)
+          }
         }
+        .pickerStyle(.menu)
+        .accessibilityLabel("Valuta")
+        .accessibilityValue(currency)
         NavigationLink(destination: AccountListView()) {
           SettingsNativeRow(title: "Conti", systemImage: "building.columns.fill", tint: .blue, value: "Gestisci i tuoi conti")
         }
@@ -215,20 +210,95 @@ struct SettingsView: View {
     .navigationTitle("Impostazioni")
     .navigationBarTitleDisplayMode(.large)
     .dynamicTypeSize(...DynamicTypeSize.accessibility5)
-    .onChange(of: currency) { _ in WidgetCenter.shared.reloadAllTimelines() }
     .onChange(of: firstWeekday) { _ in WidgetCenter.shared.reloadAllTimelines() }
     .onChange(of: showCents) { _ in WidgetCenter.shared.reloadAllTimelines() }
-  }
-
-  private var notificationValue: String {
-    guard showNotifications else { return "Disattivate" }
-    switch option {
-    case 1: return "Mattina"
-    case 2: return "Sera"
-    default: return "Personalizzate"
+    .onChange(of: currency) { newValue in
+      NSUbiquitousKeyValueStore.default.set(newValue, forKey: "currency")
+      WidgetCenter.shared.reloadAllTimelines()
+    }
+    .onChange(of: scenePhase) { newPhase in
+      if newPhase == .active { refreshNotificationPermission() }
+    }
+    .onAppear { refreshNotificationPermission() }
+    .alert("Notifiche disattivate", isPresented: $showingNotificationPermissionAlert) {
+      Button("Annulla", role: .cancel) {}
+      Button("Apri Impostazioni") { openNotificationSettings() }
+    } message: {
+      Text("Le notifiche sono state disattivate nelle impostazioni di iOS. Abilita le notifiche per ricevere i promemoria.")
     }
   }
 
+  private var notificationBinding: Binding<Bool> {
+    Binding(
+      get: { showNotifications && notificationPermission != .denied },
+      set: { setNotificationsEnabled($0) }
+    )
+  }
+
+  private func setNotificationsEnabled(_ enabled: Bool) {
+    if !enabled {
+      showNotifications = false
+      notificationsEnabled = false
+      UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+      return
+    }
+
+    let center = UNUserNotificationCenter.current()
+    center.getNotificationSettings { settings in
+      DispatchQueue.main.async {
+        notificationPermission = settings.authorizationStatus
+        switch settings.authorizationStatus {
+        case .notDetermined:
+          center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            DispatchQueue.main.async {
+              if granted {
+                notificationPermission = .authorized
+                showNotifications = true
+                notificationsEnabled = true
+                newNotification()
+              } else {
+                notificationPermission = .denied
+                showNotifications = false
+                notificationsEnabled = false
+              }
+            }
+          }
+        case .authorized, .provisional, .ephemeral:
+          showNotifications = true
+          notificationsEnabled = true
+          newNotification()
+        case .denied:
+          showNotifications = false
+          notificationsEnabled = false
+          showingNotificationPermissionAlert = true
+        @unknown default:
+          showNotifications = false
+          notificationsEnabled = false
+        }
+      }
+    }
+  }
+
+  private func refreshNotificationPermission() {
+    UNUserNotificationCenter.current().getNotificationSettings { settings in
+      DispatchQueue.main.async {
+        notificationPermission = settings.authorizationStatus
+        if settings.authorizationStatus == .denied {
+          let wasEnabled = showNotifications
+          showNotifications = false
+          notificationsEnabled = false
+          if wasEnabled {
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+          }
+        }
+      }
+    }
+  }
+
+  private func openNotificationSettings() {
+    guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
+    UIApplication.shared.open(settingsURL)
+  }
   private var firstWeekdayValue: String {
     firstWeekday == 1 ? "Domenica" : "Lunedì"
   }
