@@ -11,39 +11,38 @@ import Popovers
 import SwiftUI
 
 struct BudgetView: View {
-    @FetchRequest(sortDescriptors: []) private var categories: FetchedResults<Category>
-    @FetchRequest(sortDescriptors: []) private var budgets: FetchedResults<Budget>
     @FetchRequest(sortDescriptors: []) private var mainBudget: FetchedResults<MainBudget>
+    @State private var newBudget = false
 
     var body: some View {
-        if categories.isEmpty && budgets.isEmpty && mainBudget.isEmpty {
-            VStack(spacing: 5) {
-                Sa7totIcon(systemName: "chart.pie.fill", role: .status, tint: .secondary)
-                    .font(.system(size: 56, weight: .medium))
-                    .frame(width: 75, height: 75)
-                    .padding(.bottom, 20)
-
-                Text("Budget Your Finances")
-                    .font(.system(.title2, design: .rounded).weight(.medium))
-//                    .font(.system(size: 23.5, weight: .medium, design: .rounded))
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(Color.PrimaryText.opacity(0.8))
-
-                Text("Link budgets to categories and set appropriate expenditure goals")
-                    .font(.system(.body, design: .rounded).weight(.medium))
-//                    .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(Color.SubtitleText.opacity(0.7))
+        Group {
+            if #available(iOS 16.0, *) {
+                NavigationStack { budgetContent }
+            } else {
+                NavigationView { budgetContent }
             }
-            .padding(.horizontal, 30)
-            .frame(height: 250, alignment: .top)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(.all)
-            .background(Color.PrimaryBackground)
-
-        } else {
-            ActualBudgetView()
         }
+        .sheet(isPresented: $newBudget) {
+            BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)
+        }
+    }
+
+    private var budgetContent: some View {
+        ActualBudgetView()
+            .navigationTitle("Budget")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        guard !newBudget else { return }
+                        newBudget = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Nuovo budget")
+                    .disabled(newBudget)
+                }
+            }
     }
 }
 
@@ -57,8 +56,6 @@ struct ActualBudgetView: View {
     @FetchRequest(sortDescriptors: []) private var mainBudget: FetchedResults<MainBudget>
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
-
-    @State var newBudget = false
 
     @State private var showMenu = false
 
@@ -74,162 +71,110 @@ struct ActualBudgetView: View {
 
     @Namespace var animation
 
-    var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave) // the publisher
+    var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @AppStorage("UUID") var refreshID = UUID().uuidString
 
     @State var date = Date.now
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                HStack {
-                    Text("Budgets")
-                        .font(.system(.title, design: .rounded).weight(.semibold))
-//                        .font(.system(size: 25, weight: .semibold, design: .rounded))
-                        .accessibility(addTraits: .isHeader)
-
-                    Spacer()
-
-                    Button {
-                        newBudget = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .frame(width: 44, height: 44)
-                    }
-                    .budgetAddButtonBorderShape()
-                    .budgetAddButtonStyle()
-                    .offset(x: 8)
-                    .accessibilityLabel("Add budget")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 20)
-                .padding(.horizontal, 30)
-                .padding(.bottom, 20)
-
-                if !budgets.isEmpty || !mainBudget.isEmpty {
-                    ScrollView(showsIndicators: false) {
-                        VStack {
-                            if let first = mainBudget.first {
-                                NavigationLink(destination: DetailedMainBudgetView(budget: first)
-
-                                ) {
-                                    if budgets.count == 0 {
-                                        MainBudgetView(budget: first, solo: true)
-                                            .padding(.horizontal, 25)
-                                            .padding(.bottom, 15)
-                                            .id(refreshID)
-                                    } else {
-                                        MainBudgetView(budget: first, solo: false)
-                                            .padding(.horizontal, 25)
-                                            .padding(.bottom, 15)
-                                            .id(refreshID)
-                                    }
+        VStack(spacing: 0) {
+            if !budgets.isEmpty || !mainBudget.isEmpty {
+                ScrollView(showsIndicators: false) {
+                    VStack {
+                        if let first = mainBudget.first {
+                            NavigationLink(destination: DetailedMainBudgetView(budget: first)) {
+                                if budgets.count == 0 {
+                                    MainBudgetView(budget: first, solo: true)
+                                        .padding(.horizontal, 25)
+                                        .padding(.bottom, 15)
+                                        .id(refreshID)
+                                } else {
+                                    MainBudgetView(budget: first, solo: false)
+                                        .padding(.horizontal, 25)
+                                        .padding(.bottom, 15)
+                                        .id(refreshID)
                                 }
-                            }
-
-                            if budgetRows {
-                                VStack(spacing: 10) {
-                                    ForEach(budgets, id: \.self) { budget in
-                                        NavigationLink(destination: DetailedBudgetView(budget: budget)
-
-                                        ) {
-                                            SingleBudgetView(budget: budget, toDelete: $toDelete, toEdit: $toEdit, budgetRows: budgetRows)
-                                        }
-                                    }
-                                }
-
-                            } else {
-                                LazyVGrid(columns: layout, spacing: 15) {
-                                    ForEach(budgets, id: \.self) { budget in
-                                        NavigationLink(destination: DetailedBudgetView(budget: budget)
-
-                                        ) {
-                                            SingleBudgetView(budget: budget, toDelete: $toDelete, toEdit: $toEdit, budgetRows: budgetRows)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 25)
-                                .padding(5)
                             }
                         }
-                        .padding(.bottom, 70)
+
+                        if budgetRows {
+                            VStack(spacing: 10) {
+                                ForEach(budgets, id: \.self) { budget in
+                                    NavigationLink(destination: DetailedBudgetView(budget: budget)) {
+                                        SingleBudgetView(budget: budget, toDelete: $toDelete, toEdit: $toEdit, budgetRows: budgetRows)
+                                    }
+                                }
+                            }
+                        } else {
+                            LazyVGrid(columns: layout, spacing: 15) {
+                                ForEach(budgets, id: \.self) { budget in
+                                    NavigationLink(destination: DetailedBudgetView(budget: budget)) {
+                                        SingleBudgetView(budget: budget, toDelete: $toDelete, toEdit: $toEdit, budgetRows: budgetRows)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 25)
+                            .padding(5)
+                        }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .id(refreshID)
-                } else {
-                    VStack(spacing: 5) {
-                        Spacer()
-                        Sa7totIcon(systemName: "chart.pie.fill", role: .status, tint: .secondary)
-                            .font(.system(size: 56, weight: .medium))
-                            .frame(width: 75, height: 75)
-                            .padding(.bottom, 9)
-
-                        Text("No Budgets Found")
-                            .font(.system(.title2, design: .rounded).weight(.medium))
-//                            .font(.system(size: 23.5, weight: .medium, design: .rounded))
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(Color.PrimaryText.opacity(0.8))
-
-                        Text("Add your first budget today!")
-                            .font(.system(.body, design: .rounded).weight(.medium))
-//                            .font(.system(size: 18, weight: .medium, design: .rounded))
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(Color.SubtitleText.opacity(0.7))
-
-                        Spacer()
-                        Spacer()
-                    }
-                    .padding(20)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.bottom, 70)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .id(refreshID)
+            } else {
+                BudgetEmptyState()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .navigationBarTitle("")
-            .navigationBarHidden(true)
-            .background(Color.PrimaryBackground)
-            .sheet(item: $toEdit, onDismiss: {
-                toEdit = nil
-            }) { budget in
-                BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty, toEditBudget: budget)
-            }
-            .onAppear {
-                dataController.updateBudgetDates()
-            }
-            .sheet(isPresented: $newBudget) {
-                BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)
-            }
-            .fullScreenCover(item: $toDelete, onDismiss: {
-                toDelete = nil
-            }) { budget in
-                DeleteBudgetAlert(toDelete: budget)
-            }
-            .onReceive(self.didSave) { _ in // the listener
-                withAnimation {
-                    refreshID = UUID().uuidString
-                }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .background(Color.PrimaryBackground)
+        .sheet(item: $toEdit, onDismiss: {
+            toEdit = nil
+        }) { budget in
+            BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty, toEditBudget: budget)
+        }
+        .onAppear {
+            dataController.updateBudgetDates()
+        }
+        .fullScreenCover(item: $toDelete, onDismiss: {
+            toDelete = nil
+        }) { budget in
+            DeleteBudgetAlert(toDelete: budget)
+        }
+        .onReceive(self.didSave) { _ in
+            withAnimation {
+                refreshID = UUID().uuidString
             }
         }
     }
 }
 
-private extension View {
-    @ViewBuilder
-    func budgetAddButtonBorderShape() -> some View {
-        if #available(iOS 17.0, *) {
-            buttonBorderShape(.circle)
-        } else {
-            buttonBorderShape(.roundedRectangle)
+private struct BudgetEmptyState: View {
+    var body: some View {
+        Group {
+            if #available(iOS 17.0, *) {
+                ContentUnavailableView {
+                    Label("Nessun budget", systemImage: "chart.pie")
+                } description: {
+                    Text("Aggiungi il tuo primo budget.")
+                }
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.pie")
+                        .font(.title)
+                        .foregroundStyle(.secondary)
+                    Text("Nessun budget")
+                        .font(.title3.weight(.medium))
+                    Text("Aggiungi il tuo primo budget.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                .multilineTextAlignment(.center)
+                .padding()
+            }
         }
-    }
-
-    @ViewBuilder
-    func budgetAddButtonStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            buttonStyle(.glass)
-        } else {
-            buttonStyle(.bordered)
-        }
+        .foregroundStyle(.primary)
     }
 }
 
