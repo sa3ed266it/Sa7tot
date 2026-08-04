@@ -56,6 +56,46 @@ private struct CategoryHeaderFade: View {
     }
 }
 
+private struct CategoryTypeBarModifier: ViewModifier {
+    @Binding var income: Bool
+    let isVisible: Bool
+    let hasScrolled: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isVisible {
+            if #available(iOS 26.0, *) {
+                content.safeAreaBar(edge: .top, spacing: 0) {
+                    picker
+                }
+            } else {
+                VStack(spacing: 0) {
+                    picker
+                    content
+                        .overlay(alignment: .top) {
+                            if hasScrolled {
+                                CategoryHeaderFade()
+                            }
+                        }
+                }
+            }
+        } else {
+            content
+        }
+    }
+
+    private var picker: some View {
+        Picker("Tipo", selection: $income) {
+            Text("Spesa").tag(false)
+            Text("Entrata").tag(true)
+        }
+        .pickerStyle(.segmented)
+        .frame(maxWidth: 360)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 8)
+    }
+}
+
 struct CategoryView: View {
     var mode: CategoryViewMode
 //    @Environment(\.colorScheme) var colorScheme
@@ -74,30 +114,7 @@ struct CategoryView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            CategoryListView(income: $income, mode: mode, hasScrolled: $categoryHasScrolled, showToast: $showToast, toastTitle: $toastTitle, toastImage: $toastImage, positive: $positive)
-                .padding(.top, mode == .settings ? 62 : 0)
-
-            if mode == .settings {
-                VStack(spacing: 0) {
-                    Picker("Tipo", selection: $income) {
-                        Text("Spesa").tag(false)
-                        Text("Entrata").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 360)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-
-                    if #unavailable(iOS 26.0), categoryHasScrolled {
-                        CategoryHeaderFade()
-                    }
-                }
-                .background(Color.PrimaryBackground)
-                .zIndex(1)
-            }
-        }
+        CategoryListView(income: $income, mode: mode, hasScrolled: $categoryHasScrolled, showToast: $showToast, toastTitle: $toastTitle, toastImage: $toastImage, positive: $positive)
         .sheet(isPresented: $newCategory) {
             if #available(iOS 16.0, *) {
                 NewCategoryAlert(income: $income, bottomSpacers: false)
@@ -558,6 +575,7 @@ struct CategoryListView: View {
                 }
             }
         }
+        .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.PrimaryBackground)
         .animation(.easeOut(duration: 0.2), value: showToast)
