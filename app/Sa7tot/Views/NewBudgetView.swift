@@ -37,6 +37,14 @@ private enum BudgetScope: String, CaseIterable, Identifiable {
     }
 }
 
+private enum BudgetFlowStyle {
+    static let horizontalPadding: CGFloat = 20
+    static let headingTopPadding: CGFloat = 24
+    static let sectionTopPadding: CGFloat = 24
+    static let cardCornerRadius: CGFloat = 18
+    static let iconTileSize: CGFloat = 40
+}
+
 private struct BudgetCreationDraft {
     var scope: BudgetScope = .overall
     var category: Category?
@@ -200,11 +208,6 @@ private struct NativeBrandNewBudgetView: View {
             }
         }
 
-        ToolbarItem(placement: .principal) {
-            Text("Nuovo budget")
-                .font(.headline)
-        }
-
         ToolbarItem(placement: .confirmationAction) {
             Button(path.count == 2 ? "Crea" : "Avanti") {
                 advanceOrSave()
@@ -240,12 +243,12 @@ private struct NativeBrandNewBudgetView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.top, 24)
+                .padding(.top, BudgetFlowStyle.headingTopPadding)
 
                 Text("TIPO DI BUDGET")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .padding(.top, 24)
+                    .padding(.top, BudgetFlowStyle.sectionTopPadding)
                     .padding(.bottom, 12)
 
                 VStack(spacing: 12) {
@@ -259,7 +262,7 @@ private struct NativeBrandNewBudgetView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, BudgetFlowStyle.horizontalPadding)
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
@@ -279,7 +282,7 @@ private struct NativeBrandNewBudgetView: View {
                 Image(systemName: scope == .overall ? "chart.pie.fill" : "tag.fill")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.tint)
-                    .frame(width: 40, height: 40)
+                    .frame(width: BudgetFlowStyle.iconTileSize, height: BudgetFlowStyle.iconTileSize)
                     .background(.tint.opacity(isSelected ? 0.13 : 0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -307,18 +310,20 @@ private struct NativeBrandNewBudgetView: View {
                 }
                 .frame(width: 28, height: 28)
                 .accessibilityHidden(true)
+                .allowsHitTesting(false)
             }
             .padding(.horizontal, 16)
             .frame(minHeight: 76)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                isSelected ? Color.SecondaryBackground.opacity(0.78) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                budgetGlassFill(isSelected: isSelected),
+                in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
                     .stroke(isSelected ? AnyShapeStyle(.tint.opacity(0.65)) : AnyShapeStyle(Color.Outline.opacity(0.7)), lineWidth: 1)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(scope.title), \(scope.subtitle)")
@@ -331,7 +336,7 @@ private struct NativeBrandNewBudgetView: View {
             Text("CATEGORIA")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .padding(.top, 28)
+                .padding(.top, BudgetFlowStyle.sectionTopPadding)
 
             if activeExpenseCategories.isEmpty {
                 Button {
@@ -356,7 +361,7 @@ private struct NativeBrandNewBudgetView: View {
                     .padding(.horizontal, 16)
                     .frame(minHeight: 60)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Nessuna categoria disponibile. Aggiungi categoria")
@@ -396,15 +401,17 @@ private struct NativeBrandNewBudgetView: View {
                     Image(systemName: "checkmark")
                         .font(.caption.weight(.bold))
                         .accessibilityHidden(true)
+                        .allowsHitTesting(false)
                 }
             }
             .foregroundStyle(.primary)
             .padding(.horizontal, 15)
             .frame(minHeight: 44)
             .background(
-                isSelected ? Color.SecondaryBackground : Color.SecondaryBackground.opacity(0.72),
+                isSelected ? AnyShapeStyle(Color.SecondaryBackground) : AnyShapeStyle(.thinMaterial),
                 in: Capsule()
             )
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(category.wrappedName)
@@ -421,17 +428,17 @@ private struct NativeBrandNewBudgetView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Con quale frequenza?")
                         .font(.title2.weight(.semibold))
-                    Text("Il budget si rinnova automaticamente in base al periodo scelto.")
+                    Text("Scegli ogni quanto si rinnova il budget.")
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.top, 24)
+                .padding(.top, BudgetFlowStyle.headingTopPadding)
 
                 Text("PERIODO")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .padding(.top, 24)
+                    .padding(.top, BudgetFlowStyle.sectionTopPadding)
                     .padding(.bottom, 12)
 
                 LazyVGrid(
@@ -443,7 +450,7 @@ private struct NativeBrandNewBudgetView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, BudgetFlowStyle.horizontalPadding)
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
@@ -500,11 +507,11 @@ private struct NativeBrandNewBudgetView: View {
             .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
             .contentShape(Rectangle())
             .background(
-                isSelected ? Color.SecondaryBackground.opacity(0.78) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                budgetGlassFill(isSelected: isSelected),
+                in: RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: BudgetFlowStyle.cardCornerRadius, style: .continuous)
                     .stroke(isSelected ? AnyShapeStyle(.tint.opacity(0.7)) : AnyShapeStyle(Color.Outline.opacity(0.7)), lineWidth: 1)
             }
         }
@@ -533,6 +540,12 @@ private struct NativeBrandNewBudgetView: View {
         }
     }
 
+    private func budgetGlassFill(isSelected: Bool) -> AnyShapeStyle {
+        isSelected
+            ? AnyShapeStyle(Color.SecondaryBackground.opacity(0.78))
+            : AnyShapeStyle(.thinMaterial)
+    }
+
     private var amountStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -546,7 +559,7 @@ private struct NativeBrandNewBudgetView: View {
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.top, 24)
+                .padding(.top, BudgetFlowStyle.headingTopPadding)
 
                 amountEntry
                     .padding(.top, 36)
@@ -557,7 +570,7 @@ private struct NativeBrandNewBudgetView: View {
                 inlineBudgetSummary
                     .padding(.top, 22)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, BudgetFlowStyle.horizontalPadding)
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
@@ -589,7 +602,7 @@ private struct NativeBrandNewBudgetView: View {
                 .foregroundStyle(.secondary)
 
             TextField("0,00", text: $amountText)
-                .font(.system(size: 64, weight: .regular, design: .rounded, relativeTo: .largeTitle))
+                .font(.largeTitle.weight(.regular))
                 .keyboardType(.decimalPad)
                 .textInputAutocapitalization(.never)
                 .multilineTextAlignment(.center)
@@ -622,7 +635,7 @@ private struct NativeBrandNewBudgetView: View {
 
             HStack(spacing: 12) {
                 summaryIcon
-                    .frame(width: 40, height: 40)
+                    .frame(width: BudgetFlowStyle.iconTileSize, height: BudgetFlowStyle.iconTileSize)
                     .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 3) {
