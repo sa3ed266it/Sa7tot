@@ -30,7 +30,17 @@ struct BouncyButton: ButtonStyle {
 }
 
 struct LogView: View {
+#if !targetEnvironment(simulator)
     @ObservedObject var syncMonitor = SyncMonitor.shared
+#endif
+
+    private var cloudSyncSucceeded: Bool {
+#if targetEnvironment(simulator)
+        return false
+#else
+        return syncMonitor.syncStateSummary == .succeeded
+#endif
+    }
 
     @State var updatedRecurring = false
 
@@ -275,8 +285,8 @@ struct LogView: View {
 //            .onAppear(perform: scrollDelegate.addGesture)
 //            .onDisappear(perform: scrollDelegate.removeGesture)
             .background(Color.PrimaryBackground)
-            .onChange(of: syncMonitor.syncStateSummary) { newState in
-                if newState == .succeeded && !updatedRecurring {
+            .onChange(of: cloudSyncSucceeded) { succeeded in
+                if succeeded && !updatedRecurring {
                     dataController.updateRecurringTransactions()
                     updatedRecurring = true
 
@@ -286,7 +296,7 @@ struct LogView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                if syncMonitor.syncStateSummary == .succeeded && !updatedRecurring {
+                if cloudSyncSucceeded && !updatedRecurring {
                     dataController.updateRecurringTransactions()
                     updatedRecurring = true
 

@@ -37,9 +37,15 @@ class DataController: ObservableObject {
     @Published private(set) var accountMigrationError: Error?
     @Published private(set) var accountMigrationErrorMessage: String?
 
-    var container = NSPersistentCloudKitContainer(name: "MainModel")
+    var container: NSPersistentContainer
 
     init() {
+        #if targetEnvironment(simulator)
+        container = NSPersistentContainer(name: "MainModel")
+        #else
+        container = NSPersistentCloudKitContainer(name: "MainModel")
+        #endif
+
         let description = NSPersistentStoreDescription()
 
         description.shouldMigrateStoreAutomatically = true
@@ -59,7 +65,9 @@ class DataController: ObservableObject {
 //            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.com.saied.sa7tot")
 //        }
 
+        #if !targetEnvironment(simulator)
         description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.com.saied.sa7tot")
+        #endif
 
         let groupID = "group.com.saied.sa7tot"
 

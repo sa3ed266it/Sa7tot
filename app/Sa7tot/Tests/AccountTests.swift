@@ -452,6 +452,24 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(category.iconIdentifier, "sf:tag.fill")
     }
 
+    func testCurrentModelUsesIconIdentifierWithoutEmoji() {
+        let categoryEntity = Self.testModel.entitiesByName["Category"]
+        XCTAssertNotNil(categoryEntity?.attributesByName["iconIdentifier"])
+        XCTAssertNil(categoryEntity?.attributesByName["emoji"])
+    }
+
+    func testCleanPersistentStorePersistsCategoryIconIdentifier() throws {
+        let context = makeContext()
+        let category = makeCategory(in: context, name: "Test")
+        try context.save()
+
+        let request = Category.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", "Test")
+        let fetched = try context.fetch(request)
+        XCTAssertEqual(fetched.count, 1)
+        XCTAssertEqual(fetched.first?.iconIdentifier, "sf:doc.text.fill")
+    }
+
     private func makeCategory(in context: NSManagedObjectContext, name: String, income: Bool = false) -> Category {
         let category = Category(context: context)
         category.id = UUID()
