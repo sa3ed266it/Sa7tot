@@ -235,12 +235,12 @@ private struct NativeBrandNewBudgetView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.top, 30)
+                .padding(.top, 24)
 
                 Text("TIPO DI BUDGET")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .padding(.top, 30)
+                    .padding(.top, 24)
                     .padding(.bottom, 12)
 
                 VStack(spacing: 12) {
@@ -272,10 +272,10 @@ private struct NativeBrandNewBudgetView: View {
         } label: {
             HStack(spacing: 14) {
                 Image(systemName: scope == .overall ? "chart.pie.fill" : "tag.fill")
-                    .font(.title3.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.tint)
-                    .frame(width: 48, height: 48)
-                    .background(.tint.opacity(isSelected ? 0.16 : 0.09), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    .frame(width: 40, height: 40)
+                    .background(.tint.opacity(isSelected ? 0.13 : 0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(scope.title)
@@ -304,12 +304,15 @@ private struct NativeBrandNewBudgetView: View {
                 .accessibilityHidden(true)
             }
             .padding(.horizontal, 16)
-            .frame(minHeight: 88)
+            .frame(minHeight: 76)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(
+                isSelected ? Color.SecondaryBackground.opacity(0.78) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
             .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary.opacity(0.35)), lineWidth: isSelected ? 1.5 : 1)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isSelected ? AnyShapeStyle(.tint.opacity(0.65)) : AnyShapeStyle(Color.Outline.opacity(0.7)), lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
@@ -361,7 +364,7 @@ private struct NativeBrandNewBudgetView: View {
                     }
                     .padding(.horizontal, 2)
                 }
-                .frame(minHeight: 60)
+                .frame(minHeight: 52)
             }
         }
     }
@@ -392,12 +395,11 @@ private struct NativeBrandNewBudgetView: View {
             }
             .foregroundStyle(.primary)
             .padding(.horizontal, 15)
-            .frame(minHeight: 56)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary.opacity(0.3)), lineWidth: isSelected ? 1.5 : 1)
-            }
+            .frame(minHeight: 44)
+            .background(
+                isSelected ? Color.SecondaryBackground : Color.SecondaryBackground.opacity(0.72),
+                in: Capsule()
+            )
         }
         .buttonStyle(.plain)
         .accessibilityLabel(category.wrappedName)
