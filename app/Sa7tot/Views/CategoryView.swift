@@ -432,12 +432,6 @@ struct CategoryListView: View {
                                             .foregroundColor(toDelete == category ? Color.AlertRed : Color.PrimaryText)
 
                                         Spacer()
-
-                                        if !income {
-                                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                                .fill(Color(hex: category.wrappedColour))
-                                                .frame(width: 20, height: 20)
-                                        }
                                     }
                                     .padding(.vertical, 5)
                                     .listRowBackground(Color.SettingsBackground)
@@ -512,12 +506,6 @@ struct CategoryListView: View {
                                             .foregroundColor(toDelete == category ? Color.AlertRed : Color.PrimaryText)
 
                                         Spacer()
-
-                                        if !income {
-                                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                                .fill(Color(hex: category.wrappedColour))
-                                                .frame(width: 20, height: 20)
-                                        }
                                     }
                                     .padding(.vertical, 5)
                                     .listRowBackground(Color.SettingsBackground)
@@ -850,45 +838,23 @@ struct SuggestedCategoriesView: View {
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var dataController: DataController
 
-    var nameArray: [String] {
-        var emptyArray = [String]()
-
-        categories.forEach { category in
-            emptyArray.append(category.wrappedName)
-        }
-
-        return emptyArray
-    }
-
     var suggestions: [SuggestedCategory] {
-        var holding = [SuggestedCategory]()
-
-        if income {
-            SuggestedCategory.incomes.forEach { category in
-                if !nameArray.contains(category.name) {
-                    holding.append(category)
-                }
-            }
-        } else {
-            SuggestedCategory.expenses.forEach { category in
-                if !nameArray.contains(category.name) {
-                    holding.append(category)
-                }
-            }
+        let existingNames = Set(categories.map { CategoryNameNormalizer.key($0.wrappedName) })
+        let source = income ? SuggestedCategory.incomes : SuggestedCategory.expenses
+        return source.filter { suggestion in
+            let localizedName = NSLocalizedString(suggestion.name, comment: "category name")
+            return !existingNames.contains(CategoryNameNormalizer.key(localizedName))
         }
-
-        return holding
     }
 
-    @State private var availableColours: [String] = Color.colorArray
-    @State private var selectedColour = "1"
+    @State private var addingNames: Set<String> = []
 
     var body: some View {
         if !suggestions.isEmpty {
             Section(header: Text("SUGGESTED").foregroundColor(Color.SubtitleText)) {
                 ForEach(suggestions, id: \.self) { category in
                     HStack(spacing: 8) {
-                        Sa7totIcon(systemName: category.symbolName, role: .inline)
+                        CategoryIconView(descriptor: .sfSymbol(category.symbolName), role: .category, accessibilityLabel: category.name)
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         Text(LocalizedStringKey(category.name))
                             .font(.system(.body, design: .rounded))
@@ -911,71 +877,26 @@ struct SuggestedCategoriesView: View {
                     .listRowBackground(Color.SettingsBackground)
                     .listRowSeparatorTint(Color.Outline)
                     .contentShape(Rectangle())
-                    .onTapGesture {
-                        // double check
-
-                        let storedIconIdentifier = "sf:\(category.symbolName)"
-                        let (outcome, _) = dataController.categoryCheck(name: category.name, iconIdentifier: storedIconIdentifier, income: income)
-
-                        if outcome != .none {
-                            return
-                        }
-
-                        let impactMed = UIImpactFeedbackGenerator(style: .light)
-                        impactMed.impactOccurred()
-
-                        if !income {
-                            let suggestedCategory = Category(context: moc)
-                            suggestedCategory.name = NSLocalizedString(category.name, comment: "category name")
-                            suggestedCategory.iconIdentifier = storedIconIdentifier
-                            suggestedCategory.dateCreated = Date.now
-                            suggestedCategory.id = UUID()
-                            suggestedCategory.colour = selectedColour
-                            suggestedCategory.order = (categories.last?.order ?? 0) + 1
-                            suggestedCategory.income = false
-                            dataController.save()
-
-                            availableColours = Color.colorArray
-                            categories.forEach { category in
-                                if availableColours.contains(category.wrappedColour) {
-                                    availableColours.remove(at: availableColours.firstIndex(of: category.wrappedColour) ?? 0)
-                                }
-                            }
-
-                            if availableColours.isEmpty {
-                                selectedColour = "#FFFFFF"
-                            } else {
-                                selectedColour = availableColours[0]
-                            }
-                        } else {
-                            let suggestedCategory = Category(context: moc)
-                            suggestedCategory.name = NSLocalizedString(category.name, comment: "category name")
-                            suggestedCategory.iconIdentifier = storedIconIdentifier
-                            suggestedCategory.dateCreated = Date.now
-                            suggestedCategory.id = UUID()
-                            suggestedCategory.colour = "#76FBB0"
-                            suggestedCategory.order = (categories.last?.order ?? 0) + 1
-                            suggestedCategory.income = true
-                            dataController.save()
-                        }
-                    }
+                    .onTapGesture { addSuggestion(category) }
+                    .opacity(addingNames.contains(CategoryNameNormalizer.key(NSLocalizedString(category.name, comment: "category name"))) ? 0.55 : 1)
                 }
             }
-            .onAppear {
-                if !income {
-                    categories.forEach { category in
-                        if availableColours.contains(category.wrappedColour) {
-                            availableColours.remove(at: availableColours.firstIndex(of: category.wrappedColour) ?? 0)
-                        }
-                    }
+        }
+    }
 
-                    if availableColours.isEmpty {
-                        selectedColour = "#FFFFFF"
-                    } else {
-                        selectedColour = availableColours[0]
-                    }
-                }
-            }
+    private func addSuggestion(_ suggestion: SuggestedCategory) {
+        let name = NSLocalizedString(suggestion.name, comment: "category name")
+        let key = CategoryNameNormalizer.key(name)
+        guard addingNames.insert(key).inserted else { return }
+
+        let impactMed = UIImpactFeedbackGenerator(style: .light)
+        impactMed.impactOccurred()
+        do {
+            try dataController.createCategory(name: name, iconIdentifier: "sf:\(suggestion.symbolName)", income: income)
+        } catch CategoryMutationError.duplicateName {
+            // A concurrent tap or update won the race; the suggestion remains filtered by persistence.
+        } catch {
+            addingNames.remove(key)
         }
     }
 
@@ -1231,7 +1152,6 @@ private struct PremiumCategoryEditor: View {
 
     @State private var name = ""
     @State private var selectedSymbol = "tag.fill"
-    @State private var selectedColour = "#76FBB0"
     @State private var errorMessage: String?
     @State private var isSaving = false
     @State private var showDeleteConfirmation = false
@@ -1264,7 +1184,6 @@ private struct PremiumCategoryEditor: View {
                     preview
                     kindPicker
                     nameField
-                    colourPicker
                     iconPicker
 
                     if let errorMessage {
@@ -1312,7 +1231,6 @@ private struct PremiumCategoryEditor: View {
         .onAppear {
             guard let category else { return }
             name = category.wrappedName
-            selectedColour = category.wrappedColour
             selectedSymbol = category.iconDescriptor.identifier.replacingOccurrences(of: "sf:", with: "")
         }
         .onChange(of: income) { _ in
@@ -1326,9 +1244,9 @@ private struct PremiumCategoryEditor: View {
         HStack(spacing: 14) {
             Image(systemName: selectedSymbol)
                 .font(.system(size: 25, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.PrimaryText)
                 .frame(width: 58, height: 58)
-                .background(Color(hex: selectedColour), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(Color.SecondaryBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             Text(trimmedName.isEmpty ? "Nome categoria" : trimmedName)
                 .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -1365,34 +1283,6 @@ private struct PremiumCategoryEditor: View {
         }
     }
 
-    private var colourPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Colore")
-                .font(.headline)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 8), spacing: 10) {
-                ForEach(Color.colorArray, id: \.self) { colour in
-                    Button {
-                        selectedColour = colour
-                    } label: {
-                        Circle()
-                            .fill(Color(hex: colour))
-                            .frame(width: 32, height: 32)
-                            .overlay {
-                                if selectedColour == colour {
-                                    Image(systemName: "checkmark")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundStyle(Color(hex: colour).luminance() > 0.5 ? .black : .white)
-                                }
-                            }
-                    }
-                    .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel("Colore \(colour)")
-                    .accessibilityAddTraits(selectedColour == colour ? .isSelected : [])
-                }
-            }
-        }
-    }
-
     private var iconPicker: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Icona")
@@ -1410,13 +1300,11 @@ private struct PremiumCategoryEditor: View {
                             Button {
                                 selectedSymbol = option.symbolName
                             } label: {
-                                Image(systemName: option.symbolName)
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundStyle(selectedSymbol == option.symbolName ? .white : Color.PrimaryText)
+                                CategoryIconView(descriptor: .sfSymbol(option.symbolName), role: .category, style: selectedSymbol == option.symbolName ? .selection : .plain, tint: Color.PrimaryText, accessibilityLabel: option.title)
                                     .frame(maxWidth: .infinity, minHeight: 48)
                                     .background(
                                         selectedSymbol == option.symbolName
-                                            ? Color(hex: selectedColour)
+                                            ? Color.PrimaryText.opacity(0.18)
                                             : Color.SecondaryBackground,
                                         in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                                     )
@@ -1439,7 +1327,7 @@ private struct PremiumCategoryEditor: View {
         let result: (error: CategoryError, order: Int64)
 
         if let category {
-            result = dataController.categoryCheckEdit(name: trimmedName, iconIdentifier: encodedIconIdentifier, toEdit: category)
+            result = dataController.categoryCheckEdit(name: trimmedName, iconIdentifier: encodedIconIdentifier, income: income, toEdit: category)
         } else {
             result = dataController.categoryCheck(name: trimmedName, iconIdentifier: encodedIconIdentifier, income: income)
         }
@@ -1450,24 +1338,21 @@ private struct PremiumCategoryEditor: View {
             return
         }
 
-        if let category {
-            category.name = trimmedName
-            category.iconIdentifier = encodedIconIdentifier
-            category.colour = selectedColour
-        } else {
-            let newCategory = Category(context: moc)
-            newCategory.name = trimmedName
-            newCategory.iconIdentifier = encodedIconIdentifier
-            newCategory.dateCreated = Date.now
-            newCategory.id = UUID()
-            newCategory.order = result.order
-            newCategory.income = income
-            newCategory.colour = selectedColour
+        do {
+            if let category {
+                try dataController.updateCategory(category, name: trimmedName, iconIdentifier: encodedIconIdentifier, income: income)
+            } else {
+                try dataController.createCategory(name: trimmedName, iconIdentifier: encodedIconIdentifier, income: income)
+            }
+            onSaved?()
+            dismiss()
+        } catch CategoryMutationError.duplicateName {
+            errorMessage = "Esiste già una categoria con questo nome."
+            isSaving = false
+        } catch {
+            errorMessage = "Impossibile salvare la categoria."
+            isSaving = false
         }
-
-        dataController.save()
-        onSaved?()
-        dismiss()
     }
 
     private func deleteCategory() {

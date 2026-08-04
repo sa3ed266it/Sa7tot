@@ -458,6 +458,40 @@ final class AccountTests: XCTestCase {
         XCTAssertNil(categoryEntity?.attributesByName["emoji"])
     }
 
+    func testCategoryNameNormalizationCollapsesCaseWhitespaceAndDiacritics() {
+        let variants = ["Cibo", "cibo", " Cibo ", "CIBO", "CiBo", "Cìbò", "Cibo  \t"]
+        XCTAssertEqual(Set(variants.map(CategoryNameNormalizer.key)).count, 1)
+        XCTAssertEqual(CategoryNameNormalizer.displayName("  Cibo   per   casa  "), "Cibo per casa")
+    }
+
+    func testCategoryUniquenessIsSeparatedByIncomeKind() {
+        let context = makeContext()
+        let expense = makeCategory(in: context, name: "Cibo", income: false)
+        let income = makeCategory(in: context, name: "Cibo", income: true)
+        XCTAssertNotEqual(expense.income, income.income)
+
+        let expenses = [expense].filter { CategoryNameNormalizer.key($0.wrappedName) == CategoryNameNormalizer.key(" cibo ") }
+        let incomes = [income].filter { CategoryNameNormalizer.key($0.wrappedName) == CategoryNameNormalizer.key("CIBO") }
+        XCTAssertEqual(expenses.count, 1)
+        XCTAssertEqual(incomes.count, 1)
+    }
+
+    func testCategoryIconAndColourAreIndependent() {
+        let context = makeContext()
+        let category = makeCategory(in: context, name: "Cibo")
+        category.colour = "#FF0000"
+        category.iconIdentifier = "sf:fork.knife"
+        XCTAssertEqual(category.iconDescriptor.identifier, "sf:fork.knife")
+        XCTAssertEqual(category.wrappedColour, "#FF0000")
+        XCTAssertEqual(CategoryIconPresentation.foreground(for: category.wrappedColour), .primary)
+    }
+
+    func testRepeatedSuggestedNameNormalizesToOneCandidate() {
+        let suggestionVariants = ["Cibo", "cibo", " Cibo ", "CIBO", "CiBo"]
+        let uniqueKeys = Set(suggestionVariants.map(CategoryNameNormalizer.key))
+        XCTAssertEqual(uniqueKeys.count, 1)
+    }
+
     func testCleanPersistentStorePersistsCategoryIconIdentifier() throws {
         let context = makeContext()
         let category = makeCategory(in: context, name: "Test")

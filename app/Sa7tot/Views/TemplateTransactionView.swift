@@ -817,7 +817,7 @@ struct CategoryRowPickerView: View {
                                         .id(item.id)
                                         .padding(.horizontal, 10)
                                         .frame(height: 36)
-                                        .foregroundColor(selectedCategory == item ? (item.income ? Color.IncomeGreen : Color(hex: item.wrappedColour)) : Color.PrimaryText)
+                                        .foregroundColor(Color.PrimaryText)
                                         .background(getBackground(category: item), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         .overlay {
                                             if selectedCategory != item {
@@ -909,13 +909,13 @@ struct CategoryRowPickerView: View {
     func getBackground(category: Category) -> Color {
         if category.income {
             if category == selectedCategory {
-                return Color.IncomeGreen.opacity(0.3)
+                return Color.SecondaryBackground
             } else {
                 return Color.PrimaryBackground
             }
         } else {
             if category == selectedCategory {
-                return Color(hex: category.wrappedColour).opacity(0.3)
+                return Color.SecondaryBackground
             } else {
                 return Color.PrimaryBackground
             }

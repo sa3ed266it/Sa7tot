@@ -7,6 +7,18 @@
 
 import Foundation
 
+enum CategoryNameNormalizer {
+    static func displayName(_ name: String) -> String {
+        name.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    }
+
+    static func key(_ name: String) -> String {
+        displayName(name)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "it_IT"))
+            .lowercased(with: Locale(identifier: "it_IT"))
+    }
+}
+
 enum CategoryIconDescriptor: Hashable {
     case sfSymbol(String)
     case asset(String)

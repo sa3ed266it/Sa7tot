@@ -21,9 +21,6 @@ struct TransactionCategoryMenu: View {
                             CategoryIconView(descriptor: item.iconDescriptor, role: .inline, accessibilityLabel: item.wrappedName)
                         }
                         Spacer()
-                        Circle()
-                            .fill(Color(hex: item.wrappedColour))
-                            .frame(width: 8, height: 8)
                         if item == category {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.primary)
@@ -48,7 +45,7 @@ struct TransactionCategoryMenu: View {
                         Text(category.wrappedName)
                             .lineLimit(1)
                     }
-                    .foregroundStyle(CategoryIconPresentation.foreground(for: category.wrappedColour))
+                    .foregroundStyle(.primary)
                 } else {
                     Text("Scegli").foregroundStyle(.secondary)
                 }
@@ -94,9 +91,6 @@ struct NewCategoryPickerView: View {
                                 Text(item.wrappedName)
                                     .foregroundStyle(.primary)
                                 Spacer(minLength: 8)
-                                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                    .fill(Color(hex: item.wrappedColour))
-                                    .frame(width: 4, height: 22)
                                 if item == category {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.tint)

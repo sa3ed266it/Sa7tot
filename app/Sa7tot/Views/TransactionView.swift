@@ -661,9 +661,9 @@ struct TransactionView: View {
                                         }
                                         .padding(.vertical, 8.5)
                                         .padding(.horizontal, 10)
-                                        .foregroundColor(Color(hex: unwrappedCategory.wrappedColour))
+                                        .foregroundColor(Color.PrimaryText)
                                         .background(
-                                            Color(hex: unwrappedCategory.wrappedColour).opacity(0.35),
+                                            Color.SecondaryBackground,
                                             in: RoundedRectangle(cornerRadius: 11.5, style: .continuous)
                                         )
     //                                    .popover(

@@ -504,7 +504,6 @@ private struct TransactionEditorCategoryCarousel: View {
 
     private func categoryChip(_ item: Category) -> some View {
         let selected = item == category
-        let tint = Color(hex: item.wrappedColour)
         return Button {
             category = item
         } label: {
@@ -525,7 +524,7 @@ private struct TransactionEditorCategoryCarousel: View {
             .frame(minHeight: 44)
             .padding(.horizontal, 13)
             .background(
-                selected ? tint.opacity(0.2) : Color.SecondaryBackground,
+                selected ? Color.SecondaryBackground : Color.SecondaryBackground,
                 in: Capsule()
             )
         }

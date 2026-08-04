@@ -10,3 +10,8 @@ import Foundation
 enum CategoryError {
     case none, incomplete, missingIcon, missingName, duplicate, duplicateName
 }
+
+enum CategoryMutationError: Error {
+    case duplicateName
+    case persistence(Error)
+}

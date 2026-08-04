@@ -31,6 +31,7 @@ class DataController: ObservableObject {
     static let shared = DataController()
 
     private let storeStateLock = NSLock()
+    private let categoryMutationLock = NSLock()
     private var storeReady = false
     private var storeLoadError: Error?
 
@@ -691,35 +692,88 @@ class DataController: ObservableObject {
     }
 
     func categoryCheck(name: String, iconIdentifier: String, income: Bool) -> (error: CategoryError, order: Int64) {
-        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && iconIdentifier == "" {
+        let normalizedName = CategoryNameNormalizer.displayName(name)
+        if normalizedName.isEmpty && iconIdentifier == "" {
             return (CategoryError.incomplete, 0)
-        } else if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
+        } else if normalizedName.isEmpty {
             return (CategoryError.missingName, 0)
         } else if iconIdentifier == "" {
             return (CategoryError.missingIcon, 0)
         }
 
         let categories = results(for: fetchRequestForCategories(income: income))
-        if categories.contains(where: { $0.wrappedName.caseInsensitiveCompare(name.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame }) {
+        if categories.contains(where: { CategoryNameNormalizer.key($0.wrappedName) == CategoryNameNormalizer.key(normalizedName) }) {
                 return (CategoryError.duplicateName, 0)
         }
         return (CategoryError.none, (categories.last?.order ?? 0) + 1)
     }
 
-    func categoryCheckEdit(name: String, iconIdentifier: String, toEdit: Category) -> (error: CategoryError, order: Int64) {
-        if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" && iconIdentifier == "" {
+    func categoryCheckEdit(name: String, iconIdentifier: String, income: Bool, toEdit: Category) -> (error: CategoryError, order: Int64) {
+        let normalizedName = CategoryNameNormalizer.displayName(name)
+        if normalizedName.isEmpty && iconIdentifier == "" {
             return (CategoryError.incomplete, 0)
-        } else if name.trimmingCharacters(in: .whitespacesAndNewlines) == "" {
+        } else if normalizedName.isEmpty {
             return (CategoryError.missingName, 0)
         } else if iconIdentifier == "" {
             return (CategoryError.missingIcon, 0)
         }
 
-        let categories = results(for: fetchRequestForCategories(income: toEdit.income)).filter { $0 != toEdit }
-        if categories.contains(where: { $0.wrappedName.caseInsensitiveCompare(name.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame }) {
+        let categories = results(for: fetchRequestForCategories(income: income)).filter { $0 != toEdit }
+        if categories.contains(where: { CategoryNameNormalizer.key($0.wrappedName) == CategoryNameNormalizer.key(normalizedName) }) {
             return (CategoryError.duplicateName, 0)
         }
         return (CategoryError.none, (categories.last?.order ?? 0) + 1)
+    }
+
+    @discardableResult
+    func createCategory(name: String, iconIdentifier: String, income: Bool, colour: String = "#FFFFFF") throws -> Category {
+        categoryMutationLock.lock()
+        defer { categoryMutationLock.unlock() }
+
+        let displayName = CategoryNameNormalizer.displayName(name)
+        let categories = results(for: fetchRequestForCategories(income: income))
+        guard !categories.contains(where: { CategoryNameNormalizer.key($0.wrappedName) == CategoryNameNormalizer.key(displayName) }) else {
+            throw CategoryMutationError.duplicateName
+        }
+
+        let category = Category(context: container.viewContext)
+        category.name = displayName
+        category.iconIdentifier = iconIdentifier
+        category.dateCreated = .now
+        category.id = UUID()
+        category.order = (categories.last?.order ?? 0) + 1
+        category.income = income
+        category.colour = colour
+        do {
+            try container.viewContext.save()
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            container.viewContext.rollback()
+            throw CategoryMutationError.persistence(error)
+        }
+        return category
+    }
+
+    func updateCategory(_ category: Category, name: String, iconIdentifier: String, income: Bool) throws {
+        categoryMutationLock.lock()
+        defer { categoryMutationLock.unlock() }
+
+        let displayName = CategoryNameNormalizer.displayName(name)
+        let categories = results(for: fetchRequestForCategories(income: income)).filter { $0 != category }
+        guard !categories.contains(where: { CategoryNameNormalizer.key($0.wrappedName) == CategoryNameNormalizer.key(displayName) }) else {
+            throw CategoryMutationError.duplicateName
+        }
+
+        category.name = displayName
+        category.iconIdentifier = iconIdentifier
+        category.income = income
+        do {
+            try container.viewContext.save()
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            container.viewContext.rollback()
+            throw CategoryMutationError.persistence(error)
+        }
     }
 
     func fetchRequestForBudgets() -> NSFetchRequest<Budget> {

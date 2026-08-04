@@ -842,8 +842,8 @@ struct BrandNewBudgetView: View {
             }
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
-            .foregroundColor(selectedCategory == category ? Color(hex: category.wrappedColour) : Color.PrimaryText)
-            .background(selectedCategory == category ? Color(hex: category.wrappedColour).opacity(0.35) : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .foregroundColor(Color.PrimaryText)
+            .background(selectedCategory == category ? Color.SecondaryBackground : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
                 if selectedCategory != category {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
