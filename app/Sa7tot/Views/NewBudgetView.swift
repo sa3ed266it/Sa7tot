@@ -617,10 +617,12 @@ private struct NativeBrandNewBudgetView: View {
                 .foregroundStyle(.secondary)
 
             TextField("0,00", text: $amountText)
-                .font(.largeTitle.weight(.regular))
+                .font(.system(size: 64, weight: .regular, design: .rounded))
                 .keyboardType(.decimalPad)
                 .textInputAutocapitalization(.never)
                 .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
                 .focused($amountFieldFocused)
                 .onChange(of: amountText) { value in
                     if let value = BudgetAmountParser.decimal(from: value) {
