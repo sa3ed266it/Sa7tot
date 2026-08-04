@@ -96,6 +96,19 @@ private struct CategoryTypeBarModifier: ViewModifier {
     }
 }
 
+private struct CategoryNavigationBarVisibility: ViewModifier {
+    let usesCustomHeader: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.toolbar(usesCustomHeader ? .hidden : .visible, for: .navigationBar)
+        } else {
+            content
+        }
+    }
+}
+
 struct CategoryView: View {
     var mode: CategoryViewMode
 //    @Environment(\.colorScheme) var colorScheme
@@ -125,7 +138,11 @@ struct CategoryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea(.keyboard, edges: .all)
-        .background(Color.PrimaryBackground)
+        .background {
+            Color.PrimaryBackground
+                .ignoresSafeArea(.container, edges: .top)
+        }
+        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode != .settings))
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -307,7 +324,8 @@ struct CategoryListView: View {
 //                            .font(.system(size: 20, weight: .medium, design: .rounded))
                     }
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
+                    .padding(.top, 4)
+                    .padding(.bottom, 8)
 
                 } else if mode != .settings {
                     HStack(spacing: 8) {
@@ -406,7 +424,8 @@ struct CategoryListView: View {
 //                            .font(.system(size: 20, weight: mode == .settings ? .semibold : .medium, design: .rounded))
                     }
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
+                    .padding(.top, 4)
+                    .padding(.bottom, 8)
                 }
             }
 
