@@ -155,12 +155,12 @@ struct CategoryView: View {
                         dismiss()
                     }
                 } label: {
-                    Image(systemName: "chevron.left")
+                    Image(systemName: "xmark")
                 }
                 .opacity(mode == .settings ? 1 : 0)
                 .disabled(mode != .settings)
                 .accessibilityHidden(mode != .settings)
-                .accessibilityLabel("Indietro")
+                .accessibilityLabel("Chiudi")
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
