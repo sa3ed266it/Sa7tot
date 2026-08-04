@@ -515,6 +515,7 @@ struct CategoryListView: View {
                     .categorySoftScrollEdge()
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
+                    .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
                 } else {
                     List {
                         Section(header: Text("\(income ? "INCOME" : "EXPENSE") CATEGORIES").foregroundColor(Color.SubtitleText)) {
@@ -588,10 +589,10 @@ struct CategoryListView: View {
                     .categorySoftScrollEdge()
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
+                    .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
                 }
             }
         }
-        .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.PrimaryBackground)
         .animation(.easeOut(duration: 0.2), value: showToast)
