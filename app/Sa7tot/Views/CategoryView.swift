@@ -28,21 +28,31 @@ private extension View {
             self
         }
     }
+
+    @ViewBuilder
+    func categorySoftScrollEdge() -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+    }
 }
 
 private struct CategoryHeaderFade: View {
     var body: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .mask {
-                LinearGradient(
-                    colors: [.black.opacity(0.72), .black.opacity(0.24), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .frame(height: 42)
+        LinearGradient(
+            stops: [
+                .init(color: Color.PrimaryBackground.opacity(0.82), location: 0),
+                .init(color: Color.PrimaryBackground.opacity(0.42), location: 0.42),
+                .init(color: Color.PrimaryBackground.opacity(0), location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+            .frame(height: 30)
             .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
 
@@ -80,7 +90,7 @@ struct CategoryView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 8)
 
-                    if categoryHasScrolled {
+                    if #unavailable(iOS 26.0), categoryHasScrolled {
                         CategoryHeaderFade()
                     }
                 }
@@ -469,6 +479,7 @@ struct CategoryListView: View {
                     }
                     .scrollContentBackground(.hidden)
                     .scrollIndicators(.hidden)
+                    .categorySoftScrollEdge()
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
                 } else {
@@ -541,6 +552,7 @@ struct CategoryListView: View {
                             SuggestedCategoriesView(income: income)
                         }
                     }
+                    .categorySoftScrollEdge()
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
                 }
