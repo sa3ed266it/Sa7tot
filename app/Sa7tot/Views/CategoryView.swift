@@ -306,7 +306,8 @@ struct CategoryListView: View {
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                            .font(.system(size: 20, weight: .medium, design: .rounded))
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
 
                 } else if mode != .settings {
                     HStack(spacing: 8) {
@@ -404,7 +405,8 @@ struct CategoryListView: View {
                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                            .font(.system(size: 20, weight: mode == .settings ? .semibold : .medium, design: .rounded))
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
                 }
             }
 
