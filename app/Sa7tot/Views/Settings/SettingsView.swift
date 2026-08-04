@@ -94,6 +94,7 @@ struct SettingsView: View {
   // popups
 
   @State var showImportGuide = false
+  @State private var showCategoriesSheet = false
 
   @EnvironmentObject var dataController: DataController
 
@@ -106,6 +107,23 @@ struct SettingsView: View {
       }
     }
     .fullScreenCover(isPresented: $showImportGuide) { ImportDataView() }
+    .sheet(isPresented: $showCategoriesSheet) {
+      if #available(iOS 16.0, *) {
+        NavigationStack {
+          CategoryView(mode: .settings, income: false)
+            .navigationTitle("Categorie")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+      } else {
+        NavigationView {
+          CategoryView(mode: .settings, income: false)
+            .navigationTitle("Categorie")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+      }
+    }
   }
 
   private var settingsList: some View {
@@ -164,7 +182,9 @@ struct SettingsView: View {
       }
 
       Section("Dati") {
-        NavigationLink(destination: SettingsCategoryView()) {
+        Button {
+          showCategoriesSheet = true
+        } label: {
           SettingsNativeRow(title: "Categorie", systemImage: "rectangle.grid.2x2.fill", tint: .blue)
         }
         NavigationLink(destination: SettingsCloudView()) {
@@ -681,78 +701,5 @@ struct SettingsRowView: View {
     }
     .frame(maxWidth: .infinity)
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-  }
-}
-
-struct SettingsCategoryView: View {
-  @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
-
-  var body: some View {
-    CategoryView(mode: .settings, income: false)
-      .navigationTitle("Categorie")
-      .navigationBarTitleDisplayMode(.inline)
-      .navigationBarBackButtonHidden(false)
-      .background(NativeTabBarVisibility(isHidden: true))
-      .background(Color.PrimaryBackground)
-      .onDisappear {
-        TabBarVisibilityViewController.setAllTabBarsHidden(false)
-      }
-  }
-}
-
-private struct NativeTabBarVisibility: UIViewControllerRepresentable {
-  let isHidden: Bool
-
-  func makeUIViewController(context: Context) -> TabBarVisibilityViewController {
-    let controller = TabBarVisibilityViewController()
-    controller.isHidden = isHidden
-    return controller
-  }
-
-  func updateUIViewController(_ controller: TabBarVisibilityViewController, context: Context) {
-    controller.isHidden = isHidden
-    controller.applyVisibility()
-  }
-
-  static func dismantleUIViewController(_ controller: TabBarVisibilityViewController, coordinator: ()) {
-    controller.isHidden = false
-    controller.applyVisibility()
-  }
-}
-
-private final class TabBarVisibilityViewController: UIViewController {
-  var isHidden = false
-
-  override func didMove(toParent parent: UIViewController?) {
-    super.didMove(toParent: parent)
-    applyVisibility()
-  }
-
-  func applyVisibility() {
-    tabBarController?.tabBar.isHidden = isHidden
-  }
-
-  static func setAllTabBarsHidden(_ hidden: Bool) {
-    let windows = UIApplication.shared.connectedScenes
-      .compactMap { $0 as? UIWindowScene }
-      .flatMap(\.windows)
-
-    for window in windows where window.isKeyWindow || window.windowLevel == .normal {
-      setTabBarsHidden(in: window.rootViewController, hidden: hidden)
-    }
-  }
-
-  private static func setTabBarsHidden(in controller: UIViewController?, hidden: Bool) {
-    guard let controller else { return }
-
-    if let tabBarController = controller as? UITabBarController {
-      tabBarController.tabBar.isHidden = hidden
-    }
-
-    for child in controller.children {
-      setTabBarsHidden(in: child, hidden: hidden)
-    }
-
-    setTabBarsHidden(in: controller.presentedViewController, hidden: hidden)
   }
 }

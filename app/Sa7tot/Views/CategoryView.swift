@@ -105,7 +105,7 @@ private struct CategoryNavigationBarVisibility: ViewModifier {
             if usesCustomHeader {
                 content.toolbar(.hidden, for: .navigationBar)
             } else {
-                content.toolbarBackground(.hidden, for: .navigationBar)
+                content
             }
         } else {
             content
@@ -115,6 +115,7 @@ private struct CategoryNavigationBarVisibility: ViewModifier {
 
 struct CategoryView: View {
     var mode: CategoryViewMode
+    @Environment(\.dismiss) private var dismiss
 //    @Environment(\.colorScheme) var colorScheme
     @State var income = false
     @State var newCategory = false
@@ -148,14 +149,28 @@ struct CategoryView: View {
         }
         .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode != .settings))
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    if mode == .settings {
+                        dismiss()
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .opacity(mode == .settings ? 1 : 0)
+                .disabled(mode != .settings)
+                .accessibilityHidden(mode != .settings)
+                .accessibilityLabel("Indietro")
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
-                    if disabled {
+                    if !newCategory && disabled {
                         showToast = true
                         toastImage = "exclamationmark.triangle.fill"
                         toastTitle = "Limit Exceeded"
                         positive = false
-                    } else {
+                    } else if !newCategory {
                         newCategory = true
                     }
                 } label: {
