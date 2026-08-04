@@ -442,29 +442,13 @@ private struct NativeBrandNewBudgetView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .navigationBarBackButtonHidden(true)
+        .navigationTitle("Nuovo budget")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar { periodToolbarContent }
     }
 
     @ToolbarContentBuilder
     private var periodToolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button {
-                path.removeLast()
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .buttonStyle(.bordered)
-            .frame(width: 44, height: 44)
-            .clipShape(Circle())
-            .accessibilityLabel("Indietro")
-        }
-
-        ToolbarItem(placement: .principal) {
-            Text("Nuovo budget")
-                .font(.headline)
-        }
-
         ToolbarItem(placement: .confirmationAction) {
             Button("Avanti") {
                 advanceOrSave()
@@ -495,6 +479,7 @@ private struct NativeBrandNewBudgetView: View {
                         .font(.title3)
                         .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                         .accessibilityHidden(true)
+                        .allowsHitTesting(false)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -508,6 +493,7 @@ private struct NativeBrandNewBudgetView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+            .contentShape(Rectangle())
             .background(
                 isSelected ? Color.SecondaryBackground.opacity(0.78) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -518,6 +504,7 @@ private struct NativeBrandNewBudgetView: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
         .accessibilityLabel(periodTitle(for: period))
         .accessibilityValue(isSelected ? "Selezionato" : "Non selezionato")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
