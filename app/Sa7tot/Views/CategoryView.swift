@@ -102,7 +102,11 @@ private struct CategoryNavigationBarVisibility: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 16.0, *) {
-            content.toolbar(usesCustomHeader ? .hidden : .visible, for: .navigationBar)
+            if usesCustomHeader {
+                content.toolbar(.hidden, for: .navigationBar)
+            } else {
+                content.toolbarBackground(.hidden, for: .navigationBar)
+            }
         } else {
             content
         }
