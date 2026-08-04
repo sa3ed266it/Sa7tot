@@ -135,7 +135,7 @@ struct CategoryView: View {
         .sheet(isPresented: $newCategory) {
             if #available(iOS 16.0, *) {
                 NewCategoryAlert(income: $income, bottomSpacers: false)
-                    .presentationDetents([.height(270)])
+                    .presentationDetents([.fraction(0.47)])
             } else {
                 NewCategoryAlert(income: $income, bottomSpacers: true)
             }
@@ -620,7 +620,7 @@ struct CategoryListView: View {
         }) { category in
             if #available(iOS 16.0, *) {
                 EditCategoryAlert(toEdit: category, showRootToast: $showToast, rootToastTitle: $toastTitle, rootToastImage: $toastImage, positive: $positive, bottomSpacers: false)
-                    .presentationDetents([.height(270)])
+                    .presentationDetents([.fraction(0.47)])
             } else {
                 EditCategoryAlert(toEdit: category, showRootToast: $showToast, rootToastTitle: $toastTitle, rootToastImage: $toastImage, positive: $positive, bottomSpacers: true)
             }
@@ -951,7 +951,7 @@ private struct PremiumCategorySheetPresentation: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 16.0, *) {
             content
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.fraction(0.47)])
                 .presentationDragIndicator(.visible)
         } else {
             content
@@ -1155,20 +1155,30 @@ private struct PremiumCategoryEditor: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.SubtitleText)
 
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5), spacing: 10) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44, maximum: 56), spacing: 12)], spacing: 12) {
                         ForEach(options) { option in
                             Button {
                                 selectedSymbol = option.symbolName
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             } label: {
-                                CategoryIconView(descriptor: .sfSymbol(option.symbolName), role: .category, style: selectedSymbol == option.symbolName ? .selection : .plain, tint: Color.PrimaryText, accessibilityLabel: option.title)
-                                    .frame(maxWidth: .infinity, minHeight: 48)
-                                    .background(
-                                        selectedSymbol == option.symbolName
-                                            ? Color.PrimaryText.opacity(0.18)
-                                            : Color.SecondaryBackground,
-                                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    )
+                                Image(systemName: option.symbolName)
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundStyle(Color.PrimaryText)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Circle())
+                                    .background {
+                                        if selectedSymbol == option.symbolName {
+                                            Circle().fill(.thinMaterial)
+                                        }
+                                    }
+                                    .overlay {
+                                        if selectedSymbol == option.symbolName {
+                                            Circle()
+                                                .stroke(Color.accentColor.opacity(0.65), lineWidth: 1.5)
+                                        }
+                                    }
                             }
+                            .buttonStyle(.plain)
                             .accessibilityLabel(option.title)
                             .accessibilityAddTraits(selectedSymbol == option.symbolName ? .isSelected : [])
                         }
