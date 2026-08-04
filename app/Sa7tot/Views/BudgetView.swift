@@ -22,6 +22,7 @@ struct BudgetView: View {
                 NavigationView { budgetContent }
             }
         }
+        .background(Color.PrimaryBackground.ignoresSafeArea())
         .sheet(isPresented: $newBudget) {
             BrandNewBudgetView(overallBudgetCreated: !mainBudget.isEmpty)
         }
@@ -31,6 +32,7 @@ struct BudgetView: View {
         ActualBudgetView()
             .navigationTitle("Budget")
             .navigationBarTitleDisplayMode(.large)
+            .budgetNavigationBackground(Color.PrimaryBackground)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -43,6 +45,19 @@ struct BudgetView: View {
                     .disabled(newBudget)
                 }
             }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func budgetNavigationBackground(_ background: Color) -> some View {
+        if #available(iOS 16.0, *) {
+            self
+                .toolbarBackground(background, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+        } else {
+            self
+        }
     }
 }
 
@@ -128,7 +143,7 @@ struct ActualBudgetView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .background(Color.PrimaryBackground)
+        .background(Color.PrimaryBackground.ignoresSafeArea())
         .sheet(item: $toEdit, onDismiss: {
             toEdit = nil
         }) { budget in
