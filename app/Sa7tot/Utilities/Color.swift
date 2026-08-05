@@ -51,32 +51,7 @@ extension Color {
         "24": "#D46D7F"
     ]
 
-    static let colorArray: [String] = [
-        "#279AF4",
-        "#EC7A58",
-        "#A6678A",
-        "#C56AF7",
-        "#6E7BF1",
-        "#F3BF56",
-        "#ED80A2",
-        "#F6D24A",
-        "#E34D63",
-        "#61C7FA",
-        "#7014F5",
-        "#EB7068",
-        "#84B4EB",
-        "#4088AD",
-        "#B8D6FA",
-        "#C38D5D",
-        "#A0ACF9",
-        "#7CB0AA",
-        "#F6D489",
-        "#88997A",
-        "#F1AF8A",
-        "#2D4B7B",
-        "#5FAF9F",
-        "#D46D7F"
-    ]
+    static let colorArray: [String] = StatisticsCategoryColor.paletteHex
 
     static let neuBackground = Color(hex: "f0f0f3")
     static let dropShadow = Color(hex: "aeaec0").opacity(0.4)

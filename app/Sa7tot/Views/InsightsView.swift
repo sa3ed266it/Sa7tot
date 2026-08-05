@@ -10,45 +10,6 @@ import SwiftUIIntrospect
 import Popovers
 import SwiftUI
 
-private struct StatisticsScrollOffsetKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-private struct StatisticsScrollOffsetReader: View {
-    var body: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .preference(
-                    key: StatisticsScrollOffsetKey.self,
-                    value: max(0, -proxy.frame(in: .named("statisticsScroll")).minY)
-                )
-        }
-    }
-}
-
-private struct StatisticsTopFadeBlur: View {
-    let progress: CGFloat
-
-    var body: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .mask {
-                LinearGradient(
-                    colors: [.black, .black.opacity(0.72), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .opacity(progress)
-            .frame(height: 112)
-            .allowsHitTesting(false)
-    }
-}
-
 struct InsightsView: View {
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
 
@@ -56,7 +17,6 @@ struct InsightsView: View {
 
     private var didSave = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     @State private var refreshID = UUID()
-    @State private var statisticsScrollOffset: CGFloat = 0
 
     var chartTypeString: String {
         if chartType == 1 {
@@ -99,15 +59,13 @@ struct InsightsView: View {
             .ignoresSafeArea(.all)
             .background(Color.AppPageBackground)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .navigationTitle("Statistiche")
+            .navigationBarTitleDisplayMode(.large)
 
         } else {
-            ZStack(alignment: .top) {
+            VStack(spacing: 5) {
                 VStack(spacing: 5) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Statistiche")
-                            .font(.system(.title, design: .rounded).weight(.semibold))
-                            .accessibility(addTraits: .isHeader)
-
                         Picker("Periodo", selection: $chartType) {
                             Text("settimana").tag(1)
                             Text("mese").tag(2)
@@ -121,7 +79,6 @@ struct InsightsView: View {
                         .accessibilityValue(chartTypeString)
                     }
                     .padding(.horizontal, 30)
-                    .padding(.top, 20)
                     .padding(.bottom, 20)
 
                     if chartType == 1 {
@@ -136,17 +93,15 @@ struct InsightsView: View {
                     }
                 }
 
-                StatisticsTopFadeBlur(progress: min(1, statisticsScrollOffset / 44))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.AppPageBackground)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .onPreferenceChange(StatisticsScrollOffsetKey.self) { offset in
-                statisticsScrollOffset = offset
-            }
             .onReceive(self.didSave) { _ in
                 self.refreshID = UUID()
             }
+            .navigationTitle("Statistiche")
+            .navigationBarTitleDisplayMode(.large)
         }
     }
 }
@@ -292,7 +247,7 @@ struct HorizontalPieChartView: View {
                                 HStack(spacing: 10) {
 
                                     HStack(spacing: 10) {
-                                        CategoryIconView(descriptor: category.category.iconDescriptor, role: .category, accessibilityLabel: category.category.wrappedName)
+                                        CategoryIconView(descriptor: category.category.iconDescriptor, role: .category, tint: boxColor, accessibilityLabel: category.category.wrappedName)
 
                                         Text(category.category.wrappedName)
                                             .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -317,9 +272,9 @@ struct HorizontalPieChartView: View {
                                         } label: {
                                             Image(systemName: "xmark")
                                                 .font(.system(.footnote, design: .rounded).weight(.bold))
-                                                .foregroundColor(Color.SubtitleText)
+                                                .foregroundColor(boxColor)
                                                 .padding(5)
-                                                .background(Color.AppSecondarySurface, in: Circle())
+                                                .background(boxColor.opacity(0.23), in: Circle())
                                         }
                                         .accessibilityLabel("Cancella selezione categoria")
 
@@ -1151,10 +1106,8 @@ struct WeekGraphView: View {
                     selectedDate = nil
                     categoryFilterMode = false
                 }
-                .background(StatisticsScrollOffsetReader())
             }
         }
-        .coordinateSpace(name: "statisticsScroll")
         .onReceive(self.didSave) { _ in
             self.refreshID = UUID()
             self.refreshID1 = UUID()
@@ -1587,9 +1540,7 @@ struct MonthGraphView: View {
 //                    categoryFilterMode = false
 //                }
             }
-            .background(StatisticsScrollOffsetReader())
         }
-        .coordinateSpace(name: "statisticsScroll")
         .onReceive(self.didSave) { _ in
             self.refreshID = UUID()
             self.refreshID1 = UUID()
@@ -1945,9 +1896,7 @@ struct YearGraphView: View {
                     }
                 }
             }
-            .background(StatisticsScrollOffsetReader())
         }
-        .coordinateSpace(name: "statisticsScroll")
         .onReceive(self.didSave) { _ in
             self.refreshID = UUID()
             self.refreshID1 = UUID()

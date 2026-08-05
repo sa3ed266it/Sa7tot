@@ -36,21 +36,102 @@ enum InsightsPeriod: Int, CaseIterable {
 /// one stable fallback so every Statistics surface stays synchronized.
 enum StatisticsCategoryColor {
     static let fallbackHex = "#279AF4"
+    static let legacySharedIncomeHex = "#76FBB1"
+
+    enum ResolutionSource: String { case stored, palette, stableFallback }
+    struct Resolution: Equatable {
+        let hex: String
+        let source: ResolutionSource
+    }
+
+    static let paletteHex = [
+        "#279AF4", "#EC7A58", "#A6678A", "#C56AF7", "#6E7BF1", "#F3BF56",
+        "#ED80A2", "#F6D24A", "#E34D63", "#61C7FA", "#7014F5", "#EB7068",
+        "#84B4EB", "#4088AD", "#B8D6FA", "#C38D5D", "#A0ACF9", "#7CB0AA",
+        "#F6D489", "#88997A", "#F1AF8A", "#2D4B7B", "#5FAF9F", "#D46D7F"
+    ]
 
     static func hex(for category: Category) -> String {
-        canonicalHex(category.colour)
+        resolve(for: category).hex
+    }
+
+    static func resolve(for category: Category) -> Resolution {
+        let stored = validHex(category.colour)
+        if let stored,
+           stored != "#FFFFFF",
+           stored != "#000000",
+           !(category.income && stored == legacySharedIncomeHex) {
+            return Resolution(hex: stored, source: .stored)
+        }
+
+        let key = canonicalKey(for: category)
+        if let index = knownPaletteIndices[key] {
+            return Resolution(hex: paletteHex[index], source: .palette)
+        }
+
+        let stableKey = category.id?.uuidString.lowercased() ?? key
+        return Resolution(hex: paletteHex[stablePaletteIndex(for: stableKey)], source: .stableFallback)
     }
 
     static func canonicalHex(_ storedValue: String?) -> String {
+        validHex(storedValue) ?? fallbackHex
+    }
+
+    private static func validHex(_ storedValue: String?) -> String? {
         let value = (storedValue ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
         let digits = value.hasPrefix("#") ? String(value.dropFirst()) : value
         guard (digits.count == 6 || digits.count == 8),
               digits.allSatisfy({ $0.isNumber || ("A"..."F").contains($0) }) else {
-            return fallbackHex
+            return nil
         }
         return "#" + digits
+    }
+
+    private static let knownPaletteIndices: [String: Int] = [
+        "income.paycheck": 0, "income.allowance": 1, "income.part-time": 2,
+        "income.investments": 3, "income.gifts": 4, "income.tips": 5,
+        "expense.food": 0, "expense.transport": 1, "expense.rent": 2,
+        "expense.subscriptions": 3, "expense.groceries": 4, "expense.family": 5,
+        "expense.utilities": 6, "expense.fashion": 7, "expense.healthcare": 8,
+        "expense.pets": 9, "expense.sneakers": 10, "expense.gifts": 11
+    ]
+
+    private static func canonicalKey(for category: Category) -> String {
+        let name = category.wrappedName
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
+            .lowercased()
+        let knownName: [String: String] = category.income ? [
+            "stipendio": "income.paycheck", "paycheck": "income.paycheck",
+            "paghetta": "income.allowance", "allowance": "income.allowance",
+            "part-time": "income.part-time", "part time": "income.part-time",
+            "investimenti": "income.investments", "investments": "income.investments",
+            "regali": "income.gifts", "gifts": "income.gifts",
+            "mance": "income.tips", "tips": "income.tips"
+        ] : [
+            "cibo": "expense.food", "food": "expense.food",
+            "trasporti": "expense.transport", "transport": "expense.transport",
+            "affitto": "expense.rent", "rent": "expense.rent",
+            "abbonamenti": "expense.subscriptions", "subscriptions": "expense.subscriptions",
+            "spesa": "expense.groceries", "groceries": "expense.groceries",
+            "famiglia": "expense.family", "family": "expense.family",
+            "utenze": "expense.utilities", "utilities": "expense.utilities",
+            "moda": "expense.fashion", "fashion": "expense.fashion",
+            "salute": "expense.healthcare", "healthcare": "expense.healthcare",
+            "animali": "expense.pets", "pets": "expense.pets",
+            "sneakers": "expense.sneakers", "regali": "expense.gifts", "gifts": "expense.gifts"
+        ]
+        return knownName[name] ?? "\(category.income ? "income" : "expense").custom.\(name)"
+    }
+
+    private static func stablePaletteIndex(for key: String) -> Int {
+        var value: UInt64 = 14_695_981_039_346_656_037
+        for byte in key.utf8 {
+            value ^= UInt64(byte)
+            value &*= 1_099_511_628_211
+        }
+        return Int(value % UInt64(paletteHex.count))
     }
 }
 

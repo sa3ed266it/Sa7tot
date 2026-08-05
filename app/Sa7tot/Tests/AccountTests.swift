@@ -111,6 +111,43 @@ final class AccountTests: XCTestCase {
         XCTAssertNotEqual(StatisticsCategoryColor.hex(for: salary), StatisticsCategoryColor.hex(for: partTime))
     }
 
+    func testStatisticsCategoryColorsResolveLegacyLiveIncomeValuesByCanonicalCategory() throws {
+        let context = makeContext()
+        let salary = makeCategory(in: context, name: "Stipendio", income: true)
+        let partTime = makeCategory(in: context, name: "Part-time", income: true)
+        salary.colour = StatisticsCategoryColor.legacySharedIncomeHex
+        partTime.colour = StatisticsCategoryColor.legacySharedIncomeHex
+
+        let salaryResolution = StatisticsCategoryColor.resolve(for: salary)
+        let partTimeResolution = StatisticsCategoryColor.resolve(for: partTime)
+
+        XCTAssertEqual(salaryResolution.source, .palette)
+        XCTAssertEqual(partTimeResolution.source, .palette)
+        XCTAssertNotEqual(salaryResolution.hex, partTimeResolution.hex)
+        XCTAssertNotEqual(salaryResolution.hex, "#FFFFFF")
+        XCTAssertNotEqual(partTimeResolution.hex, "#FFFFFF")
+    }
+
+    func testStatisticsCategoryColorsUseStableDistinctFallbackForInvalidStoredValues() throws {
+        let context = makeContext()
+        let first = makeCategory(in: context, name: "Custom One")
+        let second = makeCategory(in: context, name: "Custom Two")
+        first.id = UUID(uuidString: "00000000-0000-0000-0000-000000000001")
+        second.id = UUID(uuidString: "00000000-0000-0000-0000-000000000002")
+        first.colour = "not-a-color"
+        second.colour = "#FFFFFF"
+
+        let firstResolution = StatisticsCategoryColor.resolve(for: first)
+        let secondResolution = StatisticsCategoryColor.resolve(for: second)
+
+        XCTAssertEqual(firstResolution.source, .stableFallback)
+        XCTAssertEqual(secondResolution.source, .stableFallback)
+        XCTAssertEqual(firstResolution.hex, StatisticsCategoryColor.resolve(for: first).hex)
+        XCTAssertNotEqual(firstResolution.hex, secondResolution.hex)
+        XCTAssertFalse(["#FFFFFF", "#000000"].contains(firstResolution.hex))
+        XCTAssertFalse(["#FFFFFF", "#000000"].contains(secondResolution.hex))
+    }
+
     func testStatisticsPeriodNavigationBoundaryContract() {
         let oldest = Date(timeIntervalSince1970: 100)
         let current = Date(timeIntervalSince1970: 200)

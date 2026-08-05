@@ -236,7 +236,7 @@ struct HomeView: View {
             selection: $currentTab,
             searchText: $searchText,
             logView: hosted(logTabContent),
-            insightsView: hosted(InsightsView()),
+            insightsView: hosted(NavigationStack { InsightsView() }),
             budgetView: hosted(BudgetView()),
             settingsView: hosted(SettingsView()),
             searchView: hosted(SearchView(searchQuery: $searchText))
@@ -249,7 +249,10 @@ struct HomeView: View {
             logTabContent
                 .tabItem { Label("Movimenti", systemImage: "list.bullet.rectangle") }
                 .tag("Log")
-            InsightsView()
+            NavigationView {
+                InsightsView()
+            }
+            .navigationViewStyle(.stack)
                 .tabItem { Label("Statistiche", systemImage: "chart.bar.xaxis") }
                 .tag("Insights")
             BudgetView()
