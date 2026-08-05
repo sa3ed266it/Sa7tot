@@ -614,36 +614,7 @@ struct SingleGraphView: View {
     var showCents: Bool
 
     var dateString: String {
-        let dateFormatter = DateFormatter()
-
-        if type == 1 {
-            let calendar = Calendar.current
-            dateFormatter.dateFormat = "d MMM"
-            let endComponents = DateComponents(day: 7, second: -1)
-            let endWeekDate = calendar.date(byAdding: endComponents, to: date) ?? Date.now
-
-            let startMonth = calendar.component(.month, from: date)
-            let endMonth = calendar.component(.month, from: endWeekDate)
-
-            if startMonth == endMonth {
-                let anotherDateFormatter = DateFormatter()
-                anotherDateFormatter.dateFormat = "d"
-
-                return anotherDateFormatter.string(from: date) + " - " + dateFormatter.string(from: endWeekDate)
-            } else {
-                return dateFormatter.string(from: date) + " - " + dateFormatter.string(from: endWeekDate)
-            }
-        } else if type == 2 {
-            dateFormatter.dateFormat = "MMM yyyy"
-        } else if type == 3 {
-            dateFormatter.dateFormat = "yyyy"
-        }
-
-        if language == "ru" {
-            return dateFormatter.string(from: date)
-        } else {
-            return dateFormatter.string(from: date)
-        }
+        StatisticsSummaryPresentation.periodRange(start: date, type: type)
     }
 
     var selectedCategoryName: String
@@ -728,101 +699,73 @@ struct SingleGraphView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 1.3) {
-                    Text(dateString)
-                        .lineLimit(1)
-                        .font(.system(.callout, design: .rounded).weight(.semibold))
-                        .foregroundColor(Color.SubtitleText)
-                        .layoutPriority(1)
+        VStack(alignment: .leading, spacing: 16) {
+            Text(dateString)
+                .font(.system(.headline, design: .rounded).weight(.semibold))
+                .foregroundColor(Color.SubtitleText)
+                .lineLimit(1)
+                .accessibilityAddTraits(.isHeader)
 
-                    HStack(spacing: 10) {
-                        InsightsDollarView(amount: totalNet, currencySymbol: currencySymbol, showCents: showCents, net: netPositive)
+            HStack(alignment: .firstTextBaseline, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Saldo netto")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color.SubtitleText)
+
+                    HStack(alignment: .lastTextBaseline, spacing: 8) {
+                        InsightsDollarView(amount: totalNet, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents, net: netPositive)
                             .layoutPriority(1)
 
                         if showPercentage {
                             Text(percentageDifference)
-                                .font(.system(.footnote, design: .rounded).weight(.medium))
+                                .font(.system(.caption, design: .rounded).weight(.medium))
                                 .foregroundColor(currentNet < lastNet ? Color.AlertRed : Color.IncomeGreen)
-                                .padding(3)
-                                .padding(.horizontal, 3)
-                                .background(currentNet < lastNet ? Color.AlertRed.opacity(0.23) : Color.IncomeGreen.opacity(0.23), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(currentNet < lastNet ? Color.AlertRed.opacity(0.18) : Color.IncomeGreen.opacity(0.18), in: Capsule())
                                 .opacity(currentNet == 0 || lastNet == 0 ? 0 : 1)
-                                .lineLimit(1)
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if categoryFilterMode {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(selectedCategoryName)
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-//                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color.SubtitleText)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeFiltering, income: income))
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color.SubtitleText)
+                        .multilineTextAlignment(.trailing)
 
-                        InsightsDollarView(amount: selectedCategoryAmount, currencySymbol: currencySymbol, showCents: showCents)
-                            .layoutPriority(1)
-                    }
-                } else if selectedDate != nil {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(selectedDateString)
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-                        InsightsDollarView(amount: selectedDateAmount, currencySymbol: currencySymbol, showCents: showCents)
-                            .layoutPriority(1)
-                    }
-                } else if incomeFiltering {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(type == 3 ? (income ? "Income/Mth" : "Spent/Mth") : (income ? "Income/Day" : "Spent/Day"))
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-                        InsightsDollarView(amount: incomeAverage, currencySymbol: currencySymbol, showCents: showCents)
-                            .layoutPriority(1)
-                    }
-                } else {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(type == 3 ? "AVG/MTH" : "AVG/DAY")
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-                        InsightsDollarView(amount: average, currencySymbol: currencySymbol, showCents: showCents, net: netPositive)
-                            .layoutPriority(1)
-                    }
+                    InsightsDollarView(amount: incomeFiltering ? incomeAverage : average, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents)
                 }
             }
-            .padding(.bottom, 5)
+            .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation(.easeIn(duration: 0.2)) {
                     selectedDate = nil
                 }
             }
 
+            if categoryFilterMode {
+                summaryContext(title: selectedCategoryName, amount: selectedCategoryAmount)
+            } else if selectedDate != nil {
+                summaryContext(title: selectedDateString, amount: selectedDateAmount)
+            }
+
             if incomeTracking {
                 HStack(spacing: 11) {
                     InsightsSummaryBlockView(income: true, amountString: stringGenerator(amount: totalIncome), showOverlay: income && incomeFiltering) {
                         withAnimation {
-                            if incomeFiltering && income {
-                                incomeFiltering = false
-                            } else {
-                                income = true
-                                incomeFiltering = true
-                            }
+                            let selection = StatisticsSummaryFilterSelection.toggled(currentIncome: income, isFiltering: incomeFiltering, tappedIncome: true)
+                            income = selection.income
+                            incomeFiltering = selection.isFiltering
                         }
                     }
 
                     InsightsSummaryBlockView(income: false, amountString: stringGenerator(amount: totalSpent), showOverlay: !income && incomeFiltering) {
                         withAnimation {
-                            if incomeFiltering && !income {
-                                incomeFiltering = false
-                            } else {
-                                income = false
-                                incomeFiltering = true
-                            }
+                            let selection = StatisticsSummaryFilterSelection.toggled(currentIncome: income, isFiltering: incomeFiltering, tappedIncome: false)
+                            income = selection.income
+                            incomeFiltering = selection.isFiltering
                         }
                     }
                 }
@@ -843,17 +786,22 @@ struct SingleGraphView: View {
     }
 
     func stringGenerator(amount: Double) -> String {
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = currency
+        StatisticsSummaryPresentation.amount(amount, currencyCode: currency, showCents: showCents)
+    }
 
-        if showCents && amount < 1000 {
-            numberFormatter.maximumFractionDigits = 2
-        } else {
-            numberFormatter.maximumFractionDigits = 0
+    @ViewBuilder
+    private func summaryContext(title: String, amount: Double) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(.caption, design: .rounded).weight(.semibold))
+                .foregroundColor(Color.SubtitleText)
+                .lineLimit(1)
+            Spacer()
+            InsightsDollarView(amount: amount, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents)
         }
-
-        return numberFormatter.string(from: NSNumber(value: amount)) ?? "$0"
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.AppSecondarySurface.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     func stringConverter(amount: Double) -> String {
@@ -2153,40 +2101,27 @@ struct AnimatedHorizontalBarGraph: View {
 struct InsightsDollarView: View {
     let amount: Double
     var currencySymbol: String
+    var currencyCode: String?
     var showCents: Bool
     var net: Bool?
 
-    var symbol: String {
-        if let netPositive = net {
-            if netPositive {
-                return "+\(currencySymbol)"
-            } else {
-                return "-\(currencySymbol)"
-            }
-        } else {
-            return currencySymbol
-        }
-    }
-
     var body: some View {
-        HStack(alignment: .lastTextBaseline, spacing: 1.3) {
-            Group {
-                Text(symbol)
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.SubtitleText) +
-
-                Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
-                    .font(.system(.title, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.PrimaryText)
-            }
-        }
+        Text(StatisticsSummaryPresentation.amount(
+            amount,
+            currencyCode: currencyCode ?? (currencySymbol == "€" ? "EUR" : currencySymbol),
+            showCents: showCents,
+            negative: net == false
+        ))
+            .font(.system(.title, design: .rounded).weight(.medium))
+            .foregroundColor(net == false ? Color.AlertRed : Color.PrimaryText)
         .minimumScaleFactor(0.5)
         .lineLimit(1)
     }
 
-    init(amount: Double, currencySymbol: String, showCents: Bool, net: Bool? = nil) {
+    init(amount: Double, currencySymbol: String, currencyCode: String? = nil, showCents: Bool, net: Bool? = nil) {
         self.amount = amount
         self.currencySymbol = currencySymbol
+        self.currencyCode = currencyCode
         self.showCents = showCents
         self.net = net
     }

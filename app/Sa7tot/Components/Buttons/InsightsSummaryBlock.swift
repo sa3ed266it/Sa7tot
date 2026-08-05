@@ -19,7 +19,7 @@ struct InsightsSummaryBlockView: View {
     }
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Image(systemName: income ? "arrow.up.right" : "arrow.down.right")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(color)
@@ -29,7 +29,7 @@ struct InsightsSummaryBlockView: View {
                 .padding(.horizontal, 3)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(income ? "Income" : "Expenses")
+                Text(income ? "Entrate" : "Spese")
                     .font(.system(.caption, design: .rounded).weight(.semibold))
                     .lineLimit(1)
                     .foregroundColor(Color.SubtitleText)
@@ -41,7 +41,9 @@ struct InsightsSummaryBlockView: View {
                     .minimumScaleFactor(0.8)
             }
         }
-        .padding(7)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 7)
+        .frame(minHeight: 64)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {

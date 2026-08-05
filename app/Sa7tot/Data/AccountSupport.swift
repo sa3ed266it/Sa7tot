@@ -30,6 +30,86 @@ enum InsightsPeriod: Int, CaseIterable {
     case month = 2
     case year = 3
 }
+
+enum StatisticsSummaryPresentation {
+    static let italianLocale = Locale(identifier: "it_IT")
+
+    static func amount(
+        _ value: Double,
+        currencyCode: String,
+        showCents: Bool,
+        negative: Bool = false
+    ) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = italianLocale
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.usesGroupingSeparator = true
+        formatter.maximumFractionDigits = showCents && abs(value) < 100 ? 2 : 0
+        formatter.minimumFractionDigits = formatter.maximumFractionDigits
+
+        let absoluteValue = abs(value)
+        let formatted = formatter.string(from: NSNumber(value: absoluteValue)) ?? "0 \(currencyCode)"
+        return negative && absoluteValue > 0 ? "−" + formatted : formatted
+    }
+
+    static func periodRange(start: Date, type: Int, calendar: Calendar = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = italianLocale
+        formatter.calendar = calendar
+
+        switch type {
+        case 1:
+            let end = calendar.date(byAdding: .day, value: 6, to: start) ?? start
+            let sameMonth = calendar.component(.month, from: start) == calendar.component(.month, from: end)
+            let sameYear = calendar.component(.year, from: start) == calendar.component(.year, from: end)
+
+            if sameMonth && sameYear {
+                formatter.dateFormat = "d"
+                return "\(formatter.string(from: start))–\(formatter.string(from: end)) \(monthName(for: end, calendar: calendar))"
+            } else if sameYear {
+                formatter.dateFormat = "d MMMM"
+                return "\(formatter.string(from: start))–\(formatter.string(from: end))"
+            } else {
+                formatter.dateFormat = "d MMMM yyyy"
+                return "\(formatter.string(from: start))–\(formatter.string(from: end))"
+            }
+        case 2:
+            formatter.dateFormat = "MMMM yyyy"
+            return formatter.string(from: start)
+        default:
+            formatter.dateFormat = "yyyy"
+            return formatter.string(from: start)
+        }
+    }
+
+    static func averageLabel(type: Int, incomeFiltering: Bool, income: Bool) -> String {
+        let monthly = type == InsightsPeriod.year.rawValue
+        if incomeFiltering {
+            return income
+                ? (monthly ? "Entrate mensili" : "Entrate giornaliere")
+                : (monthly ? "Spese mensili" : "Spese giornaliere")
+        }
+        return monthly ? "Media mensile" : "Media giornaliera"
+    }
+
+    private static func monthName(for date: Date, calendar: Calendar) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = italianLocale
+        formatter.calendar = calendar
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: date)
+    }
+}
+
+enum StatisticsSummaryFilterSelection {
+    static func toggled(currentIncome: Bool, isFiltering: Bool, tappedIncome: Bool) -> (income: Bool, isFiltering: Bool) {
+        if isFiltering && currentIncome == tappedIncome {
+            return (currentIncome, false)
+        }
+        return (tappedIncome, true)
+    }
+}
 import UserNotifications
 
 enum AccountType: String, CaseIterable, Identifiable {

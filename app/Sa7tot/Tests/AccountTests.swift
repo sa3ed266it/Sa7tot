@@ -52,6 +52,43 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(reloadCount, 0)
     }
 
+    func testStatisticsSummaryPositiveNetHasNoLeadingPlus() {
+        let formatted = StatisticsSummaryPresentation.amount(1000, currencyCode: "EUR", showCents: false)
+
+        XCTAssertFalse(formatted.hasPrefix("+"))
+        XCTAssertFalse(formatted.hasPrefix("−"))
+        XCTAssertFalse(formatted.contains(","))
+    }
+
+    func testStatisticsSummaryNegativeAndZeroFormatting() {
+        let negative = StatisticsSummaryPresentation.amount(250, currencyCode: "EUR", showCents: false, negative: true)
+        let zero = StatisticsSummaryPresentation.amount(0, currencyCode: "EUR", showCents: false, negative: true)
+
+        XCTAssertTrue(negative.hasPrefix("−"))
+        XCTAssertFalse(zero.hasPrefix("−"))
+    }
+
+    func testStatisticsSummaryUsesItalianPeriodRangeFormatting() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Rome")!
+        let start = calendar.date(from: DateComponents(year: 2026, month: 8, day: 2))!
+
+        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: start, type: 1, calendar: calendar), "2–8 agosto")
+    }
+
+    func testStatisticsSummaryAverageLabelsFollowPeriodAndFilter() {
+        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 1, incomeFiltering: false, income: true), "Media giornaliera")
+        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 3, incomeFiltering: false, income: true), "Media mensile")
+        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 1, incomeFiltering: true, income: true), "Entrate giornaliere")
+        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 3, incomeFiltering: true, income: false), "Spese mensili")
+    }
+
+    func testStatisticsSummaryIncomeExpenseSelectionTogglesWithoutChangingFilterContract() {
+        XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: true).isFiltering, false)
+        XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: false).income, false)
+        XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: false).isFiltering, true)
+    }
+
     func testAccountTypeRawValuesAndItalianLabels() {
         XCTAssertEqual(AccountType.creditCard.rawValue, "creditCard")
         XCTAssertEqual(AccountType.creditCard.italianName, "Carta di credito")
