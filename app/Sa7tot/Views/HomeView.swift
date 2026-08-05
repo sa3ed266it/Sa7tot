@@ -46,7 +46,6 @@ struct HomeView: View {
 
     @State var fromURL1: Bool = false
     @State var fromURL2: Bool = false
-    @State var fromURL3: Bool = false
     @State var fromURL4: Bool = false
 
     @State var launchAdd: Bool = false
@@ -82,8 +81,6 @@ struct HomeView: View {
                         } else if url.host == "search" {
                             launchedFromSearchURL = true
                             fromURL2 = true
-                        } else if url.host == "insights" {
-                            fromURL3 = true
                         } else if url.host == "budget" {
                             fromURL4 = true
                         }
@@ -146,10 +143,6 @@ struct HomeView: View {
                 fromURL2 = false
             }
 
-            if appLockVM.isAppLockEnabled && fromURL3 {
-                currentTab = "Insights"
-            }
-
             if appLockVM.isAppLockEnabled && fromURL4 {
                 currentTab = "Budget"
             }
@@ -178,8 +171,6 @@ struct HomeView: View {
                     launchedFromSearchURL = true
                     currentTab = "Search"
                 }
-            } else if url.host == "insights" {
-                currentTab = "Insights"
             } else if url.host == "budget" {
                 currentTab = "Budget"
             }
@@ -236,7 +227,6 @@ struct HomeView: View {
             selection: $currentTab,
             searchText: $searchText,
             logView: hosted(logTabContent),
-            insightsView: hosted(NavigationStack { InsightsView() }),
             budgetView: hosted(BudgetView()),
             settingsView: hosted(SettingsView()),
             searchView: hosted(SearchView(searchQuery: $searchText))
@@ -249,12 +239,6 @@ struct HomeView: View {
             logTabContent
                 .tabItem { Label("Movimenti", systemImage: "list.bullet.rectangle") }
                 .tag("Log")
-            NavigationView {
-                InsightsView()
-            }
-            .navigationViewStyle(.stack)
-                .tabItem { Label("Statistiche", systemImage: "chart.bar.xaxis") }
-                .tag("Insights")
             BudgetView()
                 .tabItem { Label("Budget", systemImage: "chart.pie.fill") }
                 .tag("Budget")
@@ -335,7 +319,6 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
     @Binding var selection: String
     @Binding var searchText: String
     let logView: AnyView
-    let insightsView: AnyView
     let budgetView: AnyView
     let settingsView: AnyView
     let searchView: AnyView
@@ -346,7 +329,6 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
         let coordinator = context.coordinator
         let tabs: [UITab] = [
             UITab(title: "Movimenti", image: Sa7totSymbolResolver.image("list.bullet.rectangle"), identifier: "Log") { _ in coordinator.host(logView) },
-            UITab(title: "Statistiche", image: Sa7totSymbolResolver.image("chart.bar.fill"), identifier: "Insights") { _ in coordinator.host(insightsView) },
             UITab(title: "Budget", image: Sa7totSymbolResolver.image("chart.pie.fill"), identifier: "Budget") { _ in coordinator.host(budgetView) },
             UITab(title: "Impostazioni", image: Sa7totSymbolResolver.image("gearshape.fill"), identifier: "Settings") { _ in coordinator.host(settingsView) }
         ]

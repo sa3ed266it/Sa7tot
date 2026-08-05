@@ -11,8 +11,6 @@
 "sa7tot_name" = "sa7tot";
 "welcome_header_1" = "Suivez vos finances";
 "welcome_subtitle_1" = "Ajouter de nouvelles entrées de manière simple et rapide";
-"welcome_header_2" = "Analyser vos dépenses";
-"welcome_subtitle_2" = "Tirer des enseignements de vos dépenses sur différentes périodes de temps";
 "welcome_header_3" = "Respecter vos budgets";
 "welcome_subtitle_3" = "Fixez des objectifs catégoriels et temporels pour limiter vos dépenses";
 "Get Started" = "Démarrer";
@@ -118,8 +116,6 @@
 "yesterday" = "hier";
 
 
-// insights
-"Insights" = "Perspectives";
 "Analyse Your Expenditure" = "Analyser vos dépenses";
 "As transactions start piling up" = "Au fur et à mesure que les transactions s'accumulent";
 "Expenses" ="Dépenses";

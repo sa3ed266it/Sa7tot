@@ -395,8 +395,6 @@ struct SettingsView: View {
         incomeTracking = newValue
         if !newValue {
           UserDefaults(suiteName: "group.com.saied.sa7tot")?.set(
-            false, forKey: "insightsViewIncomeFiltering")
-          UserDefaults(suiteName: "group.com.saied.sa7tot")?.set(
             3, forKey: "logInsightsType")
         }
       }

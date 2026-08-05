@@ -66,8 +66,6 @@
 "sa7tot_name" = "Sa7tot";
 "welcome_header_1" = "Gestisci le tue finanze";
 "welcome_subtitle_1" = "Aggiungi nuovi movimenti in modo semplice e intuitivo";
-"welcome_header_2" = "Analizza le tue spese";
-"welcome_subtitle_2" = "Ottieni informazioni sulle tue spese in diversi periodi";
 "welcome_header_3" = "Rispetta i budget";
 "welcome_subtitle_3" = "Imposta obiettivi per categoria e periodo per limitare le spese";
 "Get Started" = "Inizia";
@@ -165,7 +163,6 @@
 "No entries found." = "Nessun movimento trovato.";
 "Try a different search query!" = "Prova una ricerca diversa!";
 "yesterday" = "ieri";
-"Insights" = "Statistiche";
 "Analyse Your Expenditure" = "Analizza le tue spese";
 "As transactions start piling up" = "Man mano che aumentano i movimenti";
 "Expenses" = "Spese";

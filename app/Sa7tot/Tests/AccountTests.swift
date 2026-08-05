@@ -52,74 +52,6 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(reloadCount, 0)
     }
 
-    func testStatisticsSummaryPositiveNetHasNoLeadingPlus() {
-        let formatted = StatisticsSummaryPresentation.amount(1000, currencyCode: "EUR", showCents: false)
-
-        XCTAssertFalse(formatted.hasPrefix("+"))
-        XCTAssertFalse(formatted.hasPrefix("−"))
-        XCTAssertFalse(formatted.contains(","))
-    }
-
-    func testStatisticsSummaryNegativeAndZeroFormatting() {
-        let negative = StatisticsSummaryPresentation.amount(250, currencyCode: "EUR", showCents: false, negative: true)
-        let zero = StatisticsSummaryPresentation.amount(0, currencyCode: "EUR", showCents: false, negative: true)
-
-        XCTAssertTrue(negative.hasPrefix("−"))
-        XCTAssertFalse(zero.hasPrefix("−"))
-    }
-
-    func testStatisticsSummaryUsesItalianPeriodRangeFormatting() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Europe/Rome")!
-        let start = calendar.date(from: DateComponents(year: 2026, month: 8, day: 2))!
-
-        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: start, type: 1, calendar: calendar), "2–8 agosto")
-
-        let crossMonth = calendar.date(from: DateComponents(year: 2026, month: 1, day: 29))!
-        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: crossMonth, type: 1, calendar: calendar), "29 gennaio–4 febbraio")
-
-        let crossYear = calendar.date(from: DateComponents(year: 2025, month: 12, day: 29))!
-        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: crossYear, type: 1, calendar: calendar), "29 dicembre 2025–4 gennaio 2026")
-
-        let month = calendar.date(from: DateComponents(year: 2026, month: 8, day: 1))!
-        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: month, type: 2, calendar: calendar), "agosto 2026")
-        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: month, type: 3, calendar: calendar), "2026")
-    }
-
-    func testStatisticsSummaryAverageLabelsFollowPeriodAndFilter() {
-        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 1, incomeFiltering: false, income: true), "Media giornaliera")
-        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 3, incomeFiltering: false, income: true), "Media mensile")
-        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 1, incomeFiltering: true, income: true), "Entrate giornaliere")
-        XCTAssertEqual(StatisticsSummaryPresentation.averageLabel(type: 3, incomeFiltering: true, income: false), "Spese mensili")
-    }
-
-    func testStatisticsSummaryIncomeExpenseSelectionTogglesWithoutChangingFilterContract() {
-        XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: true).isFiltering, false)
-        XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: false).income, false)
-        XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: false).isFiltering, true)
-    }
-
-    func testStatisticsCombinedSeriesKeepsIncomeAndExpenseActiveTogether() {
-        let first = Date(timeIntervalSince1970: 100)
-        let second = Date(timeIntervalSince1970: 200)
-        let buckets = StatisticsCombinedSeries.buckets(
-            dates: [first, second],
-            income: [first: 100, second: 25],
-            expense: [first: 20]
-        )
-
-        XCTAssertEqual(buckets.count, 2)
-        XCTAssertEqual(buckets[0], StatisticsCombinedBucket(date: first, income: 100, expense: 20))
-        XCTAssertEqual(buckets[1], StatisticsCombinedBucket(date: second, income: 25, expense: 0))
-    }
-
-    func testStatisticsCategoryPercentagesUseSeparateIncomeAndExpenseDenominators() {
-        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 25, income: true, totalIncome: 100, totalExpense: 200), 0.25)
-        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 50, income: false, totalIncome: 100, totalExpense: 200), 0.25)
-        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 50, income: false, totalIncome: 100, totalExpense: 0), 0)
-        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 50, income: true, totalIncome: 0, totalExpense: 100), 0)
-    }
-
     func testStatisticsCategoryColorUsesStoredValueAndStableFallback() {
         XCTAssertEqual(StatisticsCategoryColor.canonicalHex("#ec7a58"), "#EC7A58")
         XCTAssertEqual(StatisticsCategoryColor.canonicalHex("not-a-color"), StatisticsCategoryColor.fallbackHex)
@@ -174,17 +106,6 @@ final class AccountTests: XCTestCase {
         XCTAssertNotEqual(firstResolution.hex, secondResolution.hex)
         XCTAssertFalse(["#FFFFFF", "#000000"].contains(firstResolution.hex))
         XCTAssertFalse(["#FFFFFF", "#000000"].contains(secondResolution.hex))
-    }
-
-    func testStatisticsPeriodNavigationBoundaryContract() {
-        let oldest = Date(timeIntervalSince1970: 100)
-        let current = Date(timeIntervalSince1970: 200)
-        let newest = Date(timeIntervalSince1970: 300)
-
-        XCTAssertTrue(StatisticsPeriodNavigation.canMoveBackward(current: current, oldest: oldest))
-        XCTAssertFalse(StatisticsPeriodNavigation.canMoveBackward(current: oldest, oldest: oldest))
-        XCTAssertTrue(StatisticsPeriodNavigation.canMoveForward(current: current, newest: newest))
-        XCTAssertFalse(StatisticsPeriodNavigation.canMoveForward(current: newest, newest: newest))
     }
 
     func testAccountTypeRawValuesAndItalianLabels() {

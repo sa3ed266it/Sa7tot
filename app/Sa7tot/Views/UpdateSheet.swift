@@ -19,7 +19,7 @@ struct UpdateAlert: View {
     @State var opacity = 0.0
 
     let welcomeFeatures = [
-        WelcomeSheetFeatureRow(icon: "appclip", header: "Siri Shorcuts", subtitle: "3 new Siri shortcuts allow you to conveniently add new transactions or access insights."),
+        WelcomeSheetFeatureRow(icon: "appclip", header: "Siri Shorcuts", subtitle: "3 new Siri shortcuts allow you to conveniently add new transactions."),
         WelcomeSheetFeatureRow(icon: "arrow.down.doc.fill", header: "Data Import", subtitle: "Transfer pre-existing logs from other applications with a step-by-step guide."),
         WelcomeSheetFeatureRow(icon: "sun.haze.fill", header: "Future Transactions", subtitle: "With date restrictions lifted, log and view upcoming expenses/incomes."),
         WelcomeSheetFeatureRow(icon: "app.gift.fill", header: "App Icons", subtitle: "Choose from 3 new skeuomorphic icons beautifully crafted by the talented @rudra_dsigns."),

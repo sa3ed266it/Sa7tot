@@ -17,11 +17,6 @@ struct Sa7totShortcuts: AppShortcutsProvider {
             systemImageName: "books.vertical.fill"
         )
         AppShortcut(
-            intent: GetInsightsIntent(),
-            phrases: ["Mostra le statistiche in \(.applicationName)"],
-            systemImageName: "plusminus.circle.fill"
-        )
-        AppShortcut(
             intent: BudgetIntent(),
             phrases: ["Mostra lo stato dei miei budget in \(.applicationName)"],
             systemImageName: "circle.grid.2x2.fill"

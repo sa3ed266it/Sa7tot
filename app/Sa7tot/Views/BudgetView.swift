@@ -9,6 +9,7 @@ import CrookedText
 import Foundation
 import Popovers
 import SwiftUI
+import UIKit
 
 struct BudgetView: View {
     @FetchRequest(sortDescriptors: []) private var mainBudget: FetchedResults<MainBudget>
@@ -1189,7 +1190,7 @@ struct DetailedBudgetView: View {
     @EnvironmentObject var dataController: DataController
     let budget: Budget
 
-    @State private var toDelete: Budget?
+    @State private var showDeleteConfirmation = false
 
     @State var newTransaction = false
 
@@ -1197,49 +1198,24 @@ struct DetailedBudgetView: View {
 
     var body: some View {
         VStack(spacing: 15) {
-            HStack {
-                Button {
-                    self.presentationMode.wrappedValue.dismiss()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-
-                        Text("Back")
-                            .font(.system(.body, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-                    }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .fixedSize(horizontal: false, vertical: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-                    .background(Color.AppSecondarySurface, in: Capsule())
-                }
-
-                Spacer()
-
-                DetailedBudgetViewTopBarButton(imageName: "plus", color: Color("110")) {
-                    newTransaction = true
-                }
-
-                DetailedBudgetViewTopBarButton(imageName: "pencil", color: Color("6")) {
-                    toEdit = budget
-                }
-
-                DetailedBudgetViewTopBarButton(imageName: "trash.fill", color: Color.AlertRed) {
-                    toDelete = budget
-                }
-            }
-            .padding(.horizontal, 20)
-
             TimeBudgetView(budget: budget)
         }
-        .padding(.vertical, 15)
+        .padding(.top, 15)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationBarBackButtonHidden(true)
-        .navigationBarTitle("")
-        .navigationBarHidden(true)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .background(Color.AppPageBackground)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button { newTransaction = true } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("Aggiungi movimento")
+                Button { toEdit = budget } label: { Image(systemName: "pencil") }
+                    .accessibilityLabel("Modifica budget")
+                Button(role: .destructive) { showDeleteConfirmation = true } label: { Image(systemName: "trash") }
+                    .accessibilityLabel("Elimina budget")
+            }
+        }
+        .modifier(BudgetDetailTabBarVisibilityModifier())
         .sheet(item: $toEdit, onDismiss: {
             toEdit = nil
         }) { budget in
@@ -1248,10 +1224,24 @@ struct DetailedBudgetView: View {
         .fullScreenCover(isPresented: $newTransaction) {
             TransactionView(category: budget.category)
         }
-        .fullScreenCover(item: $toDelete, onDismiss: {
-            toDelete = nil
-        }) { budget in
-            DeleteBudgetAlert(toDelete: budget)
+        .alert(
+            "Eliminare il budget di \(budget.category?.wrappedName ?? "questa categoria")?",
+            isPresented: $showDeleteConfirmation
+        ) {
+            Button("Annulla", role: .cancel) { }
+            Button("Elimina", role: .destructive) { deleteBudget() }
+        } message: {
+            Text("Questa azione non può essere annullata.")
+        }
+    }
+
+    private func deleteBudget() {
+        moc.delete(budget)
+        do {
+            try dataController.save()
+            presentationMode.wrappedValue.dismiss()
+        } catch {
+            moc.rollback()
         }
     }
 }
@@ -1262,62 +1252,128 @@ struct DetailedMainBudgetView: View {
     @EnvironmentObject var dataController: DataController
     let budget: MainBudget
 
-    @State private var toDelete: MainBudget?
+    @State private var showDeleteConfirmation = false
 
     @State private var toEdit: MainBudget?
 
     var body: some View {
         VStack(spacing: 15) {
-            HStack {
-                Button {
-                    self.presentationMode.wrappedValue.dismiss()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-
-                        Text("Back")
-                            .font(.system(.body, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-                    }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .fixedSize(horizontal: false, vertical: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-//                    .frame(height: 30, alignment: .center)
-                    .background(Color.AppSecondarySurface, in: Capsule())
-                }
-
-                Spacer()
-
-                DetailedBudgetViewTopBarButton(imageName: "pencil", color: Color("6")) {
-                    toEdit = budget
-                }
-
-                DetailedBudgetViewTopBarButton(imageName: "trash.fill", color: Color.AlertRed) {
-                    toDelete = budget
-                }
-            }
-            .padding(.horizontal, 20)
-
             TimeMainBudgetView(budget: budget)
         }
-        .padding(.vertical, 15)
+        .padding(.top, 15)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationBarBackButtonHidden(true)
-        .navigationBarTitle("")
-        .navigationBarHidden(true)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .background(Color.AppPageBackground)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button { toEdit = budget } label: { Image(systemName: "pencil") }
+                    .accessibilityLabel("Modifica budget")
+                Button(role: .destructive) { showDeleteConfirmation = true } label: { Image(systemName: "trash") }
+                    .accessibilityLabel("Elimina budget")
+            }
+        }
+        .modifier(BudgetDetailTabBarVisibilityModifier())
         .fullScreenCover(item: $toEdit, onDismiss: {
             toEdit = nil
         }) { budget in
             BrandNewBudgetView(overallBudgetCreated: true, toEditMainBudget: budget)
         }
-        .fullScreenCover(item: $toDelete, onDismiss: {
-            toDelete = nil
-        }) { budget in
-            DeleteMainBudgetAlert(toDelete: budget)
+        .alert(
+            "Eliminare il budget complessivo?",
+            isPresented: $showDeleteConfirmation
+        ) {
+            Button("Annulla", role: .cancel) { }
+            Button("Elimina", role: .destructive) { deleteBudget() }
+        } message: {
+            Text("Questa azione non può essere annullata.")
         }
+    }
+
+    private func deleteBudget() {
+        moc.delete(budget)
+        do {
+            try dataController.save()
+            presentationMode.wrappedValue.dismiss()
+        } catch {
+            moc.rollback()
+        }
+    }
+}
+
+private struct BudgetDetailTabBarVisibilityModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .toolbar(.hidden, for: .tabBar)
+                .background(BudgetDetailTabBarVisibilityBridge())
+        } else {
+            content
+        }
+    }
+}
+
+private struct BudgetDetailTabBarVisibilityBridge: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> BudgetDetailTabBarVisibilityController {
+        BudgetDetailTabBarVisibilityController()
+    }
+
+    func updateUIViewController(_ controller: BudgetDetailTabBarVisibilityController, context: Context) {
+        controller.updateTabBarVisibility()
+    }
+}
+
+private final class BudgetDetailTabBarVisibilityController: UIViewController {
+    private weak var tabBarControllerToRestore: UITabBarController?
+    private var previousHiddenState = false
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        updateTabBarVisibility()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        restoreTabBar()
+    }
+
+    func updateTabBarVisibility() {
+        guard let tabBarController = nearestTabBarController() else { return }
+        if tabBarControllerToRestore !== tabBarController {
+            tabBarControllerToRestore = tabBarController
+            previousHiddenState = tabBarController.tabBar.isHidden
+        }
+        tabBarController.tabBar.isHidden = true
+    }
+
+    private func restoreTabBar() {
+        guard let tabBarControllerToRestore else { return }
+        tabBarControllerToRestore.tabBar.isHidden = previousHiddenState
+        self.tabBarControllerToRestore = nil
+    }
+
+    private func nearestTabBarController() -> UITabBarController? {
+        var current: UIViewController? = self
+        while let viewController = current {
+            if let tabBarController = viewController as? UITabBarController {
+                return tabBarController
+            }
+            current = viewController.parent
+        }
+        return findTabBarController(in: view.window?.rootViewController)
+    }
+
+    private func findTabBarController(in viewController: UIViewController?) -> UITabBarController? {
+        guard let viewController else { return nil }
+        if let tabBarController = viewController as? UITabBarController {
+            return tabBarController
+        }
+        for child in viewController.children {
+            if let result = findTabBarController(in: child) {
+                return result
+            }
+        }
+        return nil
     }
 }
 

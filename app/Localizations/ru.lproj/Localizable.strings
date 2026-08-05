@@ -9,8 +9,6 @@
 "sa7tot_name" = "sa7tot";
 "welcome_header_1" = "Отслеживайте свои финансы";
 "welcome_subtitle_1" = "Добавляйте записи легко и быстро";
-"welcome_header_2" = "Анализируйте свои расходы";
-"welcome_subtitle_2" = "Делайте выводы из своих расходов за разные периоды времени";
 "welcome_header_3" = "Придерживайтесь бюджетов";
 "welcome_subtitle_3" = "Бюджеты по времени и категориям помогут сократить траты";
 "Get Started" = "Вперед";
@@ -115,8 +113,6 @@
 "Try a different search query!" = "Попробуйте другой поисковый запрос!";
 "yesterday" = "вчера";
 
-// insights
-"Insights" = "Отчет";
 "Analyse Your Expenditure" = "Анализируйте свои расходы";
 "As transactions start piling up" = "По мере накопления транзакций";
 "Expenses" = "Расходы";

@@ -11,8 +11,6 @@
 "sa7tot_name" = "Sa7tot";
 "welcome_header_1" = "Track your finances";
 "welcome_subtitle_1" = "Add new entries in a simple, straightforward manner";
-"welcome_header_2" = "Analyse your expenditure";
-"welcome_subtitle_2" = "Draw insights from your spending over various time periods";
 "welcome_header_3" = "Stick to budgets";
 "welcome_subtitle_3" = "Set categorical and time-based goals to limit your spending";
 "Get Started" = "Get Started";
@@ -119,8 +117,6 @@
 "yesterday" = "yesterday";
 
 
-// insights
-"Insights" = "Insights";
 "Analyse Your Expenditure" = "Analyse Your Expenditure";
 "As transactions start piling up" = "As transactions start piling up";
 "Expenses" = "Expenses";

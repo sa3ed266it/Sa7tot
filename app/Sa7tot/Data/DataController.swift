@@ -981,35 +981,6 @@ class DataController: ObservableObject {
 
     }
 
-    func getShortcutInsights(type: Int, timeframe: Int, optionalIncome: Bool?, categories: [Category]) -> Double {
-        let fetchRequest = fetchRequestForLogView(type: timeframe, optionalIncome: optionalIncome, categoryFilters: categories)
-        let allTransactions = results(for: fetchRequest)
-
-        if type == 1 {
-            var total = 0.0
-
-            allTransactions.forEach { transaction in
-                guard transaction.wrappedType != .transfer else { return }
-                if transaction.wrappedType == .income {
-                    total += transaction.amount
-                } else {
-                    total -= transaction.amount
-                }
-            }
-
-            return total
-        } else {
-            var total = 0.0
-
-            allTransactions.forEach { transaction in
-                guard transaction.wrappedType != .transfer else { return }
-                total += transaction.amount
-            }
-
-            return total
-        }
-    }
-
     func getLogViewTotalSpent(type: Int) -> Double {
         let fetchRequest = fetchRequestForLogView(type: type, optionalIncome: false)
         let allTransactions = results(for: fetchRequest)

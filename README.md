@@ -8,7 +8,6 @@ Sa7tot is a native iPhone personal-finance application written with SwiftUI. It 
 - Financial accounts and account balances
 - Transfers between accounts
 - Budgets and recurring transactions
-- Statistics and insights
 - Multiple currencies
 - Home and Lock Screen widgets
 - Face ID and app lock
@@ -89,4 +88,3 @@ Sa7tot is based on the open-source [Dime project by Rafael Soh](https://github.c
 ## License
 
 This derived project is distributed under GPL-3.0 where applicable. See [LICENSE](LICENSE) for the full license text.
-

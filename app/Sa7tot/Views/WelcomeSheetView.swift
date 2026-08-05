@@ -28,7 +28,6 @@ struct WelcomeSheetView: View {
 
     let welcomeFeatures = [
         WelcomeSheetFeatureRow(icon: "list.bullet.rectangle.fill", header: "welcome_header_1", subtitle: "welcome_subtitle_1"),
-        WelcomeSheetFeatureRow(icon: "chart.bar.xaxis", header: "welcome_header_2", subtitle: "welcome_subtitle_2"),
         WelcomeSheetFeatureRow(icon: "archivebox.fill", header: "welcome_header_3", subtitle: "welcome_subtitle_3")
     ]
 

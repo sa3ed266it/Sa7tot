@@ -494,7 +494,6 @@ struct InsightsWidgetEntryView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .widgetURL(URL(string: "sa7totapp://insights"))
             .containerBackground(for: .widget) {
                 Color.AppPageBackground
             }
@@ -640,7 +639,6 @@ struct InsightsWidgetEntryView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .widgetURL(URL(string: "sa7totapp://insights"))
         }
     }
 
