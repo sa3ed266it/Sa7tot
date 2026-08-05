@@ -85,12 +85,14 @@ struct InsightsView: View {
                         .pickerStyle(.segmented)
                         .labelsHidden()
                         .frame(maxWidth: .infinity)
-                        .tint(.blue)
+                        .controlSize(.small)
+                        .tint(.secondary)
                         .accessibilityLabel("Periodo")
                         .accessibilityValue(chartTypeString)
                     }
                     .padding(.horizontal, 30)
-                    .padding(.bottom, 20)
+                    .padding(.top, 4)
+                    .padding(.bottom, 14)
 
                     if chartType == 1 {
                         WeekGraphView()
@@ -887,6 +889,52 @@ struct SingleGraphView: View {
     }
 }
 
+struct StatisticsPeriodNavigationRow: View {
+    let periodLabel: String
+    let canMoveBackward: Bool
+    let canMoveForward: Bool
+    let backwardAction: () -> Void
+    let forwardAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Group {
+                if canMoveBackward {
+                    SwipeArrowView(left: true, swipeString: "", changeTime: true, action: backwardAction)
+                } else {
+                    SwipeArrowView(left: true, swipeString: "", changeTime: false, isEnabled: false)
+                }
+            }
+            .frame(width: 52, height: 48)
+
+            Spacer(minLength: 0)
+
+            Text(periodLabel)
+                .font(.system(.title3, design: .rounded).weight(.medium))
+                .foregroundColor(Color.PrimaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .accessibilityAddTraits(.isHeader)
+
+            Spacer(minLength: 0)
+
+            Group {
+                if canMoveForward {
+                    SwipeArrowView(left: false, swipeString: "", changeTime: true, action: forwardAction)
+                } else {
+                    SwipeArrowView(left: false, swipeString: "", changeTime: false, isEnabled: false)
+                }
+            }
+            .frame(width: 52, height: 48)
+        }
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .padding(.horizontal, 30)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Navigazione periodo")
+        .accessibilityValue(periodLabel)
+    }
+}
+
 struct WeekGraphView: View {
     @EnvironmentObject var dataController: DataController
 
@@ -981,6 +1029,19 @@ struct WeekGraphView: View {
 
     var body: some View {
         VStack {
+            StatisticsPeriodNavigationRow(
+                periodLabel: StatisticsSummaryPresentation.periodRange(start: showingWeek, type: 1),
+                canMoveBackward: StatisticsPeriodNavigation.canMoveBackward(current: showingWeek, oldest: startOfLastWeek),
+                canMoveForward: StatisticsPeriodNavigation.canMoveForward(current: showingWeek, newest: startOfCurrentWeek),
+                backwardAction: {
+                    withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: -7, to: showingWeek) ?? showingWeek }
+                },
+                forwardAction: {
+                    withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: 7, to: showingWeek) ?? showingWeek }
+                }
+            )
+            .padding(.bottom, 16)
+
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 1)
@@ -991,35 +1052,6 @@ struct WeekGraphView: View {
                         }
                         .offset(x: offset)
 
-                    if !changeDate {
-                        HStack {
-                            if StatisticsPeriodNavigation.canMoveBackward(current: showingWeek, oldest: startOfLastWeek) {
-                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
-                                    withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: -7, to: showingWeek) ?? showingWeek }
-                                })
-                                .offset(x: min(100, offset))
-                            } else {
-                                SwipeEndView(left: true)
-                                .offset(x: min(120, offset))
-                            }
-
-                            Spacer()
-                        }
-
-                        HStack {
-                            Spacer()
-
-                            if StatisticsPeriodNavigation.canMoveForward(current: showingWeek, newest: startOfCurrentWeek) {
-                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
-                                    withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: 7, to: showingWeek) ?? showingWeek }
-                                })
-                                .offset(x: max(-100, offset))
-                            } else {
-                                SwipeEndView(left: false)
-                                .offset(x: max(-120, offset))
-                            }
-                        }
-                    }
                 }
                 .contentShape(Rectangle())
                 .padding(.horizontal, 30)
@@ -1394,6 +1426,19 @@ struct MonthGraphView: View {
 
     var body: some View {
         VStack {
+            StatisticsPeriodNavigationRow(
+                periodLabel: StatisticsSummaryPresentation.periodRange(start: showingMonth, type: 2),
+                canMoveBackward: StatisticsPeriodNavigation.canMoveBackward(current: showingMonth, oldest: startOfLastMonth),
+                canMoveForward: StatisticsPeriodNavigation.canMoveForward(current: showingMonth, newest: startOfCurrentMonth),
+                backwardAction: {
+                    withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: -1, to: showingMonth) ?? showingMonth }
+                },
+                forwardAction: {
+                    withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: 1, to: showingMonth) ?? showingMonth }
+                }
+            )
+            .padding(.bottom, 16)
+
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 2)
@@ -1404,35 +1449,6 @@ struct MonthGraphView: View {
                         }
                         .offset(x: offset)
 
-                    if !changeDate {
-                        HStack {
-                            if StatisticsPeriodNavigation.canMoveBackward(current: showingMonth, oldest: startOfLastMonth) {
-                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
-                                    withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: -1, to: showingMonth) ?? showingMonth }
-                                })
-                                .offset(x: min(100, offset))
-                            } else {
-                                SwipeEndView(left: true)
-                                .offset(x: min(120, offset))
-                            }
-
-                            Spacer()
-                        }
-
-                        HStack {
-                            Spacer()
-
-                            if StatisticsPeriodNavigation.canMoveForward(current: showingMonth, newest: startOfCurrentMonth) {
-                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
-                                    withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: 1, to: showingMonth) ?? showingMonth }
-                                })
-                                .offset(x: max(-100, offset))
-                            } else {
-                                SwipeEndView(left: false)
-                                .offset(x: max(-120, offset))
-                            }
-                        }
-                    }
                 }
                 .contentShape(Rectangle())
                 .padding(.horizontal, 30)
@@ -1774,6 +1790,19 @@ struct YearGraphView: View {
 
     var body: some View {
         VStack {
+            StatisticsPeriodNavigationRow(
+                periodLabel: StatisticsSummaryPresentation.periodRange(start: showingYear, type: 3),
+                canMoveBackward: StatisticsPeriodNavigation.canMoveBackward(current: showingYear, oldest: startOfLastYear),
+                canMoveForward: StatisticsPeriodNavigation.canMoveForward(current: showingYear, newest: startOfCurrentYear),
+                backwardAction: {
+                    withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: -1, to: showingYear) ?? showingYear }
+                },
+                forwardAction: {
+                    withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: 1, to: showingYear) ?? showingYear }
+                }
+            )
+            .padding(.bottom, 16)
+
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingYear, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 3)
@@ -1784,35 +1813,6 @@ struct YearGraphView: View {
                         }
                         .offset(x: offset)
 
-                    if !changeDate {
-                        HStack {
-                            if StatisticsPeriodNavigation.canMoveBackward(current: showingYear, oldest: startOfLastYear) {
-                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
-                                    withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: -1, to: showingYear) ?? showingYear }
-                                })
-                                .offset(x: min(100, offset))
-                            } else {
-                                SwipeEndView(left: true)
-                                .offset(x: min(120, offset))
-                            }
-
-                            Spacer()
-                        }
-
-                        HStack {
-                            Spacer()
-
-                            if StatisticsPeriodNavigation.canMoveForward(current: showingYear, newest: startOfCurrentYear) {
-                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
-                                    withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: 1, to: showingYear) ?? showingYear }
-                                })
-                                .offset(x: max(-100, offset))
-                            } else {
-                                SwipeEndView(left: false)
-                                .offset(x: max(-120, offset))
-                            }
-                        }
-                    }
                 }
                 .contentShape(Rectangle())
                 .padding(.horizontal, 30)

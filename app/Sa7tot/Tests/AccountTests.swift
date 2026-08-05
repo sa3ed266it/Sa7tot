@@ -77,6 +77,13 @@ final class AccountTests: XCTestCase {
 
         let crossMonth = calendar.date(from: DateComponents(year: 2026, month: 1, day: 29))!
         XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: crossMonth, type: 1, calendar: calendar), "29 gennaio–4 febbraio")
+
+        let crossYear = calendar.date(from: DateComponents(year: 2025, month: 12, day: 29))!
+        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: crossYear, type: 1, calendar: calendar), "29 dicembre 2025–4 gennaio 2026")
+
+        let month = calendar.date(from: DateComponents(year: 2026, month: 8, day: 1))!
+        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: month, type: 2, calendar: calendar), "agosto 2026")
+        XCTAssertEqual(StatisticsSummaryPresentation.periodRange(start: month, type: 3, calendar: calendar), "2026")
     }
 
     func testStatisticsSummaryAverageLabelsFollowPeriodAndFilter() {
