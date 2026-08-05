@@ -91,8 +91,8 @@ struct InsightsView: View {
                         .accessibilityValue(chartTypeString)
                     }
                     .padding(.horizontal, 30)
-                    .padding(.top, 4)
-                    .padding(.bottom, 14)
+                    .padding(.top, 0)
+                    .padding(.bottom, 8)
 
                     if chartType == 1 {
                         WeekGraphView()
@@ -444,10 +444,10 @@ struct StatisticsCategoryListView: View {
         if categories.isEmpty {
             EmptyView()
         } else {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Categorie")
-                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                        .font(.system(.headline, design: .rounded).weight(.semibold))
                         .foregroundColor(Color.PrimaryText)
                     Spacer()
                 }
@@ -460,7 +460,7 @@ struct StatisticsCategoryListView: View {
                         VStack(spacing: 7) {
                             HStack(spacing: 10) {
                                 CategoryIconView(descriptor: item.category.iconDescriptor, role: .category, tint: color, accessibilityLabel: item.category.wrappedName)
-                                    .frame(width: 40, height: 40)
+                                    .frame(width: 34, height: 34)
 
                                 Text(item.category.wrappedName)
                                     .font(.system(.body, design: .rounded).weight(.semibold))
@@ -501,10 +501,10 @@ struct StatisticsCategoryListView: View {
                                     Capsule().fill(color).frame(width: proxy.size.width * min(max(item.percent, 0), 1))
                                 }
                             }
-                            .frame(height: 4)
-                            .padding(.leading, 50)
+                            .frame(height: 3)
+                            .padding(.leading, 44)
                         }
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 8)
                         .contentShape(Rectangle())
                         .opacity(categoryFilterMode && !selected ? 0.55 : 1)
                         .accessibilityElement(children: .combine)
@@ -519,8 +519,8 @@ struct StatisticsCategoryListView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 14)
-                .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .padding(.horizontal, 12)
+                .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
         }
     }
@@ -583,7 +583,9 @@ struct FilteredCategoryInsightsView: View {
                 NoResultsView(fullscreen: false)
             }
 
-            ListView(transactions: _transactions)
+            ScrollView(.vertical, showsIndicators: false) {
+                ListView(transactions: _transactions)
+            }
         }
         .frame(maxHeight: .infinity)
     }
@@ -643,6 +645,27 @@ struct FilteredCategoryInsightsView: View {
                 SortDescriptor(\.day, order: .reverse),
                 SortDescriptor(\.date, order: .reverse)
             ])
+        }
+    }
+}
+
+struct StatisticsCategoryTransactionsSheet: View {
+    let category: Category?
+    let date: Date
+    let type: ChartTimeFrame
+
+    @ViewBuilder
+    var body: some View {
+        if #available(iOS 16.0, *) {
+            NavigationStack {
+                FilteredCategoryInsightsView(category: category, date: date, type: type)
+                    .navigationTitle(category?.wrappedName ?? "Movimenti")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        } else {
+            FilteredCategoryInsightsView(category: category, date: date, type: type)
         }
     }
 }
@@ -919,29 +942,29 @@ struct SingleGraphView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            VStack(spacing: 10) {
-                VStack(spacing: 3) {
+        VStack(spacing: 6) {
+            VStack(spacing: 6) {
+                VStack(spacing: 2) {
                     Text("Saldo netto")
                         .font(.system(.callout, design: .rounded).weight(.medium))
                         .foregroundColor(Color.SubtitleText)
 
                     Text(StatisticsSummaryPresentation.amount(totalNet, currencyCode: currency, showCents: showCents, negative: !netPositive))
-                        .font(.system(.largeTitle, design: .rounded).weight(.semibold))
+                        .font(.system(.title, design: .rounded).weight(.semibold))
                         .foregroundColor(Color.PrimaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
                 }
                 .frame(maxWidth: .infinity)
 
-                VStack(spacing: 1) {
+                VStack(spacing: 0) {
                     Text(summaryMetricLabel)
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
                         .foregroundColor(Color.SubtitleText)
                         .lineLimit(1)
 
                     Text(StatisticsSummaryPresentation.amount(summaryMetricAmount, currencyCode: currency, showCents: showCents))
-                        .font(.system(.title3, design: .rounded).weight(.medium))
+                        .font(.system(.headline, design: .rounded).weight(.medium))
                         .foregroundColor(Color.PrimaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
@@ -1046,7 +1069,7 @@ struct StatisticsPeriodNavigationRow: View {
             Spacer(minLength: 0)
 
             Text(periodLabel)
-                .font(.system(.title3, design: .rounded).weight(.medium))
+                .font(.system(.headline, design: .rounded).weight(.medium))
                 .foregroundColor(Color.PrimaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -1063,8 +1086,8 @@ struct StatisticsPeriodNavigationRow: View {
             }
             .frame(width: 52, height: 48)
         }
-        .frame(maxWidth: .infinity, minHeight: 48)
-        .padding(.horizontal, 30)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .padding(.horizontal, 20)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Navigazione periodo")
         .accessibilityValue(periodLabel)
@@ -1091,7 +1114,7 @@ struct StatisticsInlineTotalView: View {
             }
 
             Text(StatisticsSummaryPresentation.amount(amount, currencyCode: currencyCode, showCents: showCents))
-                .font(.system(.title2, design: .rounded).weight(.medium))
+                .font(.system(.headline, design: .rounded).weight(.medium))
                 .foregroundColor(Color.PrimaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -1103,6 +1126,82 @@ struct StatisticsInlineTotalView: View {
     }
 }
 
+private struct StatisticsCombinedBucketView: View {
+    let bucket: StatisticsCombinedBucket
+    let period: InsightsPeriod
+    let chartMaximum: Double
+    let chartHeight: CGFloat
+    let onSelect: () -> Void
+
+    var body: some View {
+        VStack(spacing: 5) {
+            HStack(alignment: .bottom, spacing: 2) {
+                StatisticsChartBar(
+                    value: bucket.income,
+                    maximum: chartMaximum,
+                    color: Color.IncomeGreen,
+                    height: chartHeight
+                )
+                StatisticsChartBar(
+                    value: bucket.expense,
+                    maximum: chartMaximum,
+                    color: Color.AlertRed,
+                    height: chartHeight
+                )
+            }
+            .frame(height: chartHeight)
+
+            Text(verbatim: bucketLabel)
+                .font(labelFont)
+                .foregroundColor(Color.SubtitleText)
+                .lineLimit(1)
+                .fixedSize(horizontal: labelNeedsRoom, vertical: false)
+        }
+        .opacity(bucket.date > Date.now ? 0.3 : 1)
+        .allowsHitTesting(bucket.date <= Date.now)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(bucketAccessibilityLabel)
+        .accessibilityValue("Entrate \(bucket.income), Spese \(bucket.expense)")
+        .onTapGesture(perform: onSelect)
+    }
+
+    private var bucketLabel: String {
+        let formatter = DateFormatter()
+        formatter.locale = StatisticsSummaryPresentation.italianLocale
+
+        switch period {
+        case .year:
+            formatter.dateFormat = "MMM"
+            return formatter.string(from: bucket.date).lowercased().prefix(3).description
+        case .month:
+            let calendar = Calendar.current
+            let day = calendar.component(.day, from: bucket.date)
+            let lastDay = calendar.range(of: .day, in: .month, for: bucket.date)?.count ?? day
+            return day <= lastDay ? "\(day)" : ""
+        case .week:
+            formatter.dateFormat = "EEE"
+            return formatter.string(from: bucket.date).lowercased().prefix(3).description
+        }
+    }
+
+    private var labelNeedsRoom: Bool {
+        period == .year
+    }
+
+    private var labelFont: Font {
+        let size: CGFloat = period == .year ? 9 : (period == .month ? 8 : 11)
+        return .system(size: size, design: .rounded).weight(.medium)
+    }
+
+    private var bucketAccessibilityLabel: String {
+        let formatter = DateFormatter()
+        formatter.locale = StatisticsSummaryPresentation.italianLocale
+        formatter.dateStyle = .medium
+        return formatter.string(from: bucket.date)
+    }
+}
+
 struct StatisticsCombinedChartView: View {
     let buckets: [StatisticsCombinedBucket]
     let period: InsightsPeriod
@@ -1110,7 +1209,7 @@ struct StatisticsCombinedChartView: View {
     @Binding var categoryFilterMode: Bool
     @Binding var selectedDateAmount: Double
 
-    private let chartHeight: CGFloat = 180
+    private let chartHeight: CGFloat = 140
 
     private var maximum: Double {
         max(buckets.flatMap { [$0.income, $0.expense] }.max() ?? 0, 1)
@@ -1129,10 +1228,10 @@ struct StatisticsCombinedChartView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 9) {
             HStack {
                 Text(title)
-                    .font(.system(.headline, design: .rounded).weight(.semibold))
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundColor(Color.PrimaryText)
 
                 Spacer()
@@ -1144,6 +1243,12 @@ struct StatisticsCombinedChartView: View {
             }
 
             GeometryReader { proxy in
+                let plotWidth = max(0, proxy.size.width - 36)
+                let monthDayWidth = plotWidth / 10
+                let contentWidth = period == .month
+                    ? max(plotWidth, monthDayWidth * CGFloat(buckets.count))
+                    : plotWidth
+
                 HStack(alignment: .top, spacing: 8) {
                     VStack(alignment: .leading) {
                         Text(getMaxText(maxi: Int(chartMaximum)))
@@ -1154,55 +1259,74 @@ struct StatisticsCombinedChartView: View {
                     .foregroundColor(Color.SubtitleText)
                     .frame(width: 28, height: chartHeight, alignment: .leading)
 
-                    HStack(alignment: .bottom, spacing: 5) {
-                        ForEach(buckets) { bucket in
-                            VStack(spacing: 5) {
-                                HStack(alignment: .bottom, spacing: 2) {
-                                    StatisticsChartBar(value: bucket.income, maximum: chartMaximum, color: Color.IncomeGreen, height: chartHeight)
-                                    StatisticsChartBar(value: bucket.expense, maximum: chartMaximum, color: Color.AlertRed, height: chartHeight)
-                                }
-                                .frame(height: chartHeight)
-
-                                Text(bucketLabel(bucket.date))
-                                    .font(.system(.caption2, design: .rounded).weight(.medium))
-                                    .foregroundColor(Color.SubtitleText)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .opacity(bucket.date > Date.now ? 0.3 : 1)
-                            .allowsHitTesting(bucket.date <= Date.now)
-                            .contentShape(Rectangle())
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel(bucketAccessibilityLabel(bucket.date))
-                            .accessibilityValue("Entrate \(bucket.income), Spese \(bucket.expense)")
-                            .onTapGesture {
-                                withAnimation(.easeIn(duration: 0.2)) {
-                                    if selectedDate == bucket.date {
-                                        selectedDate = nil
-                                        categoryFilterMode = false
-                                    } else {
-                                        selectedDate = bucket.date
-                                        categoryFilterMode = false
-                                        selectedDateAmount = bucket.income + bucket.expense
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .bottom, spacing: 5) {
+                            ForEach(buckets, id: \.id) { bucket in
+                                Group {
+                                    StatisticsCombinedBucketView(
+                                        bucket: bucket,
+                                        period: period,
+                                        chartMaximum: chartMaximum,
+                                        chartHeight: chartHeight
+                                    ) {
+                                        withAnimation(.easeIn(duration: 0.2)) {
+                                            if selectedDate == bucket.date {
+                                                selectedDate = nil
+                                                categoryFilterMode = false
+                                            } else {
+                                                selectedDate = bucket.date
+                                                categoryFilterMode = false
+                                                selectedDateAmount = combinedAmount(for: bucket)
+                                            }
+                                        }
                                     }
+                                    .frame(width: period == .month ? monthDayWidth : nil)
+                                    .frame(maxWidth: period == .month ? nil : .infinity)
                                 }
                             }
                         }
+                        .frame(width: contentWidth, height: chartHeight)
                     }
-                    .frame(width: max(0, proxy.size.width - 36), height: chartHeight)
+                    .frame(width: plotWidth, height: chartHeight)
                 }
             }
-            .frame(height: chartHeight + 24)
+            .frame(height: chartHeight + 20)
         }
-        .padding(16)
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .padding(12)
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private func bucketLabel(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = StatisticsSummaryPresentation.italianLocale
-        formatter.dateFormat = period == .year ? "MMM" : "EEE"
-        return formatter.string(from: date).lowercased().prefix(period == .year ? 3 : 3).description
+        switch period {
+        case .year:
+            formatter.dateFormat = "MMM"
+            return formatter.string(from: date).lowercased().prefix(3).description
+        case .month:
+            let calendar = Calendar.current
+            let day = calendar.component(.day, from: date)
+            let lastDay = calendar.range(of: .day, in: .month, for: date)?.count ?? day
+            return day <= lastDay ? "\(day)" : ""
+        case .week:
+            formatter.dateFormat = "EEE"
+            return formatter.string(from: date).lowercased().prefix(3).description
+        }
+    }
+
+    private func labelNeedsRoom(_ date: Date) -> Bool {
+        switch period {
+        case .year:
+            return true
+        case .month:
+            return false
+        case .week:
+            return false
+        }
+    }
+
+    private func combinedAmount(for bucket: StatisticsCombinedBucket) -> Double {
+        bucket.income + bucket.expense
     }
 
     private func bucketAccessibilityLabel(_ date: Date) -> String {
@@ -1236,10 +1360,17 @@ struct StatisticsChartBar: View {
     let height: CGFloat
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(color)
-            .frame(maxWidth: .infinity)
-            .frame(height: max(value == 0 ? 0 : 4, height * value / maximum), alignment: .bottom)
+        ZStack(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(Color.AppPageBackground.opacity(0.55))
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(color)
+                .frame(maxWidth: .infinity)
+                .frame(height: max(value == 0 ? 0 : 4, height * value / maximum))
+        }
     }
 }
 
@@ -1354,11 +1485,11 @@ struct WeekGraphView: View {
                     withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: 7, to: showingWeek) ?? showingWeek }
                 }
             )
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
 
-            VStack(spacing: 18) {
+            VStack(spacing: 10) {
                 ZStack(alignment: .top) {
-                    VStack(spacing: 18) {
+                    VStack(spacing: 10) {
                         SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 1)
                         StatisticsCombinedChartView(buckets: combinedBuckets, period: .week, selectedDate: $selectedDate, categoryFilterMode: $categoryFilterMode, selectedDateAmount: $chosenCategoryAmount)
                     }
@@ -1371,7 +1502,7 @@ struct WeekGraphView: View {
 
                 }
                 .contentShape(Rectangle())
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 20)
                 .simultaneousGesture(
                     DragGesture()
                         .updating($isDragging, body: { _, state, _ in
@@ -1447,24 +1578,18 @@ struct WeekGraphView: View {
                     selectedDate = nil
                     categoryFilterMode = false
                 }
-                .padding(.bottom, incomeFiltering ? 5 : 10)
+                .padding(.bottom, incomeFiltering ? 3 : 6)
 
                 Group {
                     if selectedDate == nil {
                         StatisticsCategoryListView(date: showingWeek, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .week)
-                            .padding(.horizontal, 30)
-                            .padding(.bottom, 70)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 50)
                             .id(refreshID1)
-
-                        if categoryFilterMode {
-                            FilteredCategoryInsightsView(category: categoryFilter, date: showingWeek, type: .week)
-                                .padding(.bottom, 70)
-                                .padding(.horizontal, 20)
-                        }
                     } else {
                         FilteredInsightsView(startDate: selectedDate ?? Date.now, period: .week)
-                            .padding(.bottom, 70)
-                            .padding(.horizontal, 20)
+                            .padding(.bottom, 50)
+                            .padding(.horizontal, 16)
                     }
                 }
                 .onTapGesture {
@@ -1472,6 +1597,9 @@ struct WeekGraphView: View {
                     categoryFilterMode = false
                 }
             }
+        }
+        .sheet(isPresented: $categoryFilterMode) {
+            StatisticsCategoryTransactionsSheet(category: categoryFilter, date: showingWeek, type: .week)
         }
         .onReceive(self.didSave) { _ in
             self.refreshID = UUID()
@@ -1754,11 +1882,11 @@ struct MonthGraphView: View {
                     withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: 1, to: showingMonth) ?? showingMonth }
                 }
             )
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
 
-            VStack(spacing: 18) {
+            VStack(spacing: 10) {
                 ZStack(alignment: .top) {
-                    VStack(spacing: 18) {
+                    VStack(spacing: 10) {
                         SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 2)
                         StatisticsCombinedChartView(buckets: combinedBuckets, period: .month, selectedDate: $selectedDate, categoryFilterMode: $categoryFilterMode, selectedDateAmount: $chosenCategoryAmount)
                     }
@@ -1771,7 +1899,7 @@ struct MonthGraphView: View {
 
                 }
                 .contentShape(Rectangle())
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 20)
                 .simultaneousGesture(
                     DragGesture()
                         .updating($isDragging, body: { _, state, _ in
@@ -1847,24 +1975,18 @@ struct MonthGraphView: View {
                     selectedDate = nil
                     categoryFilterMode = false
                 }
-                .padding(.bottom, incomeFiltering ? 5 : 20)
+                .padding(.bottom, incomeFiltering ? 3 : 6)
                 
                 Group {
                     if selectedDate == nil {
                         StatisticsCategoryListView(date: showingMonth, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .month)
-                            .padding(.horizontal, 30)
-                            .padding(.bottom, 70)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 50)
                             .id(refreshID1)
-
-                        if categoryFilterMode {
-                            FilteredCategoryInsightsView(category: categoryFilter, date: showingMonth, type: .month)
-                                .padding(.bottom, 70)
-                                .padding(.horizontal, 20)
-                        }
                     } else {
                         FilteredInsightsView(startDate: selectedDate ?? Date.now, period: .month)
-                            .padding(.bottom, 70)
-                            .padding(.horizontal, 20)
+                            .padding(.bottom, 50)
+                            .padding(.horizontal, 16)
                     }
                 }
 
@@ -1892,6 +2014,9 @@ struct MonthGraphView: View {
 //                    categoryFilterMode = false
 //                }
             }
+        }
+        .sheet(isPresented: $categoryFilterMode) {
+            StatisticsCategoryTransactionsSheet(category: categoryFilter, date: showingMonth, type: .month)
         }
         .onReceive(self.didSave) { _ in
             self.refreshID = UUID()
@@ -2121,11 +2246,11 @@ struct YearGraphView: View {
                     withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: 1, to: showingYear) ?? showingYear }
                 }
             )
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
 
-            VStack(spacing: 18) {
+            VStack(spacing: 10) {
                 ZStack(alignment: .top) {
-                    VStack(spacing: 18) {
+                    VStack(spacing: 10) {
                         SingleGraphView(showingDate: showingYear, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 3)
                         StatisticsCombinedChartView(buckets: combinedBuckets, period: .year, selectedDate: $selectedDate, categoryFilterMode: $categoryFilterMode, selectedDateAmount: $chosenCategoryAmount)
                     }
@@ -2138,7 +2263,7 @@ struct YearGraphView: View {
 
                 }
                 .contentShape(Rectangle())
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 20)
                 .simultaneousGesture(
                     DragGesture()
                         .updating($isDragging, body: { _, state, _ in
@@ -2214,27 +2339,24 @@ struct YearGraphView: View {
                     selectedDate = nil
                     categoryFilterMode = false
                 }
-                .padding(.bottom, incomeFiltering ? 5 : 20)
+                .padding(.bottom, incomeFiltering ? 3 : 6)
 
                 Group {
                     if selectedDate == nil {
                         StatisticsCategoryListView(date: showingYear, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .year)
-                            .padding(.horizontal, 30)
-                            .padding(.bottom, 70)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 50)
                             .id(refreshID1)
-
-                        if categoryFilterMode {
-                            FilteredCategoryInsightsView(category: categoryFilter, date: showingYear, type: .year)
-                                .padding(.bottom, 70)
-                                .padding(.horizontal, 20)
-                        }
                     } else {
                         FilteredInsightsView(startDate: selectedDate ?? Date.now, period: .month)
-                            .padding(.bottom, 70)
-                            .padding(.horizontal, 20)
+                            .padding(.bottom, 50)
+                            .padding(.horizontal, 16)
                     }
                 }
             }
+        }
+        .sheet(isPresented: $categoryFilterMode) {
+            StatisticsCategoryTransactionsSheet(category: categoryFilter, date: showingYear, type: .year)
         }
         .onReceive(self.didSave) { _ in
             self.refreshID = UUID()
