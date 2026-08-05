@@ -99,6 +99,18 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(StatisticsCategoryColor.canonicalHex("#ec7a58"), StatisticsCategoryColor.canonicalHex("#EC7A58"))
     }
 
+    func testStatisticsCategoryColorsStayDistinctAndStablePerCategory() throws {
+        let context = makeContext()
+        let salary = makeCategory(in: context, name: "Stipendio", income: true)
+        let partTime = makeCategory(in: context, name: "Part-time", income: true)
+        salary.colour = "#61C7FA"
+        partTime.colour = "#F6D24A"
+
+        XCTAssertEqual(StatisticsCategoryColor.hex(for: salary), StatisticsCategoryColor.hex(for: salary))
+        XCTAssertEqual(StatisticsCategoryColor.hex(for: partTime), StatisticsCategoryColor.hex(for: partTime))
+        XCTAssertNotEqual(StatisticsCategoryColor.hex(for: salary), StatisticsCategoryColor.hex(for: partTime))
+    }
+
     func testStatisticsPeriodNavigationBoundaryContract() {
         let oldest = Date(timeIntervalSince1970: 100)
         let current = Date(timeIntervalSince1970: 200)
