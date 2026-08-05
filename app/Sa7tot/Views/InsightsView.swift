@@ -395,6 +395,185 @@ struct HorizontalPieChartView: View {
     }
 }
 
+struct StatisticsCategoryListView: View {
+    @FetchRequest private var allCategories: FetchedResults<Category>
+    @FetchRequest private var transactions: FetchedResults<Transaction>
+
+    let date: Date
+    let type: ChartTimeFrame
+    @Binding var categoryFilter: Category?
+    @Binding var categoryFilterMode: Bool
+    @Binding var selectedDate: Date?
+    @Binding var chosenAmount: Double
+    @Binding var chosenName: String
+
+    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
+
+    private var totalIncome: Double {
+        transactions.filter { $0.income }.reduce(0) { $0 + $1.wrappedAmount }
+    }
+
+    private var totalExpense: Double {
+        transactions.filter { !$0.income }.reduce(0) { $0 + $1.wrappedAmount }
+    }
+
+    private var categories: [PowerCategory] {
+        let grouped = Dictionary(grouping: transactions) { $0.category }
+        return allCategories.compactMap { category in
+            let amount = grouped[category, default: []].reduce(0) { $0 + $1.wrappedAmount }
+            guard amount > 0 else { return nil }
+            let percent = StatisticsCombinedSeries.categoryPercentage(
+                amount: amount,
+                income: category.income,
+                totalIncome: totalIncome,
+                totalExpense: totalExpense
+            )
+            guard percent > 0 else { return nil }
+            return PowerCategory(id: category.id ?? UUID(), category: category, percent: percent, amount: amount)
+        }
+        .sorted {
+            if $0.category.income != $1.category.income {
+                return $0.category.income
+            }
+            return $0.percent > $1.percent
+        }
+    }
+
+    var body: some View {
+        if categories.isEmpty {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Categorie")
+                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color.PrimaryText)
+                    Spacer()
+                }
+
+                VStack(spacing: 0) {
+                    ForEach(categories) { item in
+                        let color = item.category.statisticsColor
+                        let selected = categoryFilterMode && categoryFilter == item.category
+
+                        VStack(spacing: 7) {
+                            HStack(spacing: 10) {
+                                CategoryIconView(descriptor: item.category.iconDescriptor, role: .category, tint: color, accessibilityLabel: item.category.wrappedName)
+                                    .frame(width: 40, height: 40)
+
+                                Text(item.category.wrappedName)
+                                    .font(.system(.body, design: .rounded).weight(.semibold))
+                                    .foregroundColor(Color.PrimaryText)
+                                    .lineLimit(1)
+
+                                Spacer(minLength: 4)
+
+                                Text(StatisticsSummaryPresentation.amount(item.amount, currencyCode: currency, showCents: showCents))
+                                    .font(.system(.body, design: .rounded).weight(.medium))
+                                    .foregroundColor(Color.PrimaryText)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+
+                                if selected {
+                                    Button {
+                                        clearSelection()
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.system(.caption, design: .rounded).weight(.bold))
+                                            .foregroundColor(color)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Cancella selezione categoria")
+                                } else {
+                                    Text("\(item.percent * 100, specifier: "%.0f")%")
+                                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                                        .foregroundColor(color)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(color.opacity(0.18), in: Capsule())
+                                }
+                            }
+
+                            GeometryReader { proxy in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color.SubtitleText.opacity(0.16))
+                                    Capsule().fill(color).frame(width: proxy.size.width * min(max(item.percent, 0), 1))
+                                }
+                            }
+                            .frame(height: 4)
+                            .padding(.leading, 50)
+                        }
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                        .opacity(categoryFilterMode && !selected ? 0.55 : 1)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(item.category.wrappedName)
+                        .accessibilityValue("\(item.amount), \(Int(item.percent * 100))%")
+                        .onTapGesture {
+                            select(item)
+                        }
+
+                        if item.id != categories.last?.id {
+                            Divider().opacity(0.35)
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            }
+        }
+    }
+
+    private func select(_ item: PowerCategory) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if categoryFilter == item.category {
+                clearSelection()
+            } else {
+                selectedDate = nil
+                categoryFilterMode = true
+                categoryFilter = item.category
+                chosenAmount = item.amount
+                chosenName = item.category.wrappedName
+            }
+        }
+    }
+
+    private func clearSelection() {
+        selectedDate = nil
+        categoryFilterMode = false
+        categoryFilter = nil
+    }
+
+    init(date: Date, categoryFilter: Binding<Category?>, categoryFilterMode: Binding<Bool>, selectedDate: Binding<Date?>, chosenAmount: Binding<Double>, chosenName: Binding<String>, type: ChartTimeFrame) {
+        self.date = date
+        self.type = type
+        _categoryFilter = categoryFilter
+        _categoryFilterMode = categoryFilterMode
+        _selectedDate = selectedDate
+        _chosenAmount = chosenAmount
+        _chosenName = chosenName
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.firstWeekday = Sa7totWeekday.storedSelection.rawValue
+        calendar.minimumDaysInFirstWeek = 4
+        let next: Date
+        switch type {
+        case .week: next = calendar.date(byAdding: .day, value: 7, to: date) ?? date
+        case .month: next = calendar.date(byAdding: .month, value: 1, to: date) ?? date
+        case .year: next = calendar.date(byAdding: .year, value: 1, to: date) ?? date
+        }
+        let end = min(next, Date.now)
+        let rangePredicate = NSCompoundPredicate(type: .and, subpredicates: [
+            NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), date as CVarArg),
+            NSPredicate(format: "%K < %@", #keyPath(Transaction.date), end as CVarArg),
+            StatisticsTransactionFilter.excludingTransfersPredicate()
+        ])
+        _allCategories = FetchRequest<Category>(sortDescriptors: [SortDescriptor(\.name)], predicate: nil)
+        _transactions = FetchRequest<Transaction>(sortDescriptors: [SortDescriptor(\.date, order: .reverse)], predicate: rangePredicate)
+    }
+}
+
 struct FilteredCategoryInsightsView: View {
     @SectionedFetchRequest<Date?, Transaction> private var transactions: SectionedFetchResults<Date?, Transaction>
 
@@ -644,7 +823,7 @@ struct SingleGraphView: View {
         } else if selectedDate != nil {
             return selectedDateString
         }
-        return StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeFiltering, income: income)
+        return StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeTracking, income: income)
     }
 
     private var summaryMetricAmount: Double {
@@ -652,7 +831,7 @@ struct SingleGraphView: View {
             return selectedCategoryAmount
         } else if selectedDate != nil {
             return selectedDateAmount
-        } else if incomeFiltering {
+        } else if incomeTracking {
             return incomeAverage
         }
         return average
@@ -776,36 +955,15 @@ struct SingleGraphView: View {
                 }
             }
 
-            if incomeTracking {
-                HStack(spacing: 11) {
-                    InsightsSummaryBlockView(income: true, amountString: stringGenerator(amount: totalIncome), showOverlay: income && incomeFiltering) {
-                        withAnimation {
-                            let selection = StatisticsSummaryFilterSelection.toggled(currentIncome: income, isFiltering: incomeFiltering, tappedIncome: true)
-                            income = selection.income
-                            incomeFiltering = selection.isFiltering
-                        }
-                    }
-
-                    InsightsSummaryBlockView(income: false, amountString: stringGenerator(amount: totalSpent), showOverlay: !income && incomeFiltering) {
-                        withAnimation {
-                            let selection = StatisticsSummaryFilterSelection.toggled(currentIncome: income, isFiltering: incomeFiltering, tappedIncome: false)
-                            income = selection.income
-                            incomeFiltering = selection.isFiltering
-                        }
-                    }
-                }
-                .padding(.horizontal, 2)
+            HStack(spacing: 20) {
+                StatisticsInlineTotalView(income: true, amount: totalIncome, currencyCode: currency, showCents: showCents)
+                Rectangle()
+                    .fill(Color.SubtitleText.opacity(0.35))
+                    .frame(width: 1, height: 28)
+                StatisticsInlineTotalView(income: false, amount: totalSpent, currencyCode: currency, showCents: showCents)
             }
-
-            if incomeFiltering {
-                if type == 1 {
-                    SingleWeekBarGraphView(week: date, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount, dataController: dataController, income: income)
-                } else if type == 2 {
-                    SingleMonthBarGraphView(month: date, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount, dataController: dataController, income: income)
-                } else if type == 3 {
-                    SingleYearBarGraphView(year: date, date: $selectedDate, mode: $categoryFilterMode, amount: $selectedDateAmount, dataController: dataController, income: income)
-                }
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 4)
         }
     }
 
@@ -913,6 +1071,178 @@ struct StatisticsPeriodNavigationRow: View {
     }
 }
 
+struct StatisticsInlineTotalView: View {
+    let income: Bool
+    let amount: Double
+    let currencyCode: String
+    let showCents: Bool
+
+    private var accent: Color { income ? Color.IncomeGreen : Color.AlertRed }
+
+    var body: some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(accent)
+                    .frame(width: 8, height: 8)
+                Text(income ? "Entrate" : "Spese")
+                    .font(.system(.subheadline, design: .rounded).weight(.medium))
+                    .foregroundColor(accent)
+            }
+
+            Text(StatisticsSummaryPresentation.amount(amount, currencyCode: currencyCode, showCents: showCents))
+                .font(.system(.title2, design: .rounded).weight(.medium))
+                .foregroundColor(Color.PrimaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(income ? "Entrate" : "Spese")
+        .accessibilityValue(StatisticsSummaryPresentation.amount(amount, currencyCode: currencyCode, showCents: showCents))
+    }
+}
+
+struct StatisticsCombinedChartView: View {
+    let buckets: [StatisticsCombinedBucket]
+    let period: InsightsPeriod
+    @Binding var selectedDate: Date?
+    @Binding var categoryFilterMode: Bool
+    @Binding var selectedDateAmount: Double
+
+    private let chartHeight: CGFloat = 180
+
+    private var maximum: Double {
+        max(buckets.flatMap { [$0.income, $0.expense] }.max() ?? 0, 1)
+    }
+
+    private var chartMaximum: Double {
+        max(10, ceil(maximum * 1.1 / 10) * 10)
+    }
+
+    private var title: String {
+        switch period {
+        case .week: return "Andamento giornaliero"
+        case .month: return "Andamento giornaliero"
+        case .year: return "Andamento mensile"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(title)
+                    .font(.system(.headline, design: .rounded).weight(.semibold))
+                    .foregroundColor(Color.PrimaryText)
+
+                Spacer()
+
+                HStack(spacing: 10) {
+                    StatisticsChartLegend(color: Color.IncomeGreen, title: "Entrate")
+                    StatisticsChartLegend(color: Color.AlertRed, title: "Spese")
+                }
+            }
+
+            GeometryReader { proxy in
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading) {
+                        Text(getMaxText(maxi: Int(chartMaximum)))
+                        Spacer()
+                        Text("0")
+                    }
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundColor(Color.SubtitleText)
+                    .frame(width: 28, height: chartHeight, alignment: .leading)
+
+                    HStack(alignment: .bottom, spacing: 5) {
+                        ForEach(buckets) { bucket in
+                            VStack(spacing: 5) {
+                                HStack(alignment: .bottom, spacing: 2) {
+                                    StatisticsChartBar(value: bucket.income, maximum: chartMaximum, color: Color.IncomeGreen, height: chartHeight)
+                                    StatisticsChartBar(value: bucket.expense, maximum: chartMaximum, color: Color.AlertRed, height: chartHeight)
+                                }
+                                .frame(height: chartHeight)
+
+                                Text(bucketLabel(bucket.date))
+                                    .font(.system(.caption2, design: .rounded).weight(.medium))
+                                    .foregroundColor(Color.SubtitleText)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .opacity(bucket.date > Date.now ? 0.3 : 1)
+                            .allowsHitTesting(bucket.date <= Date.now)
+                            .contentShape(Rectangle())
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(bucketAccessibilityLabel(bucket.date))
+                            .accessibilityValue("Entrate \(bucket.income), Spese \(bucket.expense)")
+                            .onTapGesture {
+                                withAnimation(.easeIn(duration: 0.2)) {
+                                    if selectedDate == bucket.date {
+                                        selectedDate = nil
+                                        categoryFilterMode = false
+                                    } else {
+                                        selectedDate = bucket.date
+                                        categoryFilterMode = false
+                                        selectedDateAmount = bucket.income + bucket.expense
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .frame(width: max(0, proxy.size.width - 36), height: chartHeight)
+                }
+            }
+            .frame(height: chartHeight + 24)
+        }
+        .padding(16)
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private func bucketLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = StatisticsSummaryPresentation.italianLocale
+        formatter.dateFormat = period == .year ? "MMM" : "EEE"
+        return formatter.string(from: date).lowercased().prefix(period == .year ? 3 : 3).description
+    }
+
+    private func bucketAccessibilityLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = StatisticsSummaryPresentation.italianLocale
+        formatter.dateFormat = period == .year ? "MMMM yyyy" : "d MMMM"
+        return formatter.string(from: date)
+    }
+}
+
+struct StatisticsChartLegend: View {
+    let color: Color
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(color)
+                .frame(width: 12, height: 12)
+            Text(title)
+                .font(.system(.caption, design: .rounded))
+                .foregroundColor(Color.SubtitleText)
+        }
+    }
+}
+
+struct StatisticsChartBar: View {
+    let value: Double
+    let maximum: Double
+    let color: Color
+    let height: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(color)
+            .frame(maxWidth: .infinity)
+            .frame(height: max(value == 0 ? 0 : 4, height * value / maximum), alignment: .bottom)
+    }
+}
+
 struct WeekGraphView: View {
     @EnvironmentObject var dataController: DataController
 
@@ -1003,7 +1333,13 @@ struct WeekGraphView: View {
 
 //    @Environment(\.dynamicTypeMultiplier) var multiplier
 
-    @State var incomeFiltering: Bool = true
+    @State var incomeFiltering: Bool = false
+
+    private var combinedBuckets: [StatisticsCombinedBucket] {
+        let incomeData = dataController.getInsights(type: 1, date: showingWeek, income: true)
+        let expenseData = dataController.getInsights(type: 1, date: showingWeek, income: false)
+        return StatisticsCombinedSeries.buckets(dates: incomeData.dates, income: incomeData.dateDictionary, expense: expenseData.dateDictionary)
+    }
 
     var body: some View {
         VStack {
@@ -1022,7 +1358,10 @@ struct WeekGraphView: View {
 
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
-                    SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 1)
+                    VStack(spacing: 18) {
+                        SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 1)
+                        StatisticsCombinedChartView(buckets: combinedBuckets, period: .week, selectedDate: $selectedDate, categoryFilterMode: $categoryFilterMode, selectedDateAmount: $chosenCategoryAmount)
+                    }
                         .drawingGroup()
                         .id(refreshID)
                         .onAppear {
@@ -1111,27 +1450,21 @@ struct WeekGraphView: View {
                 .padding(.bottom, incomeFiltering ? 5 : 10)
 
                 Group {
-                    if !incomeFiltering {
-                        FilteredInsightsView(startDate: showingWeek, period: .week)
+                    if selectedDate == nil {
+                        StatisticsCategoryListView(date: showingWeek, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .week)
+                            .padding(.horizontal, 30)
                             .padding(.bottom, 70)
-                            .padding(.horizontal, 20)
-                    } else {
-                        if selectedDate == nil {
-                            HorizontalPieChartView(date: showingWeek, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .week, income: income)
-                                .padding(.horizontal, 30)
-                                .padding(.bottom, 70)
-                                .id(refreshID1)
+                            .id(refreshID1)
 
-                            if categoryFilterMode {
-                                FilteredCategoryInsightsView(category: categoryFilter, date: showingWeek, type: .week)
-                                    .padding(.bottom, 70)
-                                    .padding(.horizontal, 20)
-                            }
-                        } else {
-                            FilteredDateInsightsView(date: selectedDate ?? Date.now, income: income)
+                        if categoryFilterMode {
+                            FilteredCategoryInsightsView(category: categoryFilter, date: showingWeek, type: .week)
                                 .padding(.bottom, 70)
                                 .padding(.horizontal, 20)
                         }
+                    } else {
+                        FilteredInsightsView(startDate: selectedDate ?? Date.now, period: .week)
+                            .padding(.bottom, 70)
+                            .padding(.horizontal, 20)
                     }
                 }
                 .onTapGesture {
@@ -1400,7 +1733,13 @@ struct MonthGraphView: View {
 
 //    @Environment(\.dynamicTypeMultiplier) var multiplier
 
-    @State var incomeFiltering: Bool = true
+    @State var incomeFiltering: Bool = false
+
+    private var combinedBuckets: [StatisticsCombinedBucket] {
+        let incomeData = dataController.getInsights(type: 2, date: showingMonth, income: true)
+        let expenseData = dataController.getInsights(type: 2, date: showingMonth, income: false)
+        return StatisticsCombinedSeries.buckets(dates: incomeData.dates, income: incomeData.dateDictionary, expense: expenseData.dateDictionary)
+    }
 
     var body: some View {
         VStack {
@@ -1419,7 +1758,10 @@ struct MonthGraphView: View {
 
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
-                    SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 2)
+                    VStack(spacing: 18) {
+                        SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 2)
+                        StatisticsCombinedChartView(buckets: combinedBuckets, period: .month, selectedDate: $selectedDate, categoryFilterMode: $categoryFilterMode, selectedDateAmount: $chosenCategoryAmount)
+                    }
                         .drawingGroup()
                         .id(refreshID)
                         .onAppear {
@@ -1508,27 +1850,21 @@ struct MonthGraphView: View {
                 .padding(.bottom, incomeFiltering ? 5 : 20)
                 
                 Group {
-                    if !incomeFiltering {
-                        FilteredInsightsView(startDate: showingMonth, period: .month)
+                    if selectedDate == nil {
+                        StatisticsCategoryListView(date: showingMonth, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .month)
+                            .padding(.horizontal, 30)
                             .padding(.bottom, 70)
-                            .padding(.horizontal, 20)
-                    } else {
-                        if selectedDate == nil {
-                            HorizontalPieChartView(date: showingMonth, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .month, income: income)
-                                .padding(.horizontal, 30)
-                                .padding(.bottom, 70)
-                                .id(refreshID1)
+                            .id(refreshID1)
 
-                            if categoryFilterMode {
-                                FilteredCategoryInsightsView(category: categoryFilter, date: showingMonth, type: .month)
-                                    .padding(.bottom, 70)
-                                    .padding(.horizontal, 20)
-                            }
-                        } else {
-                            FilteredDateInsightsView(date: selectedDate ?? Date.now, income: income)
+                        if categoryFilterMode {
+                            FilteredCategoryInsightsView(category: categoryFilter, date: showingMonth, type: .month)
                                 .padding(.bottom, 70)
                                 .padding(.horizontal, 20)
                         }
+                    } else {
+                        FilteredInsightsView(startDate: selectedDate ?? Date.now, period: .month)
+                            .padding(.bottom, 70)
+                            .padding(.horizontal, 20)
                     }
                 }
 
@@ -1764,7 +2100,13 @@ struct YearGraphView: View {
 //
 //    @Environment(\.dynamicTypeMultiplier) var multiplier
 
-    @State var incomeFiltering: Bool = true
+    @State var incomeFiltering: Bool = false
+
+    private var combinedBuckets: [StatisticsCombinedBucket] {
+        let incomeData = dataController.getInsights(type: 3, date: showingYear, income: true)
+        let expenseData = dataController.getInsights(type: 3, date: showingYear, income: false)
+        return StatisticsCombinedSeries.buckets(dates: incomeData.dates, income: incomeData.dateDictionary, expense: expenseData.dateDictionary)
+    }
 
     var body: some View {
         VStack {
@@ -1783,7 +2125,10 @@ struct YearGraphView: View {
 
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
-                    SingleGraphView(showingDate: showingYear, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 3)
+                    VStack(spacing: 18) {
+                        SingleGraphView(showingDate: showingYear, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 3)
+                        StatisticsCombinedChartView(buckets: combinedBuckets, period: .year, selectedDate: $selectedDate, categoryFilterMode: $categoryFilterMode, selectedDateAmount: $chosenCategoryAmount)
+                    }
                         .drawingGroup()
                         .id(refreshID)
                         .onAppear {
@@ -1872,27 +2217,21 @@ struct YearGraphView: View {
                 .padding(.bottom, incomeFiltering ? 5 : 20)
 
                 Group {
-                    if !incomeFiltering {
-                        FilteredInsightsView(startDate: showingYear, period: .year)
+                    if selectedDate == nil {
+                        StatisticsCategoryListView(date: showingYear, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .year)
+                            .padding(.horizontal, 30)
                             .padding(.bottom, 70)
-                            .padding(.horizontal, 20)
-                    } else {
-                        if selectedDate == nil {
-                            HorizontalPieChartView(date: showingYear, categoryFilter: $categoryFilter, categoryFilterMode: $categoryFilterMode, selectedDate: $selectedDate, chosenAmount: $chosenCategoryAmount, chosenName: $chosenCategoryName, type: .year, income: income)
-                                .padding(.horizontal, 30)
-                                .padding(.bottom, 70)
-                                .id(refreshID1)
+                            .id(refreshID1)
 
-                            if categoryFilterMode {
-                                FilteredCategoryInsightsView(category: categoryFilter, date: showingYear, type: .year)
-                                    .padding(.bottom, 70)
-                                    .padding(.horizontal, 20)
-                            }
-                        } else {
-                            FilteredInsightsView(startDate: selectedDate ?? Date.now, income: income, period: .year)
+                        if categoryFilterMode {
+                            FilteredCategoryInsightsView(category: categoryFilter, date: showingYear, type: .year)
                                 .padding(.bottom, 70)
                                 .padding(.horizontal, 20)
                         }
+                    } else {
+                        FilteredInsightsView(startDate: selectedDate ?? Date.now, period: .month)
+                            .padding(.bottom, 70)
+                            .padding(.horizontal, 20)
                     }
                 }
             }

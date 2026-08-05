@@ -99,6 +99,27 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: false).isFiltering, true)
     }
 
+    func testStatisticsCombinedSeriesKeepsIncomeAndExpenseActiveTogether() {
+        let first = Date(timeIntervalSince1970: 100)
+        let second = Date(timeIntervalSince1970: 200)
+        let buckets = StatisticsCombinedSeries.buckets(
+            dates: [first, second],
+            income: [first: 100, second: 25],
+            expense: [first: 20]
+        )
+
+        XCTAssertEqual(buckets.count, 2)
+        XCTAssertEqual(buckets[0], StatisticsCombinedBucket(date: first, income: 100, expense: 20))
+        XCTAssertEqual(buckets[1], StatisticsCombinedBucket(date: second, income: 25, expense: 0))
+    }
+
+    func testStatisticsCategoryPercentagesUseSeparateIncomeAndExpenseDenominators() {
+        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 25, income: true, totalIncome: 100, totalExpense: 200), 0.25)
+        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 50, income: false, totalIncome: 100, totalExpense: 200), 0.25)
+        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 50, income: false, totalIncome: 100, totalExpense: 0), 0)
+        XCTAssertEqual(StatisticsCombinedSeries.categoryPercentage(amount: 50, income: true, totalIncome: 0, totalExpense: 100), 0)
+    }
+
     func testStatisticsCategoryColorUsesStoredValueAndStableFallback() {
         XCTAssertEqual(StatisticsCategoryColor.canonicalHex("#ec7a58"), "#EC7A58")
         XCTAssertEqual(StatisticsCategoryColor.canonicalHex("not-a-color"), StatisticsCategoryColor.fallbackHex)

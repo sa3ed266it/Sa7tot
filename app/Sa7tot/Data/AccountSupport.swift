@@ -224,6 +224,28 @@ enum StatisticsSummaryFilterSelection {
         return (tappedIncome, true)
     }
 }
+
+struct StatisticsCombinedBucket: Equatable, Identifiable {
+    let date: Date
+    let income: Double
+    let expense: Double
+
+    var id: Date { date }
+}
+
+enum StatisticsCombinedSeries {
+    static func buckets(dates: [Date], income: [Date: Double], expense: [Date: Double]) -> [StatisticsCombinedBucket] {
+        dates.map { date in
+            StatisticsCombinedBucket(date: date, income: income[date] ?? 0, expense: expense[date] ?? 0)
+        }
+    }
+
+    static func categoryPercentage(amount: Double, income: Bool, totalIncome: Double, totalExpense: Double) -> Double {
+        let denominator = income ? totalIncome : totalExpense
+        guard denominator > 0 else { return 0 }
+        return amount / denominator
+    }
+}
 import UserNotifications
 
 enum AccountType: String, CaseIterable, Identifiable {
