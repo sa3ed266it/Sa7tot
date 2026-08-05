@@ -41,13 +41,13 @@ struct InsightsView: View {
                     .frame(width: 75, height: 75)
                     .padding(.bottom, 20)
 
-                Text("Analyse Your Expenditure")
+                Text("Analizza le tue spese")
                     .font(.system(.title2, design: .rounded).weight(.medium))
 //                    .font(.system(size: 23.5, weight: .medium, design: .rounded))
                     .foregroundColor(Color.PrimaryText.opacity(0.8))
                     .multilineTextAlignment(.center)
 
-                Text("As transactions start piling up")
+                Text("Quando inizierai ad aggiungere movimenti")
                     .font(.system(.body, design: .rounded).weight(.medium))
 //                    .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(Color.SubtitleText.opacity(0.7))
@@ -63,7 +63,7 @@ struct InsightsView: View {
         } else {
             VStack(spacing: 5) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Insights")
+                    Text("Statistiche")
                         .font(.system(.title, design: .rounded).weight(.semibold))
                         .accessibility(addTraits: .isHeader)
 
@@ -75,6 +75,7 @@ struct InsightsView: View {
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .frame(maxWidth: .infinity)
+                    .tint(.blue)
                     .accessibilityLabel("Periodo")
                     .accessibilityValue(chartTypeString)
                 }
@@ -192,7 +193,7 @@ struct HorizontalPieChartView: View {
         if !categories.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 if !categoryFilterMode {
-                    Text("Categories")
+                    Text("Categorie")
                         .font(.system(.callout, design: .rounded).weight(.semibold))
                         .foregroundColor(Color.SubtitleText)
 
@@ -223,7 +224,7 @@ struct HorizontalPieChartView: View {
                                         .overlay {
                                             if categoryFilterMode && categoryFilter == category.category {
                                                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                    .stroke(Color.DarkBackground, lineWidth: 1.5)
+                                                    .stroke(Color.blue, lineWidth: 1.5)
                                             }
                                         }
                                 }
@@ -273,6 +274,7 @@ struct HorizontalPieChartView: View {
                                                 .padding(5)
                                                 .background(Color.AppSecondarySurface, in: Circle())
                                         }
+                                        .accessibilityLabel("Cancella selezione categoria")
 
                                     } else {
 
@@ -290,6 +292,9 @@ struct HorizontalPieChartView: View {
                                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(categoryFilterMode && categoryFilter == category.category ? Color.Outline : Color.clear, lineWidth: 1.3))
                                 .fixedSize(horizontal: false, vertical: true)
                                 .contentShape(Rectangle())
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel(category.category.wrappedName)
+                                .accessibilityValue("\(category.amount) ، \(Int(category.percent * 100))٪")
                                 .drawingGroup()
                                 .onTapGesture {
                                     withAnimation(.easeInOut) {
@@ -699,44 +704,21 @@ struct SingleGraphView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .center, spacing: 14) {
             Text(dateString)
-                .font(.system(.headline, design: .rounded).weight(.semibold))
-                .foregroundColor(Color.SubtitleText)
+                .font(.system(.title3, design: .rounded).weight(.medium))
+                .foregroundColor(Color.PrimaryText)
                 .lineLimit(1)
                 .accessibilityAddTraits(.isHeader)
 
-            HStack(alignment: .firstTextBaseline, spacing: 18) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Saldo netto")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundColor(Color.SubtitleText)
+            VStack(spacing: 2) {
+                Text("Saldo netto")
+                    .font(.system(.subheadline, design: .rounded).weight(.medium))
+                    .foregroundColor(Color.SubtitleText)
 
-                    HStack(alignment: .lastTextBaseline, spacing: 8) {
-                        InsightsDollarView(amount: totalNet, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents, net: netPositive)
-                            .layoutPriority(1)
-
-                        if showPercentage {
-                            Text(percentageDifference)
-                                .font(.system(.caption, design: .rounded).weight(.medium))
-                                .foregroundColor(currentNet < lastNet ? Color.AlertRed : Color.IncomeGreen)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(currentNet < lastNet ? Color.AlertRed.opacity(0.18) : Color.IncomeGreen.opacity(0.18), in: Capsule())
-                                .opacity(currentNet == 0 || lastNet == 0 ? 0 : 1)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeFiltering, income: income))
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundColor(Color.SubtitleText)
-                        .multilineTextAlignment(.trailing)
-
-                    InsightsDollarView(amount: incomeFiltering ? incomeAverage : average, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents)
-                }
+                InsightsDollarView(amount: totalNet, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents, net: netPositive, prominent: true)
+                    .accessibilityLabel("Saldo netto")
+                    .accessibilityValue(StatisticsSummaryPresentation.amount(totalNet, currencyCode: currency, showCents: showCents, negative: !netPositive))
             }
             .contentShape(Rectangle())
             .onTapGesture {
@@ -745,6 +727,29 @@ struct SingleGraphView: View {
                 }
             }
 
+            HStack(spacing: 8) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.blue)
+                    .padding(7)
+                    .background(Color.blue.opacity(0.16), in: Circle())
+
+                Text(StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeFiltering, income: income))
+                    .foregroundColor(Color.PrimaryText)
+                Text(StatisticsSummaryPresentation.amount(
+                    incomeFiltering ? incomeAverage : average,
+                    currencyCode: currency,
+                    showCents: showCents
+                ))
+                .foregroundColor(.blue)
+            }
+            .font(.system(.body, design: .rounded).weight(.medium))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(Color.AppSecondarySurface.opacity(0.7), in: Capsule())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeFiltering, income: income))
+
             if categoryFilterMode {
                 summaryContext(title: selectedCategoryName, amount: selectedCategoryAmount)
             } else if selectedDate != nil {
@@ -752,7 +757,7 @@ struct SingleGraphView: View {
             }
 
             if incomeTracking {
-                HStack(spacing: 11) {
+                HStack(spacing: 10) {
                     InsightsSummaryBlockView(income: true, amountString: stringGenerator(amount: totalIncome), showOverlay: income && incomeFiltering) {
                         withAnimation {
                             let selection = StatisticsSummaryFilterSelection.toggled(currentIncome: income, isFiltering: incomeFiltering, tappedIncome: true)
@@ -770,7 +775,7 @@ struct SingleGraphView: View {
                     }
                 }
                 .padding(.horizontal, 2)
-                .padding(.bottom, 13)
+                .padding(.bottom, 8)
             }
 
             if incomeFiltering {
@@ -953,7 +958,7 @@ struct WeekGraphView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 18) {
-                ZStack {
+                ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 1)
                         .drawingGroup()
                         .id(refreshID)
@@ -965,12 +970,12 @@ struct WeekGraphView: View {
                     if !changeDate {
                         HStack {
                             if showingWeek != startOfLastWeek {
-                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime)
-                                .offset(x: -100)
+                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
+                                    withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: -7, to: showingWeek) ?? showingWeek }
+                                })
                                 .offset(x: min(100, offset))
                             } else {
                                 SwipeEndView(left: true)
-                                .offset(x: -120)
                                 .offset(x: min(120, offset))
                             }
 
@@ -981,12 +986,12 @@ struct WeekGraphView: View {
                             Spacer()
 
                             if showingWeek != startOfCurrentWeek {
-                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime)
-                                .offset(x: 100)
+                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
+                                    withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: 7, to: showingWeek) ?? showingWeek }
+                                })
                                 .offset(x: max(-100, offset))
                             } else {
                                 SwipeEndView(left: false)
-                                .offset(x: 120)
                                 .offset(x: max(-120, offset))
                             }
                         }
@@ -1230,6 +1235,9 @@ struct SingleWeekBarGraphView: View {
                         .opacity(day > Date.now ? 0.3 : 1)
                         .frame(maxWidth: .infinity)
                         .allowsHitTesting(!(day > Date.now))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(getWeekday(day: day))
+                        .accessibilityValue(String(format: "%.0f", dayDictionary[day] ?? 0))
                         .onTapGesture {
                             withAnimation(.easeIn(duration: 0.2)) {
                                 if selectedDate == day {
@@ -1363,7 +1371,7 @@ struct MonthGraphView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 18) {
-                ZStack {
+                ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 2)
                         .drawingGroup()
                         .id(refreshID)
@@ -1375,12 +1383,12 @@ struct MonthGraphView: View {
                     if !changeDate {
                         HStack {
                             if showingMonth != startOfLastMonth {
-                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime)
-                                .offset(x: -100)
+                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
+                                    withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: -1, to: showingMonth) ?? showingMonth }
+                                })
                                 .offset(x: min(100, offset))
                             } else {
                                 SwipeEndView(left: true)
-                                .offset(x: -120)
                                 .offset(x: min(120, offset))
                             }
 
@@ -1391,12 +1399,12 @@ struct MonthGraphView: View {
                             Spacer()
 
                             if showingMonth != startOfCurrentMonth {
-                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime)
-                                .offset(x: 100)
+                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
+                                    withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: 1, to: showingMonth) ?? showingMonth }
+                                })
                                 .offset(x: max(-100, offset))
                             } else {
                                 SwipeEndView(left: false)
-                                .offset(x: 120)
                                 .offset(x: max(-120, offset))
                             }
                         }
@@ -1606,6 +1614,9 @@ struct SingleMonthBarGraphView: View {
                         .opacity(day > Date.now ? 0.3 : 1)
                         .frame(maxWidth: .infinity)
                         .allowsHitTesting(!(day > Date.now))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Giorno \((daysOfMonth.firstIndex(of: day) ?? 0) + 1)")
+                        .accessibilityValue(String(format: "%.0f", dayDictionary[day] ?? 0))
                         .onTapGesture {
                             withAnimation(.easeIn(duration: 0.2)) {
                                 if selectedDate == day {
@@ -1740,7 +1751,7 @@ struct YearGraphView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 18) {
-                ZStack {
+                ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingYear, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 3)
                         .drawingGroup()
                         .id(refreshID)
@@ -1752,12 +1763,12 @@ struct YearGraphView: View {
                     if !changeDate {
                         HStack {
                             if showingYear != startOfLastYear {
-                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime)
-                                .offset(x: -100)
+                                SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
+                                    withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: -1, to: showingYear) ?? showingYear }
+                                })
                                 .offset(x: min(100, offset))
                             } else {
                                 SwipeEndView(left: true)
-                                .offset(x: -120)
                                 .offset(x: min(120, offset))
                             }
 
@@ -1768,12 +1779,12 @@ struct YearGraphView: View {
                             Spacer()
 
                             if showingYear != startOfCurrentYear {
-                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime)
-                                .offset(x: 100)
+                                SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
+                                    withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: 1, to: showingYear) ?? showingYear }
+                                })
                                 .offset(x: max(-100, offset))
                             } else {
                                 SwipeEndView(left: false)
-                                .offset(x: 120)
                                 .offset(x: max(-120, offset))
                             }
                         }
@@ -1962,6 +1973,9 @@ struct SingleYearBarGraphView: View {
                         .opacity(month > Date.now ? 0.3 : 1)
                         .frame(maxWidth: .infinity)
                         .allowsHitTesting(!(month > Date.now))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(getMonth(month: month))
+                        .accessibilityValue(String(format: "%.0f", monthDictionary[month] ?? 0))
                         .onTapGesture {
                             withAnimation(.easeIn(duration: 0.2)) {
                                 if selectedDate == month {
@@ -2052,7 +2066,7 @@ struct AnimatedBarGraph: View {
             Spacer(minLength: 0)
 
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(Color.DarkBackground)
+                .fill(Color.blue)
                 .frame(height: showBar ? nil : 0, alignment: .bottom)
         }
         .onAppear {
@@ -2079,7 +2093,7 @@ struct AnimatedHorizontalBarGraph: View {
     var body: some View {
         HStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(category.category.income ? Color(hex: Color.colorArray[index]) : Color(hex: category.category.wrappedColour))
+                .fill(Color.blue)
                 .frame(width: showBar ? nil : 0, alignment: .leading)
 
             Spacer(minLength: 0)
@@ -2104,6 +2118,7 @@ struct InsightsDollarView: View {
     var currencyCode: String?
     var showCents: Bool
     var net: Bool?
+    var prominent: Bool
 
     var body: some View {
         Text(StatisticsSummaryPresentation.amount(
@@ -2112,18 +2127,19 @@ struct InsightsDollarView: View {
             showCents: showCents,
             negative: net == false
         ))
-            .font(.system(.title, design: .rounded).weight(.medium))
+            .font(.system(prominent ? .largeTitle : .title, design: .rounded).weight(prominent ? .semibold : .medium))
             .foregroundColor(net == false ? Color.AlertRed : Color.PrimaryText)
         .minimumScaleFactor(0.5)
         .lineLimit(1)
     }
 
-    init(amount: Double, currencySymbol: String, currencyCode: String? = nil, showCents: Bool, net: Bool? = nil) {
+    init(amount: Double, currencySymbol: String, currencyCode: String? = nil, showCents: Bool, net: Bool? = nil, prominent: Bool = false) {
         self.amount = amount
         self.currencySymbol = currencySymbol
         self.currencyCode = currencyCode
         self.showCents = showCents
         self.net = net
+        self.prominent = prominent
     }
 }
 
@@ -2170,21 +2186,20 @@ struct SwipeArrowView: View {
     let left: Bool
     let swipeString: String
     let changeTime: Bool
+    var action: () -> Void = {}
 
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: left ? "arrow.backward.circle.fill" : "arrow.forward.circle.fill")
-                .font(.system(.body, design: .rounded).weight(.medium))
-//                                        .font(.system(size: 18, weight: .medium))
-                //                                .scaleEffect(changeTime ? 1.3 : 1)
-                .foregroundColor(changeTime ? Color.PrimaryText : Color.AppSecondarySurface)
-
-            Text(swipeString)
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-//                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .multilineTextAlignment(.center)
-                .foregroundColor(changeTime ? Color.PrimaryText : Color.AppSecondarySurface)
+        Button(action: action) {
+            Image(systemName: left ? "chevron.left" : "chevron.right")
+                .font(.system(.body, design: .rounded).weight(.semibold))
+                .foregroundColor(Color.PrimaryText)
+                .frame(width: 42, height: 42)
+                .background(Color.AppSecondarySurface.opacity(0.85), in: Circle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(left ? "Periodo precedente" : "Periodo successivo")
+        .accessibilityValue("Disponibile")
+        .zIndex(10)
         .drawingGroup()
     }
 }
@@ -2193,20 +2208,12 @@ struct SwipeEndView: View {
     let left: Bool
 
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: left ? "eyeglasses" : "sun.haze.fill")
-                .font(.system(.title2, design: .rounded).weight(.medium))
-//                                        .font(.system(size: 22, weight: .medium))
-                .foregroundColor(Color.SubtitleText)
-
-            Text(left ? "That's all, buddy." : "Into the unknown.")
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-//                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .frame(width: 90)
-                .multilineTextAlignment(.center)
-                .foregroundColor(Color.SubtitleText)
-        }
-        .opacity(0.8)
-        .drawingGroup()
+        Image(systemName: left ? "chevron.left" : "chevron.right")
+            .font(.system(.body, design: .rounded).weight(.semibold))
+            .foregroundColor(Color.SubtitleText)
+            .frame(width: 42, height: 42)
+            .background(Color.AppSecondarySurface.opacity(0.45), in: Circle())
+            .accessibilityHidden(true)
+            .zIndex(10)
     }
 }

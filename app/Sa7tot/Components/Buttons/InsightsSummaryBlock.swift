@@ -46,14 +46,17 @@ struct InsightsSummaryBlockView: View {
         .frame(minHeight: 64)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(income ? "Entrate" : "Spese")
+        .accessibilityValue(showOverlay ? "Selezionato, \(amountString)" : amountString)
         .onTapGesture {
             self.action()
         }
-        .background(Color.AppTertiarySurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(color.opacity(showOverlay ? 0.16 : 0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             if showOverlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.SubtitleText.opacity(0.7), lineWidth: 1.3)
+                    .stroke(color, lineWidth: 1.3)
             }
         }
     }
