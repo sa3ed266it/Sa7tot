@@ -10,6 +10,17 @@ import SwiftUIIntrospect
 import Popovers
 import SwiftUI
 
+private extension View {
+    @ViewBuilder
+    func statisticsScrollEdgeEffect() -> some View {
+        if #available(iOS 26.0, *) {
+            self.scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+    }
+}
+
 struct InsightsView: View {
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
 
@@ -63,7 +74,7 @@ struct InsightsView: View {
             .navigationBarTitleDisplayMode(.large)
 
         } else {
-            VStack(spacing: 5) {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 5) {
                     VStack(alignment: .leading, spacing: 12) {
                         Picker("Periodo", selection: $chartType) {
@@ -102,6 +113,7 @@ struct InsightsView: View {
             }
             .navigationTitle("Statistiche")
             .navigationBarTitleDisplayMode(.large)
+            .statisticsScrollEdgeEffect()
         }
     }
 }
@@ -238,7 +250,7 @@ struct HorizontalPieChartView: View {
                     .padding(.bottom, 10)
                 }
 
-                ScrollView(showsIndicators: false) {
+                VStack {
                     VStack(spacing: 10) {
                         ForEach(categories, id: \.self) { category in
                             if !categoryFilterMode || categoryFilter == category.category {
@@ -958,7 +970,7 @@ struct WeekGraphView: View {
     @State var incomeFiltering: Bool = true
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        VStack {
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingWeek, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 1)
@@ -1371,7 +1383,7 @@ struct MonthGraphView: View {
     @State var incomeFiltering: Bool = true
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        VStack {
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingMonth, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 2)
@@ -1751,7 +1763,7 @@ struct YearGraphView: View {
     @State var incomeFiltering: Bool = true
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        VStack {
             VStack(spacing: 18) {
                 ZStack(alignment: .top) {
                     SingleGraphView(showingDate: showingYear, date: $selectedDate, mode: $categoryFilterMode, categoryName: chosenCategoryName, categoryAmount: chosenCategoryAmount, currencySymbol: currencySymbol, showCents: showCents, dataController: dataController, income: $income, incomeFiltering: $incomeFiltering, type: 3)
