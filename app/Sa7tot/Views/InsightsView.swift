@@ -638,6 +638,26 @@ struct SingleGraphView: View {
         StatisticsSummaryPresentation.periodRange(start: date, type: type)
     }
 
+    private var summaryMetricLabel: String {
+        if categoryFilterMode {
+            return selectedCategoryName
+        } else if selectedDate != nil {
+            return selectedDateString
+        }
+        return StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeFiltering, income: income)
+    }
+
+    private var summaryMetricAmount: Double {
+        if categoryFilterMode {
+            return selectedCategoryAmount
+        } else if selectedDate != nil {
+            return selectedDateAmount
+        } else if incomeFiltering {
+            return incomeAverage
+        }
+        return average
+    }
+
     var selectedCategoryName: String
     var selectedCategoryAmount: Double
 
@@ -720,76 +740,35 @@ struct SingleGraphView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 1.3) {
-                    Text(dateString)
-                        .lineLimit(1)
-                        .font(.system(.callout, design: .rounded).weight(.semibold))
+        VStack(spacing: 10) {
+            VStack(spacing: 10) {
+                VStack(spacing: 3) {
+                    Text("Saldo netto")
+                        .font(.system(.callout, design: .rounded).weight(.medium))
                         .foregroundColor(Color.SubtitleText)
-                        .layoutPriority(1)
 
-                    HStack(spacing: 10) {
-                        InsightsDollarView(amount: totalNet, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents, net: netPositive)
-                            .layoutPriority(1)
-
-                        if showPercentage {
-                            Text(percentageDifference)
-                                .font(.system(.footnote, design: .rounded).weight(.medium))
-                                .foregroundColor(currentNet < lastNet ? Color.AlertRed : Color.IncomeGreen)
-                                .padding(3)
-                                .padding(.horizontal, 3)
-                                .background(currentNet < lastNet ? Color.AlertRed.opacity(0.23) : Color.IncomeGreen.opacity(0.23), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                .opacity(currentNet == 0 || lastNet == 0 ? 0 : 1)
-                                .lineLimit(1)
-                        }
-                    }
+                    Text(StatisticsSummaryPresentation.amount(totalNet, currencyCode: currency, showCents: showCents, negative: !netPositive))
+                        .font(.system(.largeTitle, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color.PrimaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity)
 
-                if categoryFilterMode {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(selectedCategoryName)
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
+                VStack(spacing: 1) {
+                    Text(summaryMetricLabel)
+                        .font(.system(.subheadline, design: .rounded).weight(.medium))
+                        .foregroundColor(Color.SubtitleText)
+                        .lineLimit(1)
 
-                        InsightsDollarView(amount: selectedCategoryAmount, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents)
-                            .layoutPriority(1)
-                    }
-                } else if selectedDate != nil {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(selectedDateString)
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-
-                        InsightsDollarView(amount: selectedDateAmount, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents)
-                            .layoutPriority(1)
-                    }
-                } else if incomeFiltering {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(StatisticsSummaryPresentation.averageLabel(type: type, incomeFiltering: incomeFiltering, income: income))
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-
-                        InsightsDollarView(amount: incomeAverage, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents)
-                            .layoutPriority(1)
-                    }
-                } else {
-                    VStack(alignment: .trailing, spacing: 1.3) {
-                        Text(type == 3 ? "Media mensile" : "Media giornaliera")
-                            .lineLimit(1)
-                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                            .foregroundColor(Color.SubtitleText)
-
-                        InsightsDollarView(amount: average, currencySymbol: currencySymbol, currencyCode: currency, showCents: showCents, net: netPositive)
-                            .layoutPriority(1)
-                    }
+                    Text(StatisticsSummaryPresentation.amount(summaryMetricAmount, currencyCode: currency, showCents: showCents))
+                        .font(.system(.title3, design: .rounded).weight(.medium))
+                        .foregroundColor(Color.PrimaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
+                .frame(maxWidth: .infinity)
             }
-            .padding(.bottom, 5)
             .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation(.easeIn(duration: 0.2)) {
@@ -816,7 +795,6 @@ struct SingleGraphView: View {
                     }
                 }
                 .padding(.horizontal, 2)
-                .padding(.bottom, 13)
             }
 
             if incomeFiltering {

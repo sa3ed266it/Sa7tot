@@ -19,45 +19,46 @@ struct InsightsSummaryBlockView: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: income ? "arrow.up.right" : "arrow.down.right")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(color)
-                .padding(5)
-                .frame(width: 30, height: 30)
-                .background(color.opacity(0.23), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .padding(.horizontal, 3)
+        VStack(spacing: 6) {
+            HStack(spacing: 9) {
+                Image(systemName: income ? "arrow.up.right" : "arrow.down.right")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(color)
+                    .frame(width: 36, height: 36)
+                    .background(Color(uiColor: .tertiarySystemBackground), in: Circle())
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text(income ? "Entrate" : "Spese")
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                    .lineLimit(1)
-                    .foregroundColor(Color.SubtitleText)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(income ? "Entrate" : "Spese")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .lineLimit(1)
+                        .foregroundColor(Color.PrimaryText)
 
-                Text(amountString)
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundColor(Color.PrimaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    Text(amountString)
+                        .font(.system(.callout, design: .rounded).weight(.medium))
+                        .foregroundColor(Color.SubtitleText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                Spacer(minLength: 0)
             }
+            .padding(.vertical, 9)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+            .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                self.action()
+            }
+
+            Capsule(style: .continuous)
+                .fill(showOverlay ? color : Color.clear)
+                .frame(width: 38, height: 3)
+                .animation(.easeInOut(duration: 0.2), value: showOverlay)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 7)
-        .frame(minHeight: 64)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(income ? "Entrate" : "Spese")
         .accessibilityValue(showOverlay ? "Selezionato, \(amountString)" : amountString)
-        .onTapGesture {
-            self.action()
-        }
-        .background(color.opacity(showOverlay ? 0.16 : 0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay {
-            if showOverlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(color, lineWidth: 1.3)
-            }
-        }
     }
 }
