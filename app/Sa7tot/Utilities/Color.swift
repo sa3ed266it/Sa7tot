@@ -196,6 +196,12 @@ extension Color {
     }
 }
 
+extension Category {
+    var statisticsColor: Color {
+        Color(hex: StatisticsCategoryColor.hex(for: self))
+    }
+}
+
 public extension View {
     @available(iOS 14.0, *)
     func colorPickerSheet(isPresented: Binding<Bool>, selection: Binding<Color>, supportsAlpha: Bool = true, title: String? = nil) -> some View {

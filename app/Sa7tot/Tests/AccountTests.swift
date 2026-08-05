@@ -92,6 +92,24 @@ final class AccountTests: XCTestCase {
         XCTAssertEqual(StatisticsSummaryFilterSelection.toggled(currentIncome: true, isFiltering: true, tappedIncome: false).isFiltering, true)
     }
 
+    func testStatisticsCategoryColorUsesStoredValueAndStableFallback() {
+        XCTAssertEqual(StatisticsCategoryColor.canonicalHex("#ec7a58"), "#EC7A58")
+        XCTAssertEqual(StatisticsCategoryColor.canonicalHex("not-a-color"), StatisticsCategoryColor.fallbackHex)
+        XCTAssertEqual(StatisticsCategoryColor.canonicalHex(nil), StatisticsCategoryColor.fallbackHex)
+        XCTAssertEqual(StatisticsCategoryColor.canonicalHex("#ec7a58"), StatisticsCategoryColor.canonicalHex("#EC7A58"))
+    }
+
+    func testStatisticsPeriodNavigationBoundaryContract() {
+        let oldest = Date(timeIntervalSince1970: 100)
+        let current = Date(timeIntervalSince1970: 200)
+        let newest = Date(timeIntervalSince1970: 300)
+
+        XCTAssertTrue(StatisticsPeriodNavigation.canMoveBackward(current: current, oldest: oldest))
+        XCTAssertFalse(StatisticsPeriodNavigation.canMoveBackward(current: oldest, oldest: oldest))
+        XCTAssertTrue(StatisticsPeriodNavigation.canMoveForward(current: current, newest: newest))
+        XCTAssertFalse(StatisticsPeriodNavigation.canMoveForward(current: newest, newest: newest))
+    }
+
     func testAccountTypeRawValuesAndItalianLabels() {
         XCTAssertEqual(AccountType.creditCard.rawValue, "creditCard")
         XCTAssertEqual(AccountType.creditCard.italianName, "Carta di credito")

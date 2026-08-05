@@ -224,7 +224,7 @@ struct HorizontalPieChartView: View {
                                         .overlay {
                                             if categoryFilterMode && categoryFilter == category.category {
                                                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                    .stroke(Color.blue, lineWidth: 1.5)
+                                                    .stroke(category.category.statisticsColor, lineWidth: 1.5)
                                             }
                                         }
                                 }
@@ -240,7 +240,7 @@ struct HorizontalPieChartView: View {
                     VStack(spacing: 10) {
                         ForEach(categories, id: \.self) { category in
                             if !categoryFilterMode || categoryFilter == category.category {
-                                let boxColor = category.category.income ? Color(hex: Color.colorArray[categories.firstIndex(of: category) ?? 0]) : Color(hex: category.category.wrappedColour)
+                                let boxColor = category.category.statisticsColor
 
                                 HStack(spacing: 10) {
 
@@ -288,8 +288,8 @@ struct HorizontalPieChartView: View {
                                 }
                                 .padding(.vertical, categoryFilterMode && categoryFilter == category.category ? 10 : 5)
                                 .padding(.horizontal, categoryFilterMode && categoryFilter == category.category ? 10 : 0)
-                                .background(RoundedRectangle(cornerRadius: 12).fill(categoryFilterMode && categoryFilter == category.category ? Color.AppTertiarySurface : Color.AppPageBackground))
-                                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(categoryFilterMode && categoryFilter == category.category ? Color.Outline : Color.clear, lineWidth: 1.3))
+                                .background(RoundedRectangle(cornerRadius: 12).fill(categoryFilterMode && categoryFilter == category.category ? boxColor.opacity(0.16) : Color.AppPageBackground))
+                                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(categoryFilterMode && categoryFilter == category.category ? boxColor : Color.clear, lineWidth: 1.3))
                                 .fixedSize(horizontal: false, vertical: true)
                                 .contentShape(Rectangle())
                                 .accessibilityElement(children: .combine)
@@ -969,7 +969,7 @@ struct WeekGraphView: View {
 
                     if !changeDate {
                         HStack {
-                            if showingWeek != startOfLastWeek {
+                            if StatisticsPeriodNavigation.canMoveBackward(current: showingWeek, oldest: startOfLastWeek) {
                                 SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
                                     withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: -7, to: showingWeek) ?? showingWeek }
                                 })
@@ -985,7 +985,7 @@ struct WeekGraphView: View {
                         HStack {
                             Spacer()
 
-                            if showingWeek != startOfCurrentWeek {
+                            if StatisticsPeriodNavigation.canMoveForward(current: showingWeek, newest: startOfCurrentWeek) {
                                 SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
                                     withAnimation { showingWeek = Calendar.current.date(byAdding: .day, value: 7, to: showingWeek) ?? showingWeek }
                                 })
@@ -1382,7 +1382,7 @@ struct MonthGraphView: View {
 
                     if !changeDate {
                         HStack {
-                            if showingMonth != startOfLastMonth {
+                            if StatisticsPeriodNavigation.canMoveBackward(current: showingMonth, oldest: startOfLastMonth) {
                                 SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
                                     withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: -1, to: showingMonth) ?? showingMonth }
                                 })
@@ -1398,7 +1398,7 @@ struct MonthGraphView: View {
                         HStack {
                             Spacer()
 
-                            if showingMonth != startOfCurrentMonth {
+                            if StatisticsPeriodNavigation.canMoveForward(current: showingMonth, newest: startOfCurrentMonth) {
                                 SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
                                     withAnimation { showingMonth = Calendar.current.date(byAdding: .month, value: 1, to: showingMonth) ?? showingMonth }
                                 })
@@ -1762,7 +1762,7 @@ struct YearGraphView: View {
 
                     if !changeDate {
                         HStack {
-                            if showingYear != startOfLastYear {
+                            if StatisticsPeriodNavigation.canMoveBackward(current: showingYear, oldest: startOfLastYear) {
                                 SwipeArrowView(left: true, swipeString: swipeStrings.backward.uppercased(), changeTime: changeTime, action: {
                                     withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: -1, to: showingYear) ?? showingYear }
                                 })
@@ -1778,7 +1778,7 @@ struct YearGraphView: View {
                         HStack {
                             Spacer()
 
-                            if showingYear != startOfCurrentYear {
+                            if StatisticsPeriodNavigation.canMoveForward(current: showingYear, newest: startOfCurrentYear) {
                                 SwipeArrowView(left: false, swipeString: swipeStrings.forward.uppercased(), changeTime: changeTime, action: {
                                     withAnimation { showingYear = Calendar.current.date(byAdding: .year, value: 1, to: showingYear) ?? showingYear }
                                 })
@@ -2093,7 +2093,7 @@ struct AnimatedHorizontalBarGraph: View {
     var body: some View {
         HStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(Color.blue)
+                .fill(category.category.statisticsColor)
                 .frame(width: showBar ? nil : 0, alignment: .leading)
 
             Spacer(minLength: 0)
@@ -2186,21 +2186,46 @@ struct SwipeArrowView: View {
     let left: Bool
     let swipeString: String
     let changeTime: Bool
+    let isEnabled: Bool
     var action: () -> Void = {}
 
-    var body: some View {
+    init(left: Bool, swipeString: String, changeTime: Bool, isEnabled: Bool = true, action: @escaping () -> Void = {}) {
+        self.left = left
+        self.swipeString = swipeString
+        self.changeTime = changeTime
+        self.isEnabled = isEnabled
+        self.action = action
+    }
+
+    private var buttonContent: some View {
         Button(action: action) {
             Image(systemName: left ? "chevron.left" : "chevron.right")
                 .font(.system(.body, design: .rounded).weight(.semibold))
-                .foregroundColor(Color.PrimaryText)
+                .foregroundStyle(Color.PrimaryText)
                 .frame(width: 42, height: 42)
-                .background(Color.AppSecondarySurface.opacity(0.85), in: Circle())
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.45)
         .accessibilityLabel(left ? "Periodo precedente" : "Periodo successivo")
-        .accessibilityValue("Disponibile")
+        .accessibilityValue(isEnabled ? "Disponibile" : "Non disponibile")
+    }
+
+    var body: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                buttonContent
+                    .glassEffect(.regular.interactive(), in: Circle())
+            } else if #available(iOS 17.0, *) {
+                buttonContent
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.circle)
+            } else {
+                buttonContent
+                    .buttonStyle(.bordered)
+            }
+        }
         .zIndex(10)
-        .drawingGroup()
     }
 }
 
@@ -2208,12 +2233,7 @@ struct SwipeEndView: View {
     let left: Bool
 
     var body: some View {
-        Image(systemName: left ? "chevron.left" : "chevron.right")
-            .font(.system(.body, design: .rounded).weight(.semibold))
-            .foregroundColor(Color.SubtitleText)
-            .frame(width: 42, height: 42)
-            .background(Color.AppSecondarySurface.opacity(0.45), in: Circle())
+        SwipeArrowView(left: left, swipeString: "", changeTime: false, isEnabled: false)
             .accessibilityHidden(true)
-            .zIndex(10)
     }
 }

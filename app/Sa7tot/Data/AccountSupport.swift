@@ -31,6 +31,39 @@ enum InsightsPeriod: Int, CaseIterable {
     case year = 3
 }
 
+/// Canonical color source for category-based Statistics presentation.
+/// Stored category colors remain authoritative; malformed or legacy values use
+/// one stable fallback so every Statistics surface stays synchronized.
+enum StatisticsCategoryColor {
+    static let fallbackHex = "#279AF4"
+
+    static func hex(for category: Category) -> String {
+        canonicalHex(category.colour)
+    }
+
+    static func canonicalHex(_ storedValue: String?) -> String {
+        let value = (storedValue ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+        let digits = value.hasPrefix("#") ? String(value.dropFirst()) : value
+        guard (digits.count == 6 || digits.count == 8),
+              digits.allSatisfy({ $0.isNumber || ("A"..."F").contains($0) }) else {
+            return fallbackHex
+        }
+        return "#" + digits
+    }
+}
+
+enum StatisticsPeriodNavigation {
+    static func canMoveBackward(current: Date, oldest: Date) -> Bool {
+        current != oldest
+    }
+
+    static func canMoveForward(current: Date, newest: Date) -> Bool {
+        current != newest
+    }
+}
+
 enum StatisticsSummaryPresentation {
     static let italianLocale = Locale(identifier: "it_IT")
 
