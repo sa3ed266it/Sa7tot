@@ -16,7 +16,7 @@ struct BudgetWidget: Widget {
             BudgetWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Budget")
-        .description("Monitor how you are sticking to your budgets.")
+        .description("Controlla il rispetto dei tuoi budget.")
         .supportedFamilies([.systemSmall])
     }
 }
@@ -117,13 +117,13 @@ struct BudgetWidgetEntryView: View {
     var budgetType: String {
         switch entry.budget.type {
         case 1:
-            return String(localized: "today")
+            return "oggi"
         case 2:
-            return String(localized: "this week")
+            return "questa settimana"
         case 3:
-            return String(localized: "this month")
+            return "questo mese"
         case 4:
-            return String(localized: "this year")
+            return "quest’anno"
         default:
             return "this week"
         }
@@ -139,9 +139,9 @@ struct BudgetWidgetEntryView: View {
 
     var systemSmallWidgetText: String {
         if entry.budget.budgetAmount >= entry.totalSpent {
-            return String(localized: "left \(budgetType)")
+            return "restante \(budgetType)"
         } else {
-            return String(localized: "over \(budgetType)")
+            return "oltre \(budgetType)"
         }
     }
 
@@ -152,7 +152,7 @@ struct BudgetWidgetEntryView: View {
     var body: some View {
         if entry.configuration.budget == nil {
             if #available(iOS 17.0, *) {
-                Text("Select budget in widget options")
+                Text("Seleziona il budget nelle opzioni del widget")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.SubtitleText)
@@ -162,7 +162,7 @@ struct BudgetWidgetEntryView: View {
                         Color.AppPageBackground
                     }
             } else {
-                Text("Select budget in widget options")
+                Text("Seleziona il budget nelle opzioni del widget")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.SubtitleText)
@@ -173,7 +173,7 @@ struct BudgetWidgetEntryView: View {
 
         } else if entry.budget.iconIdentifier == "failed" {
             if #available(iOS 17.0, *) {
-                Text("Budget no longer exists - please select new budget from widget options.")
+                Text("Il budget non esiste più: seleziona un nuovo budget nelle opzioni del widget.")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.SubtitleText)
@@ -183,7 +183,7 @@ struct BudgetWidgetEntryView: View {
                         Color.AppPageBackground
                     }
             } else {
-                Text("Budget no longer exists - please select new budget from widget options.")
+                Text("Il budget non esiste più: seleziona un nuovo budget nelle opzioni del widget.")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.SubtitleText)
@@ -206,7 +206,7 @@ struct BudgetWidgetEntryView: View {
                             }
                             .foregroundColor(Color.PrimaryText)
 
-                            Text("SPENT: \(percentString1)")
+                            Text("SPESO: \(percentString1)")
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                 .foregroundColor(Color.SubtitleText)
                         }
@@ -245,11 +245,11 @@ struct BudgetWidgetEntryView: View {
                                             .foregroundColor(Color.SubtitleText)
                                     } else {
                                         if entry.budget.budgetAmount >= entry.totalSpent {
-                                            Text("left")
+                                        Text("restante")
                                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                                 .foregroundColor(Color.SubtitleText)
                                         } else {
-                                            Text("over")
+                                            Text("oltre")
                                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                                 .foregroundColor(Color.SubtitleText)
                                         }
@@ -298,7 +298,7 @@ struct BudgetWidgetEntryView: View {
                             }
                             .foregroundColor(Color.PrimaryText)
 
-                            Text("SPENT: \(percentString1)")
+                            Text("SPESO: \(percentString1)")
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                 .foregroundColor(Color.SubtitleText)
                         }
@@ -337,11 +337,11 @@ struct BudgetWidgetEntryView: View {
                                             .foregroundColor(Color.SubtitleText)
                                     } else {
                                         if entry.budget.budgetAmount >= entry.totalSpent {
-                                            Text("left")
+                                        Text("restante")
                                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                                 .foregroundColor(Color.SubtitleText)
                                         } else {
-                                            Text("over")
+                                            Text("oltre")
                                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                                 .foregroundColor(Color.SubtitleText)
                                         }

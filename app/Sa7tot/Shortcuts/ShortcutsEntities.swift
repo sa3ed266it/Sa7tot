@@ -11,7 +11,7 @@ import Foundation
 
 @available(iOS 16, *)
 struct IncomeCategoryEntity: AppEntity, Identifiable {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = .init(name: "Category")
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = .init(name: "Categoria")
     typealias DefaultQueryType = IncomeCategoryQuery
     static var defaultQuery: IncomeCategoryQuery = .init()
 
@@ -23,7 +23,7 @@ struct IncomeCategoryEntity: AppEntity, Identifiable {
     @Property(title: "Icon")
     var iconIdentifier: String
 
-    @Property(title: "Income")
+    @Property(title: "Entrata")
     var income: Bool
 
     var displayRepresentation: DisplayRepresentation {
@@ -87,7 +87,7 @@ struct IncomeCategoryQuery: EntityStringQuery {
 
 @available(iOS 16, *)
 struct ExpenseCategoryEntity: AppEntity, Identifiable {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = .init(name: "Category")
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = .init(name: "Categoria")
     typealias DefaultQueryType = ExpenseCategoryQuery
     static var defaultQuery: ExpenseCategoryQuery = .init()
 
@@ -99,7 +99,7 @@ struct ExpenseCategoryEntity: AppEntity, Identifiable {
     @Property(title: "Icon")
     var iconIdentifier: String
 
-    @Property(title: "Income")
+    @Property(title: "Entrata")
     var income: Bool
 
     var displayRepresentation: DisplayRepresentation {

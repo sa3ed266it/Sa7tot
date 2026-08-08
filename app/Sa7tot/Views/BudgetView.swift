@@ -237,7 +237,7 @@ struct MainBudgetView: View {
         case 4:
             return String(localized: "this year")
         default:
-            return "this week"
+            return "questa settimana"
         }
     }
 
@@ -502,7 +502,7 @@ struct SingleBudgetView: View {
         case 4:
             return String(localized: "this year")
         default:
-            return "this week"
+            return "questa settimana"
         }
     }
 
@@ -1416,6 +1416,7 @@ struct TimeBudgetView: View {
     }
 
     @State var totalSpent = 0.0
+    @State private var displayedContentIsEmpty = false
 
     var timeLeft: String {
         let calendar = Calendar.current
@@ -1670,6 +1671,10 @@ struct TimeBudgetView: View {
                     }
                 }
                 .frame(maxHeight: .infinity)
+                .sa7totScrollDisabled(displayedContentIsEmpty)
+                .onPreferenceChange(EmptyStatePreferenceKey.self) { isEmpty in
+                    displayedContentIsEmpty = isEmpty
+                }
 
                 BudgetStepperView(category: category, date: $startDate, startDate: budget.wrappedDate, budgetType: budgetType)
                     .padding(.horizontal, 25)
@@ -1909,6 +1914,7 @@ struct TimeMainBudgetView: View {
     }
 
     @State var totalSpent = 0.0
+    @State private var displayedContentIsEmpty = false
 
     var timeLeft: String {
         let calendar = Calendar.current
@@ -2155,6 +2161,10 @@ struct TimeMainBudgetView: View {
                 }
             }
             .frame(maxHeight: .infinity)
+            .sa7totScrollDisabled(displayedContentIsEmpty)
+            .onPreferenceChange(EmptyStatePreferenceKey.self) { isEmpty in
+                displayedContentIsEmpty = isEmpty
+            }
 
             BudgetStepperView(category: nil, date: $startDate, startDate: budget.wrappedDate, budgetType: budgetType)
                 .padding(.horizontal, 25)

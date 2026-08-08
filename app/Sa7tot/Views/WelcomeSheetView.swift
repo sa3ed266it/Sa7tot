@@ -46,7 +46,7 @@ struct WelcomeSheetView: View {
                             .font(.system(size: 30, weight: .medium, design: .rounded))
                             .foregroundColor(Color.PrimaryText)
 
-                        Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
+                        Text("welcome_version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? ""))")
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(Color.SubtitleText)
                             .padding(.bottom, 15)
@@ -106,8 +106,17 @@ struct WelcomeSheetView: View {
                 }
                 .padding(30)
             } else {
-                CategoryView(mode: .welcome)
+                if #available(iOS 16.0, *) {
+                    NavigationStack {
+                        CategoryView(mode: .welcome)
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                } else {
+                    NavigationView {
+                        CategoryView(mode: .welcome)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

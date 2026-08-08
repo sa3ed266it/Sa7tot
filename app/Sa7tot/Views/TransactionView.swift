@@ -1698,11 +1698,11 @@ struct RecurringPickerView: View {
                     Text("custom")
                 } else {
                     if repeatType == 1 {
-                        Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) days"))
+                        Text("\(repeatCoefficient) giorni")
                     } else if repeatType == 2 {
-                        Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) weeks"))
+                        Text("\(repeatCoefficient) settimane")
                     } else if repeatType == 3 {
-                        Text(String(repeatCoefficient) + " " + String(localized: "\(repeatCoefficient) months"))
+                        Text("\(repeatCoefficient) mesi")
                     }
                 }
 
@@ -1894,11 +1894,11 @@ struct CustomRecurringView: View {
 
                     Group {
                         if holdingType == 1 {
-                            Text("\(holdingCoefficient) days")
+                            Text("\(holdingCoefficient) giorni")
                         } else if holdingType == 2 {
-                            Text("\(holdingCoefficient) weeks")
+                            Text("\(holdingCoefficient) settimane")
                         } else if holdingType == 3 {
-                            Text("\(holdingCoefficient) months")
+                            Text("\(holdingCoefficient) mesi")
                         }
                     }
                     .font(.system(size: 23, weight: .medium, design: .rounded))

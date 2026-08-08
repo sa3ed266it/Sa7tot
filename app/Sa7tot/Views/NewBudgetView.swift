@@ -789,11 +789,11 @@ private struct NativeBrandNewBudgetView: View {
 
     private func budgetType(for rawValue: Int16) -> String {
         switch rawValue {
-        case 1: "Daily"
-        case 2: "Weekly"
-        case 3: "Monthly"
-        case 4: "Yearly"
-        default: "Weekly"
+        case 1: "Giornaliero"
+        case 2: "Settimanale"
+        case 3: "Mensile"
+        case 4: "Annuale"
+        default: "Settimanale"
         }
     }
 

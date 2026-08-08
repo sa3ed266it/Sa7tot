@@ -225,18 +225,17 @@ struct HomeView: View {
     private var modernTabView: some View {
         NativeSearchTabView(
             selection: $currentTab,
-            searchText: $searchText,
-            logView: hosted(logTabContent),
+            logView: hosted(logTabContent(usesNativeNavigation: true)),
             budgetView: hosted(BudgetView()),
             settingsView: hosted(SettingsView()),
-            searchView: hosted(SearchView(searchQuery: $searchText))
+            onAdd: presentAddMovement
         )
         .allowsHitTesting(transactionManager.showPopup ? false : true)
     }
 
     private var legacyTabView: some View {
         TabView(selection: $currentTab) {
-            logTabContent
+            logTabContent()
                 .tabItem { Label("Movimenti", systemImage: "list.bullet.rectangle") }
                 .tag("Log")
             BudgetView()
@@ -254,12 +253,13 @@ struct HomeView: View {
         .environmentObject(transactionManager)
     }
 
-    private var logTabContent: some View {
+    private func logTabContent(usesNativeNavigation: Bool = false) -> some View {
         LogView(
             topEdge: topEdge,
             bottomEdge: bottomEdge,
             launchAdd: launchAdd,
-            onAdd: presentAddMovement
+            onAdd: presentAddMovement,
+            usesNativeNavigation: usesNativeNavigation
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -317,75 +317,74 @@ private final class InitialSelectionTabBarController: UITabBarController {
 @available(iOS 26.0, *)
 private struct NativeSearchTabView: UIViewControllerRepresentable {
     @Binding var selection: String
-    @Binding var searchText: String
     let logView: AnyView
     let budgetView: AnyView
     let settingsView: AnyView
-    let searchView: AnyView
+    let onAdd: () -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(selection: $selection, searchText: $searchText) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(selection: $selection, onAdd: onAdd)
+    }
 
     func makeUIViewController(context: Context) -> InitialSelectionTabBarController {
         let coordinator = context.coordinator
         let tabs: [UITab] = [
-            UITab(title: "Movimenti", image: Sa7totSymbolResolver.image("list.bullet.rectangle"), identifier: "Log") { _ in coordinator.host(logView) },
+            UITab(title: "Movimenti", image: Sa7totSymbolResolver.image("list.bullet.rectangle"), identifier: "Log") { _ in coordinator.movementsHost(logView) },
             UITab(title: "Budget", image: Sa7totSymbolResolver.image("chart.pie.fill"), identifier: "Budget") { _ in coordinator.host(budgetView) },
             UITab(title: "Impostazioni", image: Sa7totSymbolResolver.image("gearshape.fill"), identifier: "Settings") { _ in coordinator.host(settingsView) }
         ]
-        let searchTab = UISearchTab { _ in coordinator.searchHost(searchView) }
-        searchTab.automaticallyActivatesSearch = true
-        let controller = InitialSelectionTabBarController(tabs: tabs + [searchTab])
+
+        let addTab = UISearchTab { _ in
+            let placeholder = UIViewController()
+            placeholder.tabBarItem.accessibilityLabel = "Aggiungi movimento"
+            return placeholder
+        }
+        addTab.image = Sa7totSymbolResolver.image("plus")
+        addTab.title = "Aggiungi movimento"
+        addTab.automaticallyActivatesSearch = false
+
+        let controller = InitialSelectionTabBarController(tabs: tabs + [addTab])
         controller.delegate = coordinator
         controller.selectedTab = controller.tab(forIdentifier: "Log")
         return controller
     }
 
     func updateUIViewController(_ controller: InitialSelectionTabBarController, context: Context) {
-        context.coordinator.searchText = $searchText
         guard controller.selectedTab?.identifier != selection,
               let tab = controller.tab(forIdentifier: selection) else { return }
         controller.selectedTab = tab
     }
 
     @MainActor
-    final class Coordinator: NSObject, UITabBarControllerDelegate, UISearchResultsUpdating, UISearchBarDelegate {
+    final class Coordinator: NSObject, UITabBarControllerDelegate {
         var selection: Binding<String>
-        var searchText: Binding<String>
-        private var searchController: UISearchController?
+        let onAdd: () -> Void
 
-        init(selection: Binding<String>, searchText: Binding<String>) {
+        init(selection: Binding<String>, onAdd: @escaping () -> Void) {
             self.selection = selection
-            self.searchText = searchText
+            self.onAdd = onAdd
         }
 
         func host(_ view: AnyView) -> UIViewController { UIHostingController(rootView: view) }
 
-        func searchHost(_ view: AnyView) -> UIViewController {
+        func movementsHost(_ view: AnyView) -> UIViewController {
             let host = UIHostingController(rootView: view)
-            let controller = UISearchController()
-            controller.searchResultsUpdater = self
-            controller.searchBar.delegate = self
-            controller.searchBar.placeholder = "Cerca movimento per nota"
-            controller.obscuresBackgroundDuringPresentation = false
-            host.navigationItem.searchController = controller
-            host.navigationItem.hidesSearchBarWhenScrolling = false
-            host.definesPresentationContext = true
-            searchController = controller
-            return UINavigationController(rootViewController: host)
+            let navigationController = UINavigationController(rootViewController: host)
+            return navigationController
+        }
+
+        func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
+            guard tab is UISearchTab else { return true }
+            onAdd()
+            return false
         }
 
         func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-            if let identifier = viewController.tab?.identifier { selection.wrappedValue = identifier }
+            guard !(viewController.tab is UISearchTab),
+                  let identifier = viewController.tab?.identifier else { return }
+            selection.wrappedValue = identifier
         }
 
-        func updateSearchResults(for searchController: UISearchController) {
-            let text = searchController.searchBar.text ?? ""
-            if self.searchText.wrappedValue != text { self.searchText.wrappedValue = text }
-        }
-
-        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-            if self.searchText.wrappedValue != searchText { self.searchText.wrappedValue = searchText }
-        }
     }
 }
 

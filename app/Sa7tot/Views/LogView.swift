@@ -10,6 +10,7 @@ import CoreData
 import Foundation
 import SwiftUIIntrospect
 import SwiftUI
+import UIKit
 
 private func homeSignedAmountColor(_ value: Double, positive: Color, neutral: Color) -> Color {
     if value < 0 { return Color.AlertRed }
@@ -73,6 +74,7 @@ struct LogView: View {
     var bottomEdge: CGFloat
     var launchAdd: Bool
     var onAdd: () -> Void
+    var usesNativeNavigation = false
 
     // drag to open
 //    enum PullToReach {
@@ -83,6 +85,7 @@ struct LogView: View {
 //    @State var released: PullToReach = .none
 
     @State var progress = 0.0
+    @State private var displayedContentIsEmpty = false
     @State private var balanceCollapseProgress: CGFloat = 0
     @State private var expandedBalanceHeaderHeight: CGFloat = 175
     private let compactBalanceHeaderHeight: CGFloat = 54
@@ -91,8 +94,19 @@ struct LogView: View {
         min(max((balanceCollapseProgress - 0.50) / 0.28, 0), 1)
     }
 
+    @ViewBuilder
     var body: some View {
-        NavigationView {
+        if usesNativeNavigation {
+            navigationContent
+        } else {
+            NavigationView {
+                navigationContent
+            }
+            .navigationViewStyle(.stack)
+        }
+    }
+
+    private var navigationContent: some View {
             Group {
         if transactions.isEmpty {
             ScrollView(showsIndicators: false) {
@@ -121,6 +135,7 @@ struct LogView: View {
                 }
                 .padding(.vertical, 24)
                 .frame(maxWidth: .infinity, minHeight: 250)
+                .sa7totScrollDisabled(transactions.isEmpty)
             .background(Color.AppPageBackground)
 
         } else {
@@ -210,6 +225,10 @@ struct LogView: View {
                     }
                     .coordinateSpace(name: "HomeScroll")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .sa7totScrollDisabled(displayedContentIsEmpty)
+                    .onPreferenceChange(EmptyStatePreferenceKey.self) { isEmpty in
+                        displayedContentIsEmpty = isEmpty
+                    }
                     .modifier(HomeScrollProgressModifier { offset in
                         let collapseDistance = max(1, expandedBalanceHeaderHeight - compactBalanceHeaderHeight)
                         let nextProgress = min(max(offset / collapseDistance, 0), 1)
@@ -329,14 +348,10 @@ struct LogView: View {
 //            }
         }
             }
+            .background {
+                NativeFilterMenuBridge(filter: $filter)
+            }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: onAdd) {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Aggiungi movimento")
-                }
-
                 ToolbarItem(placement: .principal) {
                     if filter == .all {
                         CompactBalanceToolbarTitle(
@@ -350,23 +365,6 @@ struct LogView: View {
                     }
                 }
 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Picker("Filtro", selection: $filter) {
-                            ForEach(FilterType.allCases, id: \.self) { option in
-                                Text(option.italianTitle).tag(option)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease")
-                            .frame(width: 44, height: 44)
-                    }
-                    .labelStyle(.iconOnly)
-                    .sa7totFilterButtonBorderShape()
-                    .sa7totFilterButtonStyle()
-                    .accessibilityLabel("Filtra")
-                    .accessibilityValue(filter.italianTitle)
-                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: launchAdd) { newValue in
@@ -375,9 +373,6 @@ struct LogView: View {
                 }
             }
         }
-        .navigationViewStyle(.stack)
-    }
-
     @ViewBuilder
     func filterTagView(text: LocalizedStringKey) -> some View {
         HStack(spacing: 10) {
@@ -765,6 +760,20 @@ struct LogInsightsView: View {
     }
 }
 
+private func movementSearchPredicate(_ searchQuery: String) -> NSPredicate {
+    let beginPredicate = NSPredicate(format: "%K BEGINSWITH[cd] %@", #keyPath(Transaction.note), searchQuery)
+    let containPredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.note), searchQuery)
+    let categoryPredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.category.name), searchQuery)
+    let sourcePredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.account.name), searchQuery)
+    let destinationPredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.destinationAccount.name), searchQuery)
+
+    var predicates = [beginPredicate, containPredicate, categoryPredicate, sourcePredicate, destinationPredicate]
+    if let amount = Double(searchQuery) {
+        predicates.append(NSPredicate(format: "amount == %@", NSNumber(value: amount)))
+    }
+    return NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
+}
+
 struct SearchView: View {
     @Binding var searchQuery: String
 
@@ -820,48 +829,85 @@ struct FilteredSearchView: View {
     }
 
     init(searchQuery: String) {
-        let beginPredicate = NSPredicate(format: "%K BEGINSWITH[cd] %@", #keyPath(Transaction.note), searchQuery)
-        let containPredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.note), searchQuery)
-        let containPredicate1 = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.category.name), searchQuery)
-        let sourcePredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.account.name), searchQuery)
-        let destinationPredicate = NSPredicate(format: "%K CONTAINS[cd] %@", #keyPath(Transaction.destinationAccount.name), searchQuery)
-
-        let compound: NSCompoundPredicate
-
-        // allow searching by amount too
-        if let amount = Double(searchQuery) {
-            let amountPredicate = NSPredicate(format: "amount == %@", NSNumber(value: amount))
-            compound = NSCompoundPredicate(orPredicateWithSubpredicates: [beginPredicate, containPredicate, containPredicate1, sourcePredicate, destinationPredicate, amountPredicate])
-        } else {
-            compound = NSCompoundPredicate(orPredicateWithSubpredicates: [beginPredicate, containPredicate, containPredicate1, sourcePredicate, destinationPredicate])
-        }
-
         _transactions = SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
             SortDescriptor(\.day, order: .reverse),
             SortDescriptor(\.date, order: .reverse)
-        ], predicate: compound)
+        ], predicate: movementSearchPredicate(searchQuery))
 
         self.searchQuery = searchQuery
     }
 }
 
-private extension View {
-    @ViewBuilder
-    func sa7totFilterButtonBorderShape() -> some View {
-        if #available(iOS 17.0, *) {
-            buttonBorderShape(.circle)
-        } else {
-            buttonBorderShape(.roundedRectangle)
+private struct NativeFilterMenuBridge: UIViewControllerRepresentable {
+    @Binding var filter: FilterType
+
+    func makeUIViewController(context: Context) -> FilterMenuViewController {
+        FilterMenuViewController(filter: $filter)
+    }
+
+    func updateUIViewController(_ viewController: FilterMenuViewController, context: Context) {
+        viewController.filter = $filter
+        viewController.installMenuIfNeeded()
+    }
+}
+
+private final class FilterMenuViewController: UIViewController {
+    var filter: Binding<FilterType>
+    private weak var installedNavigationItem: UINavigationItem?
+    private weak var installedBarButtonItem: UIBarButtonItem?
+
+    init(filter: Binding<FilterType>) {
+        self.filter = filter
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        installMenuIfNeeded()
+    }
+
+    override func didMove(toParent parent: UIViewController?) {
+        super.didMove(toParent: parent)
+        DispatchQueue.main.async { [weak self] in
+            self?.installMenuIfNeeded()
         }
     }
 
-    @ViewBuilder
-    func sa7totFilterButtonStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            buttonStyle(.glass)
+    func installMenuIfNeeded() {
+        guard let navigationItem = navigationController?.topViewController?.navigationItem else { return }
+
+        if installedNavigationItem !== navigationItem || installedBarButtonItem == nil {
+            let barButtonItem = UIBarButtonItem(
+                image: UIImage(systemName: "line.3.horizontal.decrease"),
+                menu: makeFilterMenu()
+            )
+            barButtonItem.accessibilityLabel = "Filtra"
+            barButtonItem.accessibilityValue = filter.wrappedValue.italianTitle
+            navigationItem.rightBarButtonItem = barButtonItem
+            installedNavigationItem = navigationItem
+            installedBarButtonItem = barButtonItem
         } else {
-            self
+            installedBarButtonItem?.menu = makeFilterMenu()
+            installedBarButtonItem?.accessibilityValue = filter.wrappedValue.italianTitle
         }
+    }
+
+    private func makeFilterMenu() -> UIMenu {
+        let actions = FilterType.allCases.map { option in
+            UIAction(
+                title: option.italianTitle,
+                state: option == filter.wrappedValue ? .on : .off
+            ) { [weak self] _ in
+                self?.filter.wrappedValue = option
+            }
+        }
+
+        return UIMenu(title: "Filtro", options: [.singleSelection], children: actions)
     }
 }
 
@@ -879,10 +925,10 @@ struct TransactionsList: View {
     @EnvironmentObject var dataController: DataController
 
     @SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
-        SortDescriptor(\.day, order: .reverse),
-        SortDescriptor(\.date, order: .reverse),
-        SortDescriptor(\.note)
-    ], predicate: NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)) private var transactions: SectionedFetchResults<Date?, Transaction>
+            SortDescriptor(\.day, order: .reverse),
+            SortDescriptor(\.date, order: .reverse),
+            SortDescriptor(\.note)
+        ], predicate: NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)) private var transactions: SectionedFetchResults<Date?, Transaction>
 
     var body: some View {
         VStack {
@@ -1477,8 +1523,9 @@ struct NoResultsView: View {
     let fullscreen: Bool
 
     var body: some View {
-        if fullscreen {
-            VStack(spacing: 12) {
+        Group {
+            if fullscreen {
+                VStack(spacing: 12) {
                 Spacer()
 
                 Image(systemName: "tray.full.fill")
@@ -1497,9 +1544,9 @@ struct NoResultsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .frame(height: UIScreen.main.bounds.height * 0.7)
-            .opacity(0.7)
-        } else {
-            VStack(spacing: 12) {
+                .opacity(0.7)
+            } else {
+                VStack(spacing: 12) {
                 Spacer()
 
                 //            Text("📭️")
@@ -1518,8 +1565,29 @@ struct NoResultsView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .opacity(0.7)
-            .padding(.top, 50)
+                .opacity(0.7)
+                .padding(.top, 50)
+            }
+        }
+        .preference(key: EmptyStatePreferenceKey.self, value: true)
+    }
+}
+
+struct EmptyStatePreferenceKey: PreferenceKey {
+    static var defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func sa7totScrollDisabled(_ disabled: Bool) -> some View {
+        if #available(iOS 16.0, *) {
+            scrollDisabled(disabled)
+        } else {
+            self
         }
     }
 }

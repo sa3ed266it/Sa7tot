@@ -232,7 +232,7 @@ struct CustomProgressView: View {
                     .font(.system(size: 32 * (0.6 + progress)))
                     .foregroundColor(Color.Outline).opacity((0.6 + progress) > 1 ? 1 : (0.6 + progress))
             }
-            Text("Pull to add update")
+            Text("Trascina per aggiornare")
         }
     }
 }

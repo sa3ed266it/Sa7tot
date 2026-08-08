@@ -99,13 +99,13 @@ struct ShortcutBudgetView: View {
     var budgetType: String {
         switch type {
         case 1:
-            return String(localized: "today")
+            return "oggi"
         case 2:
-            return String(localized: "this week")
+            return "questa settimana"
         case 3:
-            return String(localized: "this month")
+            return "questo mese"
         case 4:
-            return String(localized: "this year")
+            return "quest’anno"
         default:
             return "this week"
         }
@@ -132,11 +132,11 @@ struct ShortcutBudgetView: View {
                 .lineLimit(1)
 
             if amount > 0 {
-                Text("left \(budgetType)")
+                Text("restante \(budgetType)")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
             } else {
-                Text("over \(budgetType)")
+                Text("oltre \(budgetType)")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
             }

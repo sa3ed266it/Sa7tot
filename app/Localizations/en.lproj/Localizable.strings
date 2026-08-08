@@ -9,22 +9,29 @@
 // welcome sheet
 
 "sa7tot_name" = "Sa7tot";
-"welcome_header_1" = "Track your finances";
-"welcome_subtitle_1" = "Add new entries in a simple, straightforward manner";
-"welcome_header_3" = "Stick to budgets";
-"welcome_subtitle_3" = "Set categorical and time-based goals to limit your spending";
-"Get Started" = "Get Started";
+"welcome_header_1" = "Tieni sotto controllo le tue finanze";
+"welcome_subtitle_1" = "Registra entrate e uscite in modo semplice e immediato";
+"welcome_header_3" = "Rispetta i tuoi budget";
+"welcome_subtitle_3" = "Imposta limiti per categoria e periodo per gestire meglio le spese";
+"Get Started" = "Inizia";
+"welcome_version %@ (%@)" = "Versione %@ (%@)";
+"welcome_categories" = "Categorie";
+"welcome_income_categories" = "CATEGORIE DI ENTRATA";
+"welcome_expense_categories" = "CATEGORIE DI SPESA";
+"welcome_suggested" = "SUGGERITE";
+"welcome_no_income_categories" = "Nessuna categoria di entrata trovata. Tocca «Nuova» per aggiungerne una.";
+"welcome_no_expense_categories" = "Nessuna categoria di spesa trovata. Tocca «Nuova» per aggiungerne una.";
 
 // categories
 
-"Categories" = "Categories";
-"no_income_categories" = "No income categories found, click the 'New' button to add some";
-"no_expense_categories" = "No expense categories found, click the 'New' button to add some";
+"Categories" = "Categorie";
+"no_income_categories" = "Nessuna categoria di entrata trovata. Tocca «Nuova» per aggiungerne una.";
+"no_expense_categories" = "Nessuna categoria di spesa trovata. Tocca «Nuova» per aggiungerne una.";
 "Suggestions Hidden" = "Suggestions Hidden";
 "Successfully Edited" = "Successfully Edited";
-"INCOME CATEGORIES" = "INCOME CATEGORIES";
-"EXPENSE CATEGORIES" = "EXPENSE CATEGORIES";
-"SUGGESTED" = "SUGGESTED";
+"INCOME CATEGORIES" = "CATEGORIE DI ENTRATA";
+"EXPENSE CATEGORIES" = "CATEGORIE DI SPESA";
+"SUGGESTED" = "SUGGERITE";
 "Income Category" = "Income Category";
 "Expense Category" = "Expense Category";
 "New" = "New";

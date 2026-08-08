@@ -17,7 +17,7 @@ struct InsightsWidget: Widget {
             InsightsWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Insights")
-        .description("Analyse your expenditure breakdowns over various time periods.")
+        .description("Analizza la suddivisione delle spese nei diversi periodi.")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -319,36 +319,36 @@ struct InsightsWidgetEntryView: View {
     var subtitleText: String {
         switch entry.duration {
         case .unknown:
-            return "NIL"
+            return "NESSUNO"
         case .week:
-            return String(localized: "THIS WEEK").uppercased()
+            return "QUESTA SETTIMANA"
         case .month:
-            return String(localized: "THIS MONTH").uppercased()
+            return "QUESTO MESE"
         case .year:
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy"
-            return String(localized: "in \(formatter.string(from: Date.now))").uppercased()
+            return "IL \(formatter.string(from: Date.now))"
         }
     }
 
     var subtitleText1: String {
         switch entry.duration {
         case .unknown:
-            return "NIL"
+            return "NESSUNO"
         case .week:
-            return String(localized: "THIS WEEK").uppercased()
+            return "QUESTA SETTIMANA"
         case .month:
-            return String(localized: "THIS MONTH").uppercased()
+            return "QUESTO MESE"
         case .year:
-            return String(localized: "THIS YEAR").uppercased()
+            return "QUEST’ANNO"
         }
     }
 
     var verbText: String {
         if entry.income {
-            return String(localized: "EARNED ").uppercased()
+            return "ENTRATE "
         } else {
-            return String(localized: "SPENT ").uppercased()
+            return "SPESO "
         }
     }
 
@@ -792,11 +792,11 @@ struct InsightsWidgetCategoryBreakdownView: View {
         case .unknown:
             return "NIL"
         case .week:
-            return String(localized: "THIS WEEK").uppercased()
+            return "QUESTA SETTIMANA"
         case .month:
-            return String(localized: "THIS MONTH").uppercased()
+            return "QUESTO MESE"
         case .year:
-            return String(localized: "THIS YEAR").uppercased()
+            return "QUEST’ANNO"
         }
     }
 
@@ -826,7 +826,7 @@ struct InsightsWidgetCategoryBreakdownView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
-                Text("NO TRANSACTIONS\n\(subtitleText1)")
+                Text("NESSUN MOVIMENTO\n\(subtitleText1)")
                     .font(.system(size: 10,
                                   weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -839,7 +839,7 @@ struct InsightsWidgetCategoryBreakdownView: View {
                     Image(systemName: "plus")
                         .font(.system(size: 9, weight: .medium, design: .rounded))
 
-                    Text("New Expense")
+                    Text("Nuova spesa")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundColor(Color.PrimaryText)
                 }

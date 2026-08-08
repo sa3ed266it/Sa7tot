@@ -35,7 +35,7 @@ struct RecentExpenditureWidget: Widget {
             ExpenditureWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Recent Transactions")
-        .description("View your latest expenses.")
+        .description("Visualizza le tue ultime spese.")
         .supportedFamilies(supportedFamilies)
     }
 }
@@ -149,17 +149,17 @@ struct ExpenditureWidgetEntryView: View {
         case .unknown:
             return "NIL"
         case .day:
-            return String(localized: "today")
+            return "oggi"
         case .week:
-            return String(localized: "this week")
+            return "questa settimana"
         case .month:
             let formatter = DateFormatter()
             formatter.dateFormat = "MMM"
-            return String(localized: "in \(formatter.string(from: Date.now))")
+            return "il \(formatter.string(from: Date.now))"
         case .year:
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy"
-            return String(localized: "in \(formatter.string(from: Date.now))")
+            return "il \(formatter.string(from: Date.now))"
         }
     }
 
@@ -168,11 +168,11 @@ struct ExpenditureWidgetEntryView: View {
         case .unknown:
             return ""
         case .net:
-            return String(localized: "net")
+            return "saldo"
         case .income:
-            return String(localized: "earned")
+            return "entrate"
         case .expense:
-            return String(localized: "spent")
+            return "speso"
         }
     }
 
@@ -204,7 +204,7 @@ struct ExpenditureWidgetEntryView: View {
         case .accessoryRectangular:
             if #available(iOS 17.0, *) {
                 if entry.transactions.count == 0 {
-                    Text("NO RECENT EXPENSES")
+                    Text("NESSUNA SPESA RECENTE")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .multilineTextAlignment(.center)
                         .containerBackground(for: .widget) { Color.clear }
@@ -233,7 +233,7 @@ struct ExpenditureWidgetEntryView: View {
                 }
             } else {
                 if entry.transactions.count == 0 {
-                    Text("NO RECENT EXPENSES")
+                    Text("NESSUNA SPESA RECENTE")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .multilineTextAlignment(.center)
                 } else {
@@ -276,7 +276,7 @@ struct ExpenditureWidgetEntryView: View {
 
                         if entry.transactions.isEmpty {
                             VStack(spacing: 5) {
-                                Text("NO RECENT EXPENSES")
+                                Text("NESSUNA SPESA RECENTE")
                                     .font(.system(size: 9, weight: .medium, design: .rounded))
                                     .foregroundColor(Color.SubtitleText)
                                     .frame(maxHeight: .infinity)
@@ -285,7 +285,7 @@ struct ExpenditureWidgetEntryView: View {
                                     Image(systemName: "plus")
                                         .font(.system(size: 10, weight: .medium, design: .rounded))
 
-                                    Text("New Expense")
+                                    Text("Nuova spesa")
                                         .font(.system(size: 12, weight: .medium, design: .rounded))
                                         .foregroundColor(Color.PrimaryText)
                                 }
@@ -298,7 +298,7 @@ struct ExpenditureWidgetEntryView: View {
 
                         } else {
                             VStack(alignment: .leading, spacing: 5) {
-                                Text("RECENT EXPENSES")
+                                Text("SPESE RECENTI")
                                     .font(.system(size: 9, weight: .medium, design: .rounded))
                                     .foregroundColor(Color.SubtitleText)
 
@@ -335,7 +335,7 @@ struct ExpenditureWidgetEntryView: View {
                                         Image(systemName: "plus")
                                             .font(.system(size: 10, weight: .medium, design: .rounded))
 
-                                        Text("New Expense")
+                                        Text("Nuova spesa")
                                             .font(.system(size: 12, weight: .medium, design: .rounded))
                                             .foregroundColor(Color.PrimaryText)
                                     }
@@ -372,7 +372,7 @@ struct ExpenditureWidgetEntryView: View {
 
                         if entry.transactions.isEmpty {
                             VStack(spacing: 5) {
-                                Text("NO RECENT EXPENSES")
+                                Text("NESSUNA SPESA RECENTE")
                                     .font(.system(size: 9, weight: .medium, design: .rounded))
                                     .foregroundColor(Color.SubtitleText)
                                     .frame(maxHeight: .infinity)
@@ -381,7 +381,7 @@ struct ExpenditureWidgetEntryView: View {
                                     Image(systemName: "plus")
                                         .font(.system(size: 10, weight: .medium, design: .rounded))
 
-                                    Text("New Expense")
+                                    Text("Nuova spesa")
                                         .font(.system(size: 12, weight: .medium, design: .rounded))
                                         .foregroundColor(Color.PrimaryText)
                                 }
@@ -394,7 +394,7 @@ struct ExpenditureWidgetEntryView: View {
 
                         } else {
                             VStack(alignment: .leading, spacing: 5) {
-                                Text("RECENT EXPENSES")
+                                Text("SPESE RECENTI")
                                     .font(.system(size: 9, weight: .medium, design: .rounded))
                                     .foregroundColor(Color.SubtitleText)
 
@@ -431,7 +431,7 @@ struct ExpenditureWidgetEntryView: View {
                                         Image(systemName: "plus")
                                             .font(.system(size: 10, weight: .medium, design: .rounded))
 
-                                        Text("New Expense")
+                                        Text("Nuova spesa")
                                             .font(.system(size: 12, weight: .medium, design: .rounded))
                                             .foregroundColor(Color.PrimaryText)
                                     }
@@ -473,7 +473,7 @@ struct ExpenditureWidgetEntryView: View {
 
                         if entry.transactions.isEmpty {
                             VStack(spacing: 20) {
-                                Text("NO RECENT EXPENSES")
+                                Text("NESSUNA SPESA RECENTE")
                                     .font(.system(size: 15, weight: .medium, design: .rounded))
                                     .foregroundColor(Color.SubtitleText)
 
@@ -482,7 +482,7 @@ struct ExpenditureWidgetEntryView: View {
                                         Image(systemName: "plus")
                                             .font(.system(size: 13, weight: .semibold, design: .rounded))
 
-                                        Text("New Expense")
+                                        Text("Nuova spesa")
                                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                                             .foregroundColor(Color.PrimaryText)
                                     }
@@ -495,7 +495,7 @@ struct ExpenditureWidgetEntryView: View {
 
                         } else {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("RECENT EXPENSES")
+                                Text("SPESE RECENTI")
                                     .font(.system(size: 12, weight: .medium, design: .rounded))
                                     .foregroundColor(Color.SubtitleText)
 
@@ -533,7 +533,7 @@ struct ExpenditureWidgetEntryView: View {
                                             Image(systemName: "plus")
                                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
 
-                                            Text("New Expense")
+                                            Text("Nuova spesa")
                                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                                                 .foregroundColor(Color.PrimaryText)
                                         }

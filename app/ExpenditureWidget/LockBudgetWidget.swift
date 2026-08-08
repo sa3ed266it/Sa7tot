@@ -28,7 +28,7 @@ struct LockBudgetWidget: Widget {
             LockBudgetWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Budget")
-        .description("Monitor how you are sticking to your budgets.")
+        .description("Controlla il rispetto dei tuoi budget.")
         .supportedFamilies(supportedFamilies)
     }
 }
@@ -89,11 +89,11 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
             if budget.type == 1 {
                 let components = calendar.dateComponents([.hour], from: budget.startDate!, to: Date.now)
 
-                timeLeft = String(localized: "\(24 - components.hour!) hours left")
+                timeLeft = "Mancano \(24 - components.hour!) ore"
             } else if budget.type == 2 {
                 let components = calendar.dateComponents([.day], from: budget.startDate!, to: Date.now)
 
-                timeLeft = String(localized: "\(7 - components.day!) days left")
+                timeLeft = "Mancano \(7 - components.day!) giorni"
             } else {
                 let components1 = calendar.dateComponents([.day], from: budget.startDate!, to: budget.endDate)
                 let numberOfDays = components1.day!
@@ -102,7 +102,7 @@ struct LockBudgetWidgetProvider: IntentTimelineProvider {
                 let numberOfDaysPast = components2.day!
 
                 let daysLeftNumber = Int(numberOfDays - numberOfDaysPast)
-                timeLeft = String(localized: "\(daysLeftNumber) days left")
+                timeLeft = "Mancano \(daysLeftNumber) giorni"
             }
 
             return (holdingTotal, timeLeft, returnBudget)
@@ -128,13 +128,13 @@ struct LockBudgetWidgetEntryView: View {
     var budgetType: String {
         switch entry.budget.type {
         case 1:
-            return String(localized: "today")
+            return "oggi"
         case 2:
-            return String(localized: "this week")
+            return "questa settimana"
         case 3:
-            return String(localized: "this month")
+            return "questo mese"
         case 4:
-            return String(localized: "this year")
+            return "quest’anno"
         default:
             return "this week"
         }
@@ -142,9 +142,9 @@ struct LockBudgetWidgetEntryView: View {
 
     var subtitle: String {
         if entry.budget.budgetAmount > entry.totalSpent {
-            return String(localized: "left")
+            return "restante"
         } else {
-            return String(localized: "over")
+            return "oltre"
         }
     }
 
@@ -157,7 +157,7 @@ struct LockBudgetWidgetEntryView: View {
     }
 
     var percentString: String {
-        return String(localized: "\(Int(round((entry.totalSpent / entry.budget.budgetAmount) * 100)))% spent")
+        return "\(Int(round((entry.totalSpent / entry.budget.budgetAmount) * 100)))% speso"
     }
 
     @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
@@ -171,7 +171,7 @@ struct LockBudgetWidgetEntryView: View {
         switch widgetFamily {
         case .accessoryInline:
             if entry.configuration.budget == nil {
-                Text("Select budget in widget options")
+                Text("Seleziona il budget nelle opzioni del widget")
             } else {
                         Text("\(currencySymbol)\(difference, specifier: (showCents && difference < 100) ? "%.2f" : "%.0f") \(subtitle)")
                     .widgetURL(URL(string: "sa7totapp://budget?budget=\(entry.budget.name)"))
@@ -183,7 +183,7 @@ struct LockBudgetWidgetEntryView: View {
                     ZStack {
                         AccessoryWidgetBackground()
 
-                        Text("SELECT BUDGET")
+                        Text("SELEZIONA BUDGET")
                             .font(.system(size: 8, weight: .semibold, design: .rounded))
                             .frame(maxWidth: .infinity)
                             .multilineTextAlignment(.center)
@@ -207,7 +207,7 @@ struct LockBudgetWidgetEntryView: View {
                         }
 
                         VStack {
-                            Text("SELECT BUDGET")
+                        Text("SELEZIONA BUDGET")
                                 .font(.system(size: 8, weight: .semibold, design: .rounded))
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
@@ -231,7 +231,7 @@ struct LockBudgetWidgetEntryView: View {
         case .accessoryRectangular:
             if #available(iOS 17.0, *) {
                 if entry.configuration.budget == nil {
-                    Text("SELECT BUDGET IN WIDGET OPTIONS")
+                    Text("SELEZIONA BUDGET NELLE OPZIONI DEL WIDGET")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
@@ -254,7 +254,7 @@ struct LockBudgetWidgetEntryView: View {
                                 .foregroundColor(Color.SubtitleText)
 
                             Gauge(value: percent, in: 0 ... 1) {
-                                Text("Percent Spent")
+                            Text("Percentuale spesa")
                             } currentValueLabel: {
                                 EmptyView()
                             } minimumValueLabel: {
@@ -275,7 +275,7 @@ struct LockBudgetWidgetEntryView: View {
                 }
             } else {
                 if entry.configuration.budget == nil {
-                    Text("SELECT BUDGET IN WIDGET OPTIONS")
+                    Text("SELEZIONA BUDGET NELLE OPZIONI DEL WIDGET")
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
@@ -298,7 +298,7 @@ struct LockBudgetWidgetEntryView: View {
 
                             if #available(iOS 16.0, *) {
                                 Gauge(value: percent, in: 0 ... 1) {
-                                    Text("Percent Spent")
+                                    Text("Percentuale spesa")
                                 } currentValueLabel: {
                                     EmptyView()
                                 } minimumValueLabel: {

@@ -140,6 +140,7 @@ struct AccountListView: View {
                 }
             }
         }
+        .sa7totScrollDisabled(activeAccounts.isEmpty)
         .listStyle(.insetGrouped)
         .accountScrollEdgeEffect()
         .navigationTitle("Conti")
@@ -797,6 +798,7 @@ struct WalletReviewView: View {
                 .padding(.vertical, 6)
             }
         }
+        .sa7totScrollDisabled(transactions.isEmpty)
         .navigationTitle("Da controllare")
     }
 }

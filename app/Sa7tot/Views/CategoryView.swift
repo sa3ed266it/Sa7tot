@@ -57,6 +57,24 @@ private struct CategoryTransferRow: View {
 }
 
 private extension View {
+    @ViewBuilder
+    func categoryRowBackground(isNative: Bool) -> some View {
+        if isNative {
+            self
+        } else {
+            self.listRowBackground(Color.AppSecondarySurface)
+        }
+    }
+
+    @ViewBuilder
+    func categoryTransferFrameIfNeeded(_ enabled: Bool, _ id: String) -> some View {
+        if enabled {
+            categoryTransferFrame(id)
+        } else {
+            self
+        }
+    }
+
     func categoryTransferFrame(_ id: String) -> some View {
         background {
             GeometryReader { proxy in
@@ -167,6 +185,70 @@ private struct CategoryNavigationBarVisibility: ViewModifier {
     }
 }
 
+private struct CategoryListPresentation: ViewModifier {
+    let isNative: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            if isNative {
+                content.listStyle(.insetGrouped)
+            } else {
+                content
+                    .scrollContentBackground(.hidden)
+                    .scrollIndicators(.hidden)
+            }
+        } else {
+            content
+        }
+    }
+}
+
+private struct NativeCircularButtonBorder: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, *) {
+            content.buttonBorderShape(.circle)
+        } else {
+            content
+        }
+    }
+}
+
+private struct CategoryCloseToolbar: ViewModifier {
+    let isVisible: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isVisible {
+            content.toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel("Chiudi")
+                }
+            }
+        } else {
+            content
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+
 struct CategoryView: View {
     var mode: CategoryViewMode
     @Environment(\.dismiss) private var dismiss
@@ -175,6 +257,7 @@ struct CategoryView: View {
     @State var newCategory = false
 
     @FetchRequest(sortDescriptors: [SortDescriptor(\.order)], predicate: NSPredicate(format: "income = %d", false)) private var expenseCategories: FetchedResults<Category>
+    @FetchRequest(sortDescriptors: [SortDescriptor(\.order)]) private var allCategories: FetchedResults<Category>
 
     @State var showToast = false
     @State var toastTitle = ""
@@ -201,22 +284,13 @@ struct CategoryView: View {
             Color.AppPageBackground
                 .ignoresSafeArea(.container, edges: .top)
         }
-        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: mode == .welcome))
+        .modifier(CategoryNavigationBarVisibility(usesCustomHeader: false))
+        .modifier(CategoryCloseToolbar(isVisible: mode != .welcome))
+        .if(mode == .welcome) { view in
+            view.navigationTitle("Categorie")
+                .navigationBarTitleDisplayMode(.inline)
+        }
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    if mode == .settings || mode == .transaction {
-                        dismiss()
-                    }
-                } label: {
-                    Image(systemName: "xmark")
-                }
-                .opacity(mode == .settings || mode == .transaction ? 1 : 0)
-                .disabled(mode != .settings && mode != .transaction)
-                .accessibilityHidden(mode != .settings && mode != .transaction)
-                .accessibilityLabel("Chiudi")
-            }
-
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     if !newCategory && disabled {
@@ -235,10 +309,30 @@ struct CategoryView: View {
                 .accessibilityHidden(mode != .settings && mode != .transaction)
                 .accessibilityLabel("Nuova categoria")
             }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if mode == .welcome {
+                    onboardingNextButton
+                }
+            }
         }
     }
 
     @State private var categoryHasScrolled = false
+
+    private var onboardingNextButton: some View {
+        Button {
+            if !allCategories.isEmpty {
+                dismiss()
+            }
+        } label: {
+            Image(systemName: "arrow.right")
+        }
+        .disabled(allCategories.isEmpty)
+        .controlSize(.small)
+        .modifier(NativeCircularButtonBorder())
+        .accessibilityLabel("Avanti")
+    }
 }
 
 struct CategoryListView: View {
@@ -282,9 +376,9 @@ struct CategoryListView: View {
 
     var sectionHeader: LocalizedStringKey {
         if income {
-            return "INCOME CATEGORIES"
+            return "CATEGORIE DI ENTRATA"
         } else {
-            return "EXPENSE CATEGORIES"
+            return "CATEGORIE DI SPESA"
         }
     }
 
@@ -314,197 +408,6 @@ struct CategoryListView: View {
                 .frame(maxWidth: 250)
                 .frame(height: 35)
                 .padding(20)
-            } else {
-                if mode == .welcome {
-                    HStack(spacing: 8) {
-                        if categories.count > 1 {
-                            if isEditing {
-                                Circle()
-                                    .fill(Color.IncomeGreen.opacity(0.23))
-                                    .frame(width: 33, height: 33)
-                                    .overlay {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(Color.IncomeGreen)
-                                    }
-                                    .onTapGesture {
-                                        withAnimation {
-                                            isEditing.toggle()
-                                        }
-                                    }
-                            } else {
-                                Circle()
-                                    .fill(Color.AppSecondarySurface)
-                                    .frame(width: 33, height: 33)
-                                    .overlay {
-                                        Image(systemName: "arrow.up.arrow.down")
-                                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                                            .foregroundColor(Color.SubtitleText)
-                                    }
-                                    .onTapGesture {
-                                        withAnimation {
-                                            isEditing.toggle()
-                                        }
-                                    }
-                            }
-                        }
-
-                        Circle()
-                            .fill(Color.AppSecondarySurface)
-                            .frame(width: 33, height: 33)
-                            .overlay {
-                                Image(systemName: showSuggestions ? "eye.slash" : "eye")
-                                    .font(.system(.callout, design: .rounded).weight(.semibold))
-                                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                                    .foregroundColor(Color.SubtitleText)
-                                    .offset(y: 0.8)
-                            }
-                            .onTapGesture {
-                                withAnimation {
-                                    showSuggestions.toggle()
-                                }
-                            }
-
-                        Spacer()
-
-                        Circle()
-                            .fill(!allCategories.isEmpty ? Color.IncomeGreen.opacity(0.23) : Color.clear)
-                            .frame(width: 33, height: 33)
-                            .overlay {
-                                ZStack {
-                                    Image(systemName: "arrow.right")
-                                        .font(.system(.callout, design: .rounded).weight(.semibold))
-                                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                                        .foregroundColor(!allCategories.isEmpty ? Color.IncomeGreen : Color.Outline.opacity(0.8))
-
-                                    if allCategories.count == 0 {
-                                        Circle()
-                                            .stroke(Color.Outline.opacity(0.4), lineWidth: 1.3)
-                                            .frame(width: 33, height: 33)
-                                    }
-                                }
-                            }
-                            .onTapGesture {
-                                if allCategories.count > 0 {
-                                    dismiss()
-                                }
-                            }
-                    }
-                    .frame(height: 35)
-                    .frame(maxWidth: .infinity)
-                    .overlay {
-                        Text("Categories")
-                            .font(.system(.title3, design: .rounded).weight(.medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                            .font(.system(size: 20, weight: .medium, design: .rounded))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 4)
-                    .padding(.bottom, 8)
-
-                } else if mode != .settings && mode != .transaction {
-                    HStack(spacing: 8) {
-                        if mode == .settings {
-                            Circle()
-                                .fill(Color.AppSecondarySurface)
-                                .frame(width: 33, height: 33)
-                                .overlay {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(.body, design: .rounded).weight(.semibold))
-                                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(Color.SubtitleText)
-                                        .offset(y: 0.8)
-                                }
-                                .onTapGesture {
-                                    self.presentationMode.wrappedValue.dismiss()
-                                }
-                        } else {
-                            Circle()
-                                .fill(Color.AppSecondarySurface)
-                                .frame(width: 33, height: 33)
-                                .overlay {
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(.body, design: .rounded).weight(.semibold))
-                                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                                        .foregroundColor(Color.SubtitleText)
-                                        .offset(y: 0.8)
-                                }
-                                .onTapGesture {
-                                    dismiss()
-                                }
-                        }
-
-                        Spacer()
-
-                        Circle()
-                            .fill(Color.AppSecondarySurface)
-                            .frame(width: 33, height: 33)
-                            .overlay {
-                                Image(systemName: showSuggestions ? "eye.slash" : "eye")
-                                    .font(.system(.callout, design: .rounded).weight(.semibold))
-                                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color.SubtitleText)
-                                    .offset(y: 0.8)
-                            }
-                            .onTapGesture {
-                                withAnimation {
-                                    showSuggestions.toggle()
-                                }
-                            }
-
-                        if categories.count > 1 {
-                            if isEditing {
-                                Circle()
-                                    .fill(Color.IncomeGreen.opacity(0.23))
-                                    .frame(width: 33, height: 33)
-                                    .overlay {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(Color.IncomeGreen)
-                                    }
-                                    .onTapGesture {
-                                        withAnimation {
-                                            isEditing.toggle()
-                                        }
-                                    }
-                            } else {
-                                Circle()
-                                    .fill(Color.AppSecondarySurface)
-                                    .frame(width: 33, height: 33)
-                                    .overlay {
-                                        Image(systemName: "arrow.up.arrow.down")
-                                            .font(.system(.callout, design: .rounded).weight(.semibold))
-                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(Color.SubtitleText)
-                                    }
-                                    .onTapGesture {
-                                        withAnimation {
-                                            isEditing.toggle()
-                                        }
-                                    }
-                            }
-                        }
-                    }
-                    .frame(height: 35)
-                    .frame(maxWidth: .infinity)
-                    .overlay {
-                        Text("Categories")
-                            .font(.system(.title3, design: .rounded).weight(mode == .settings ? .semibold : .medium))
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                            .font(.system(size: 20, weight: mode == .settings ? .semibold : .medium, design: .rounded))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 4)
-                    .padding(.bottom, 8)
-                }
             }
 
             VStack {
@@ -535,7 +438,7 @@ struct CategoryListView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 37)
-                                .listRowBackground(Color.AppSecondarySurface)
+                                .categoryRowBackground(isNative: mode == .welcome)
                             } else {
                                 if let pendingAddition {
                                     HStack(spacing: 10) {
@@ -548,9 +451,9 @@ struct CategoryListView: View {
                                     }
                                     .padding(.vertical, 5)
                                     .foregroundColor(Color.PrimaryText)
-                                    .listRowBackground(Color.AppSecondarySurface)
+                                    .categoryRowBackground(isNative: mode == .welcome)
                                     .listRowSeparatorTint(Color.Outline)
-                                    .categoryTransferFrame("active.\(pendingAddition.canonicalKey)")
+                                    .categoryTransferFrameIfNeeded(mode != .welcome, "active.\(pendingAddition.canonicalKey)")
                                     .opacity(movingCategoryRow?.id == pendingAddition.canonicalKey ? 0 : 1)
                                     .accessibilityHidden(true)
                                 }
@@ -568,10 +471,10 @@ struct CategoryListView: View {
                                         Spacer()
                                     }
                                     .padding(.vertical, 5)
-                                    .listRowBackground(Color.AppSecondarySurface)
+                                    .categoryRowBackground(isNative: mode == .welcome)
                                     .listRowSeparatorTint(Color.Outline)
                                     .contentShape(Rectangle())
-                                    .categoryTransferFrame("active.\(CategoryCanonicalIdentity.key(for: category))")
+                                    .categoryTransferFrameIfNeeded(mode != .welcome, "active.\(CategoryCanonicalIdentity.key(for: category))")
                                     .opacity(movingCategoryRow?.id == CategoryCanonicalIdentity.key(for: category) ? 0 : 1)
                                     .onTapGesture {
                                         toEdit = category
@@ -599,24 +502,25 @@ struct CategoryListView: View {
 //                                .onDelete(perform: deleteItem)
                         }
 
-                        if showSuggestions {
+                        if showSuggestions || mode == .welcome {
                             SuggestedCategoriesView(
                                 income: income,
+                                isNativeOnboarding: mode == .welcome,
                                 pendingAddition: $pendingAddition,
                                 pendingDeletion: $pendingDeletion,
                                 onAddSuggestion: beginAdd
                             )
                         }
                     }
-                    .scrollContentBackground(.hidden)
-                    .scrollIndicators(.hidden)
+                    .modifier(CategoryListPresentation(isNative: mode == .welcome))
                     .categorySoftScrollEdge()
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
                     .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
+                    .sa7totScrollDisabled(categories.isEmpty && pendingAddition == nil && !showSuggestions && mode != .welcome)
                 } else {
                     List {
-                        Section(header: Text("\(income ? "INCOME" : "EXPENSE") CATEGORIES").foregroundColor(Color.SubtitleText)) {
+                        Section(header: Text(income ? "CATEGORIE DI ENTRATA" : "CATEGORIE DI SPESA").foregroundColor(Color.SubtitleText)) {
                             if categories.isEmpty && pendingAddition == nil {
                                 VStack(spacing: 10) {
                                     Image(systemName: "tray")
@@ -625,7 +529,7 @@ struct CategoryListView: View {
 //                                        .font(.system(size: 37, weight: .light))
                                         .foregroundColor(Color.SubtitleText)
 
-                                    Text("No \(income ? "income" : "expense") categories found,\nclick the 'New' button to add some.")
+                                    Text(income ? "Nessuna categoria di entrata trovata.\nTocca «Nuova» per aggiungerne una." : "Nessuna categoria di spesa trovata.\nTocca «Nuova» per aggiungerne una.")
                                         .font(.system(.body, design: .rounded).weight(.medium))
                                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                                        .font(.system(size: 17, weight: .medium, design: .rounded))
@@ -635,7 +539,7 @@ struct CategoryListView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 37)
-                                .listRowBackground(Color.AppSecondarySurface)
+                                .categoryRowBackground(isNative: mode == .welcome)
                             } else {
                                 if let pendingAddition {
                                     HStack(spacing: 10) {
@@ -648,9 +552,9 @@ struct CategoryListView: View {
                                     }
                                     .padding(.vertical, 5)
                                     .foregroundColor(Color.PrimaryText)
-                                    .listRowBackground(Color.AppSecondarySurface)
+                                    .categoryRowBackground(isNative: mode == .welcome)
                                     .listRowSeparatorTint(Color.Outline)
-                                    .categoryTransferFrame("active.\(pendingAddition.canonicalKey)")
+                                    .categoryTransferFrameIfNeeded(mode != .welcome, "active.\(pendingAddition.canonicalKey)")
                                     .opacity(movingCategoryRow?.id == pendingAddition.canonicalKey ? 0 : 1)
                                     .accessibilityHidden(true)
                                 }
@@ -668,10 +572,10 @@ struct CategoryListView: View {
                                         Spacer()
                                     }
                                     .padding(.vertical, 5)
-                                    .listRowBackground(Color.AppSecondarySurface)
+                                    .categoryRowBackground(isNative: mode == .welcome)
                                     .listRowSeparatorTint(Color.Outline)
                                     .contentShape(Rectangle())
-                                    .categoryTransferFrame("active.\(CategoryCanonicalIdentity.key(for: category))")
+                                    .categoryTransferFrameIfNeeded(mode != .welcome, "active.\(CategoryCanonicalIdentity.key(for: category))")
                                     .opacity(movingCategoryRow?.id == CategoryCanonicalIdentity.key(for: category) ? 0 : 1)
                                     .onTapGesture {
                                         toEdit = category
@@ -699,9 +603,10 @@ struct CategoryListView: View {
 //                                .onDelete(perform: deleteItem)
                         }
 
-                        if showSuggestions {
+                        if showSuggestions || mode == .welcome {
                             SuggestedCategoriesView(
                                 income: income,
+                                isNativeOnboarding: mode == .welcome,
                                 pendingAddition: $pendingAddition,
                                 pendingDeletion: $pendingDeletion,
                                 onAddSuggestion: beginAdd
@@ -712,6 +617,7 @@ struct CategoryListView: View {
                     .categoryScrollObservation { hasScrolled = $0 }
                     .environment(\.editMode, .constant(self.isEditing ? EditMode.active : EditMode.inactive))
                     .modifier(CategoryTypeBarModifier(income: $income, isVisible: mode == .settings, hasScrolled: hasScrolled))
+                    .sa7totScrollDisabled(categories.isEmpty && pendingAddition == nil && !showSuggestions && mode != .welcome)
                 }
             }
         }
@@ -830,6 +736,20 @@ struct CategoryListView: View {
     private func beginAdd(_ suggestion: SuggestedCategory) {
         guard pendingAddition == nil, pendingDeletion == nil, movingCategoryRow == nil else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        if mode == .welcome {
+            do {
+                let name = NSLocalizedString(suggestion.name, comment: "category name")
+                try dataController.createCategory(name: name, iconIdentifier: "sf:\(suggestion.symbolName)", income: income)
+            } catch {
+                toastTitle = "Unable to save category"
+                toastImage = "exclamationmark.triangle.fill"
+                positive = false
+                showToast = true
+            }
+            return
+        }
+
         pendingAddition = suggestion
     }
 
@@ -922,6 +842,7 @@ struct CategoryListView: View {
 
 struct SuggestedCategoriesView: View {
     let income: Bool
+    let isNativeOnboarding: Bool
     @Binding var pendingAddition: SuggestedCategory?
     @Binding var pendingDeletion: PendingCategoryDeletion?
     let onAddSuggestion: (SuggestedCategory) -> Void
@@ -951,21 +872,32 @@ struct SuggestedCategoriesView: View {
 
                         Spacer()
 
-                        Sa7totIcon(systemName: "plus", role: .inline)
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-//                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color.SubtitleText)
-                            .padding(4)
-                            .background(Color.AppSecondarySurface, in: Circle())
-                            .contentShape(Circle())
+                        if isNativeOnboarding {
+                            Button {
+                                onAddSuggestion(category)
+                            } label: {
+                                Image(systemName: "plus")
+                            }
+                            .accessibilityLabel("Aggiungi \(category.name)")
+                        } else {
+                            Sa7totIcon(systemName: "plus", role: .inline)
+                                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    //                            .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color.SubtitleText)
+                                .padding(4)
+                                .background(Color.AppSecondarySurface, in: Circle())
+                                .contentShape(Circle())
+                        }
                     }
                     .padding(.vertical, 5)
                     .foregroundColor(Color.PrimaryText)
-                    .listRowBackground(Color.AppSecondarySurface)
+                    .categoryRowBackground(isNative: isNativeOnboarding)
                     .listRowSeparatorTint(Color.Outline)
                     .contentShape(Rectangle())
-                    .categoryTransferFrame("suggestion.\(category.canonicalKey)")
-                    .onTapGesture { onAddSuggestion(category) }
+                    .categoryTransferFrameIfNeeded(!isNativeOnboarding, "suggestion.\(category.canonicalKey)")
+                    .if(!isNativeOnboarding) { view in
+                        view.onTapGesture { onAddSuggestion(category) }
+                    }
                     .opacity(pendingAddition?.canonicalKey == category.canonicalKey ? 0 : 1)
                     .allowsHitTesting(pendingAddition == nil && pendingDeletion == nil)
                 }
@@ -973,12 +905,13 @@ struct SuggestedCategoriesView: View {
         }
     }
 
-    init(income: Bool, pendingAddition: Binding<SuggestedCategory?>, pendingDeletion: Binding<PendingCategoryDeletion?>, onAddSuggestion: @escaping (SuggestedCategory) -> Void) {
+    init(income: Bool, isNativeOnboarding: Bool = false, pendingAddition: Binding<SuggestedCategory?>, pendingDeletion: Binding<PendingCategoryDeletion?>, onAddSuggestion: @escaping (SuggestedCategory) -> Void) {
         _categories = FetchRequest<Category>(sortDescriptors: [
             SortDescriptor(\.order)
         ], predicate: NSPredicate(format: "income = %d", income))
 
         self.income = income
+        self.isNativeOnboarding = isNativeOnboarding
         _pendingAddition = pendingAddition
         _pendingDeletion = pendingDeletion
         self.onAddSuggestion = onAddSuggestion
