@@ -204,17 +204,6 @@ private struct CategoryListPresentation: ViewModifier {
     }
 }
 
-private struct NativeCircularButtonBorder: ViewModifier {
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 17.0, *) {
-            content.buttonBorderShape(.circle)
-        } else {
-            content
-        }
-    }
-}
-
 private struct CategoryCloseToolbar: ViewModifier {
     let isVisible: Bool
     @Environment(\.dismiss) private var dismiss
@@ -290,28 +279,29 @@ struct CategoryView: View {
             view.navigationTitle("Categorie")
                 .navigationBarTitleDisplayMode(.inline)
         }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    if !newCategory && disabled {
-                        showToast = true
-                        toastImage = "exclamationmark.triangle.fill"
-                        toastTitle = "Limit Exceeded"
-                        positive = false
-                    } else if !newCategory {
-                        newCategory = true
+        .if(mode != .welcome) { view in
+            view.toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        if !newCategory && disabled {
+                            showToast = true
+                            toastImage = "exclamationmark.triangle.fill"
+                            toastTitle = "Limite superato"
+                            positive = false
+                        } else if !newCategory {
+                            newCategory = true
+                        }
+                    } label: {
+                        Image(systemName: "plus")
                     }
-                } label: {
-                    Image(systemName: "plus")
+                    .disabled((mode != .settings && mode != .transaction) || disabled)
+                    .accessibilityLabel("Nuova categoria")
                 }
-                .disabled((mode != .settings && mode != .transaction) || disabled)
-                .opacity(mode == .settings || mode == .transaction ? 1 : 0)
-                .accessibilityHidden(mode != .settings && mode != .transaction)
-                .accessibilityLabel("Nuova categoria")
             }
-
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if mode == .welcome {
+        }
+        .if(mode == .welcome) { view in
+            view.toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     onboardingNextButton
                 }
             }
@@ -329,8 +319,6 @@ struct CategoryView: View {
             Image(systemName: "arrow.right")
         }
         .disabled(allCategories.isEmpty)
-        .controlSize(.small)
-        .modifier(NativeCircularButtonBorder())
         .accessibilityLabel("Avanti")
     }
 }
@@ -659,7 +647,7 @@ struct CategoryListView: View {
         }
         .onChange(of: showSuggestions) { newValue in
             if !newValue {
-                toastTitle = "Suggestions Hidden"
+                toastTitle = "Suggerimenti nascosti"
                 toastImage = "eye.slash"
                 showToast = true
                 positive = true
@@ -742,7 +730,7 @@ struct CategoryListView: View {
                 let name = NSLocalizedString(suggestion.name, comment: "category name")
                 try dataController.createCategory(name: name, iconIdentifier: "sf:\(suggestion.symbolName)", income: income)
             } catch {
-                toastTitle = "Unable to save category"
+                toastTitle = "Impossibile salvare la categoria"
                 toastImage = "exclamationmark.triangle.fill"
                 positive = false
                 showToast = true
@@ -796,7 +784,7 @@ struct CategoryListView: View {
             } catch {
                 pendingAddition = nil
                 movingCategoryRow = nil
-                toastTitle = "Unable to save category"
+                toastTitle = "Impossibile salvare la categoria"
                 toastImage = "exclamationmark.triangle.fill"
                 positive = false
                 showToast = true

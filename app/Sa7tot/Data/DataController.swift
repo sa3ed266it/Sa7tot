@@ -82,10 +82,10 @@ enum CustomError: Swift.Error, CustomLocalizedStringResourceConvertible {
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
-        case let .unknownError(message): return "An unknown error occurred: \(message)"
-        case let .unknownId(id): return "No category with an ID matching: \(id)"
-        case .notFound: return "Category not found"
-        case .coreDataSave: return "Couldn't save to CoreData"
+        case let .unknownError(message): return "Si è verificato un errore imprevisto: \(message)"
+        case let .unknownId(id): return "Nessuna categoria corrisponde all’identificativo: \(id)"
+        case .notFound: return "Categoria non trovata"
+        case .coreDataSave: return "Impossibile salvare i dati"
         }
     }
 }

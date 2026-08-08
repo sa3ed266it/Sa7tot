@@ -28,7 +28,7 @@ struct MainBudgetWidget: Widget {
             MainBudgetWidgetEntryView(entry: entry)
         }
         .supportedFamilies(supportedFamilies)
-        .configurationDisplayName("Overall Budget")
+        .configurationDisplayName("Budget complessivo")
         .description("Controlla il rispetto dei tuoi budget complessivi.")
     }
 }
@@ -92,7 +92,7 @@ struct MainBudgetWidgetEntryView: View {
         case 4:
             return "quest’anno"
         default:
-            return "this week"
+            return "questa settimana"
         }
     }
 

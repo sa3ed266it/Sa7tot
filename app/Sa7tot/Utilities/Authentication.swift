@@ -66,9 +66,9 @@ class AppLockViewModel: ObservableObject {
         if checkIfBioMetricAvailable() {
             var reason = ""
             if appLockState {
-                reason = "Provice Touch ID/Face ID to enable App Lock"
+                reason = "Usa Touch ID o Face ID per attivare il blocco dell’app"
             } else {
-                reason = "Provice Touch ID/Face ID to disable App Lock"
+                reason = "Usa Touch ID o Face ID per disattivare il blocco dell’app"
             }
 
             laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, error in
@@ -103,7 +103,7 @@ class AppLockViewModel: ObservableObject {
     func appLockValidation() {
         let laContext = LAContext()
         if checkIfBioMetricAvailable() {
-            let reason = "Enable App Lock"
+            let reason = "Attiva il blocco dell’app"
             laContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, error in
                 if success {
                     DispatchQueue.main.async {

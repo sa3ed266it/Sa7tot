@@ -13,7 +13,7 @@ struct SettingsHapticsView: View {
     var hapticType: Int = 1
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 
-    let options = ["None", "Subtle", "Excessive"]
+    let options = ["Nessuno", "Delicato", "Intenso"]
 
     @Namespace var animation
 
@@ -24,7 +24,7 @@ struct SettingsHapticsView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text("Haptic Feedback")
+            Text("Feedback aptico")
                 .font(.system(.title3, design: .rounded).weight(.semibold))
                 .foregroundColor(Color.PrimaryText)
                 .frame(maxWidth: .infinity)
@@ -78,7 +78,7 @@ struct SettingsHapticsView: View {
             .offset(x: shake ? -5 : 5)
             .offset(x: alternateShake ? 0 : -5)
 
-            Text("The 'Excessive' mode makes the entire numpad haptic.")
+            Text("La modalità «Intenso» attiva il feedback aptico su tutto il tastierino.")
                 .font(.system(.caption, design: .rounded).weight(.medium))
                 .foregroundColor(Color.SubtitleText)
                 .padding(.horizontal, 15)

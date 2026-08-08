@@ -15,6 +15,17 @@ import UserNotifications
 import WidgetKit
 
 struct SettingsView: View {
+  let usesNativeNavigation: Bool
+  let nativeNavigationRouter: NativeSettingsNavigationRouter?
+
+  init(
+    usesNativeNavigation: Bool = false,
+    nativeNavigationRouter: NativeSettingsNavigationRouter? = nil
+  ) {
+    self.usesNativeNavigation = usesNativeNavigation
+    self.nativeNavigationRouter = nativeNavigationRouter
+  }
+
   @Environment(\.dynamicTypeSize) var dynamicTypeSize
 
   @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
@@ -31,6 +42,8 @@ struct SettingsView: View {
   @State private var showingNotificationPermissionAlert = false
 
   @EnvironmentObject var appLockVM: AppLockViewModel
+  @Environment(\.managedObjectContext) private var moc
+  @EnvironmentObject private var dataController: DataController
   @Namespace var animation
 
   var iCloudString: String {
@@ -86,14 +99,14 @@ struct SettingsView: View {
   @State var showImportGuide = false
   @State private var showCategoriesSheet = false
 
-  @EnvironmentObject var dataController: DataController
-
   var body: some View {
     Group {
       if #available(iOS 16.0, *) {
-        NavigationStack { settingsList }
+        if usesNativeNavigation { settingsList }
+        else { NavigationStack { settingsList } }
       } else {
-        NavigationView { settingsList }
+        if usesNativeNavigation { settingsList }
+        else { NavigationView { settingsList } }
       }
     }
     .fullScreenCover(isPresented: $showImportGuide) { ImportDataView() }
@@ -158,8 +171,18 @@ struct SettingsView: View {
         }
 
         SettingsCard(title: "GESTIONE") {
-          SettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
-            AccountListView()
+          if usesNativeNavigation {
+            NativeSettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
+              nativeNavigationRouter?.pushAccounts(
+                AccountListView()
+                  .environment(\.managedObjectContext, moc)
+                  .environmentObject(dataController)
+              )
+            }
+          } else {
+            SettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
+              AccountListView()
+            }
           }
           SettingsDivider()
           SettingsNavigationRow(title: "Automazione Wallet", subtitle: "Comandi Rapidi", systemImage: "wallet.pass.fill", tint: .orange) {
@@ -600,6 +623,46 @@ private struct SettingsNavigationRow<Destination: View>: View {
   }
 }
 
+private struct NativeSettingsNavigationRow: View {
+  let title: String
+  let subtitle: String?
+  let systemImage: String
+  let tint: Color
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      SettingsRowLayout(
+        title: title,
+        subtitle: subtitle,
+        systemImage: systemImage,
+        tint: tint
+      ) {
+        SettingsChevron()
+      }
+    }
+    .buttonStyle(.plain)
+  }
+}
+
+@MainActor
+final class NativeSettingsNavigationRouter: ObservableObject {
+  weak var navigationController: UINavigationController?
+
+  func pushAccounts<Destination: View>(_ destination: Destination) {
+    assert(
+      navigationController?.tabBarController != nil,
+      "Conti must be pushed by the navigation controller inside the native tab bar controller."
+    )
+    guard let navigationController,
+          navigationController.tabBarController != nil else { return }
+
+    let controller = UIHostingController(rootView: destination)
+    controller.hidesBottomBarWhenPushed = true
+    navigationController.pushViewController(controller, animated: true)
+  }
+}
+
 private struct SettingsMenuValue: View {
   let text: String
 
@@ -721,7 +784,7 @@ struct TipJarAlert: View {
 
   var bottomCaption: String {
     if unlockManager.failedTransaction {
-      return "Tip failed to go through, please try again!"
+      return "La mancia non è andata a buon fine. Riprova!"
     } else if unlockManager.purchaseCount > 0 {
       return "Thanks a million, \(Image(systemName: "heart.fill")) Rafael"
     } else {
@@ -763,7 +826,7 @@ struct TipJarAlert: View {
         switch unlockManager.requestState {
         case .loading:
           ProgressView {
-            Text("Loading")
+            Text("Caricamento")
               .font(.system(.body, design: .rounded).weight(.medium))
               //                            .font(.system(size: 18, weight: .medium, design: .rounded))
               .foregroundColor(Color.SubtitleText)
@@ -771,7 +834,7 @@ struct TipJarAlert: View {
               .frame(height: 200)
           }
         case .failed:
-          Text("Unable to load tip options, please try again later 🥲")
+          Text("Impossibile caricare le opzioni per la mancia. Riprova più tardi 🥲")
             .font(.system(.body, design: .rounded).weight(.medium))
 
             //                        .font(.system(size: 18, weight: .medium, design: .rounded))
@@ -786,7 +849,7 @@ struct TipJarAlert: View {
                 .font(.system(.callout, design: .rounded))
 
               //                                .font(.system(size: 16))
-              Text("Tip Jar")
+              Text("Barattolo delle mance")
                 .font(.system(.title2, design: .rounded).weight(.medium))
 
               //                                .font(.system(size: 22, weight: .medium, design: .rounded))

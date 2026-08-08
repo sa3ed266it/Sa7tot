@@ -33,7 +33,7 @@ struct SettingsGoofyView: View {
 
   var body: some View {
     VStack(spacing: 10) {
-      Text("Feature Lab")
+      Text("Laboratorio funzioni")
         .font(.system(.title3, design: .rounded).weight(.semibold))
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         //                .font(.system(size: 20, weight: .semibold, design: .rounded))
@@ -50,15 +50,15 @@ struct SettingsGoofyView: View {
 
       ScrollView {
         VStack(spacing: 0) {
-          ToggleRow(text: "Celebrate Expenses", bool: $confetti, id: 1)
+          ToggleRow(text: "Festeggia le spese", bool: $confetti, id: 1)
 
-          ToggleRow(text: "Show Line Graph", bool: $lineGraph, id: 2)
+          ToggleRow(text: "Mostra grafico a linee", bool: $lineGraph, id: 2)
 
-          ToggleRow(text: "Budget Rows", bool: $budgetRows, id: 3)
+          ToggleRow(text: "Righe budget", bool: $budgetRows, id: 3)
         }
         .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
 
-        Text("Experimental features - proceed with caution.")
+        Text("Funzioni sperimentali: procedi con cautela.")
           .font(.system(.caption, design: .rounded).weight(.medium))
           .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
           //                    .font(.system(size: 12, weight: .medium, design: .rounded))
@@ -67,11 +67,11 @@ struct SettingsGoofyView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .padding(.bottom, 30)
 
-        ToggleRow(text: "Replace Time Label", bool: $swapTimeLabel, id: 4)
+        ToggleRow(text: "Sostituisci etichetta temporale", bool: $swapTimeLabel, id: 4)
           .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
 
         Text(
-          "Swaps the time label of each transaction with its category name. However, if you do not manually input a note for each transaction - in which case the note is the category name by default - duplicate text will appear."
+          "Sostituisce l’etichetta temporale di ogni movimento con il nome della categoria. Se non inserisci una nota manualmente, il nome della categoria apparirà due volte."
         )
         .font(.system(.caption, design: .rounded).weight(.medium))
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -81,11 +81,11 @@ struct SettingsGoofyView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 30)
 
-        ToggleRow(text: "Show Note Suggestions", bool: $showRecommendations, id: 5)
+        ToggleRow(text: "Mostra suggerimenti per le note", bool: $showRecommendations, id: 5)
           .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 9))
 
         Text(
-          "Displays transaction suggestions whilst you type in the 'Note' field of the new transaction page."
+          "Mostra suggerimenti per i movimenti mentre scrivi nel campo «Nota» della pagina del nuovo movimento."
         )
         .font(.system(.caption, design: .rounded).weight(.medium))
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)

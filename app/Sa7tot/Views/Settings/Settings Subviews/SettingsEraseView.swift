@@ -15,7 +15,7 @@ struct SettingsEraseView: View {
 
   var body: some View {
     VStack(spacing: 10) {
-      Text("Erase Data")
+      Text("Cancella dati")
         .font(.system(.title3, design: .rounded).weight(.semibold))
         .foregroundColor(Color.PrimaryText)
         .frame(maxWidth: .infinity)
@@ -31,7 +31,7 @@ struct SettingsEraseView: View {
       Button {
         showAlert = true
       } label: {
-        Text("Permanently Delete Everythin'")
+          Text("Elimina definitivamente tutto")
           .font(.system(.body, design: .rounded))
           .foregroundColor(Color.PrimaryText)
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -41,7 +41,7 @@ struct SettingsEraseView: View {
       }
 
       Text(
-        "This action would delete all existing transactions, categories, and budgets, and cannot be undone."
+        "Questa azione eliminerà tutti i movimenti, le categorie e i budget esistenti e non può essere annullata."
       )
       .font(.system(.caption, design: .rounded).weight(.medium))
       .multilineTextAlignment(.leading)
@@ -95,12 +95,12 @@ struct DeleteAllAlert: View {
           Image(systemName: "exclamationmark.triangle.fill")
             .font(.system(.callout, design: .rounded).weight(.medium))
 
-          Text("Danger Zone")
+          Text("Zona pericolosa")
             .font(.system(.title2, design: .rounded).weight(.medium))
         }
         .foregroundColor(.PrimaryText)
 
-        Text("This action genuinely cannot be undone. Long press to confirm.")
+        Text("Questa azione non può davvero essere annullata. Tieni premuto per confermare.")
           .font(.system(.title3, design: .rounded).weight(.medium))
           .foregroundColor(.SubtitleText)
           .padding(.bottom, 15)
@@ -117,7 +117,7 @@ struct DeleteAllAlert: View {
               .offset(x: completedLongPress ? 0 : (isDetectingLongPress ? 0 : -(proxy.size.width)))
               .animation(.easeInOut(duration: 2), value: isDetectingLongPress)
 
-            Text("Delete Literally Everything")
+            Text("Elimina tutto definitivamente")
               .font(.system(.title3, design: .rounded).weight(.semibold))
               .foregroundColor(.white)
               .frame(width: proxy.size.width, alignment: .center)
@@ -159,7 +159,7 @@ struct DeleteAllAlert: View {
           }
 
         } label: {
-            DeleteButton(text: "Back Out", red: false)
+            DeleteButton(text: "Indietro", red: false)
         }
       }
       .padding(13)

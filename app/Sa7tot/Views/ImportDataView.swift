@@ -89,7 +89,7 @@ struct ImportDataView: View {
     }
 
     @State var showToast = false
-    @State var toastMessage: String = "Invalid File"
+    @State var toastMessage: String = "File non valido"
 
     @State var showingCategoryView = false
     @State var pageIndex = 0
@@ -108,24 +108,24 @@ struct ImportDataView: View {
     }
 
     let instructions: [InstructionHeadings] = [
-        InstructionHeadings(title: "Import transactions", subtitle: "Begin by adding a CSV file with 4 columns: amount, note, date, and category."),
-        InstructionHeadings(title: "Assign category column", subtitle: "Select a column from your import that corresponds to the categories of your transactions."),
-        InstructionHeadings(title: "Assign note column", subtitle: "Select a column from your import that corresponds to the notes/subtitles of your transactions."),
-        InstructionHeadings(title: "Assign date column", subtitle: "Select a column from your import that corresponds to the dates of your transactions."),
-        InstructionHeadings(title: "Assign amount column", subtitle: "Select a column from your import that corresponds to the values of your transactions."),
-        InstructionHeadings(title: "Indicate date format", subtitle: "Referencing this article, state the format of the dates in the assigned column."),
-        InstructionHeadings(title: "Link categories", subtitle: "Match values found in the 'Category' column to the corresponding categories in Sa7tot."),
-        InstructionHeadings(title: "Processing import", subtitle: "Please wait while we process your new transactions.")
+        InstructionHeadings(title: "Importa movimenti", subtitle: "Inizia aggiungendo un file CSV con 4 colonne: importo, nota, data e categoria."),
+        InstructionHeadings(title: "Assegna la colonna categoria", subtitle: "Seleziona la colonna dell’importazione che corrisponde alle categorie dei tuoi movimenti."),
+        InstructionHeadings(title: "Assegna la colonna nota", subtitle: "Seleziona la colonna dell’importazione che corrisponde alle note o ai sottotitoli dei tuoi movimenti."),
+        InstructionHeadings(title: "Assegna la colonna data", subtitle: "Seleziona la colonna dell’importazione che corrisponde alle date dei tuoi movimenti."),
+        InstructionHeadings(title: "Assegna la colonna importo", subtitle: "Seleziona la colonna dell’importazione che corrisponde agli importi dei tuoi movimenti."),
+        InstructionHeadings(title: "Indica il formato della data", subtitle: "Facendo riferimento a questo articolo, indica il formato delle date nella colonna assegnata."),
+        InstructionHeadings(title: "Collega le categorie", subtitle: "Abbina i valori della colonna «Categoria» alle categorie corrispondenti in Sa7tot."),
+        InstructionHeadings(title: "Elaborazione importazione", subtitle: "Attendi mentre elaboriamo i tuoi nuovi movimenti.")
     ]
 
     let labels: [ColumnLabel] = [
-        ColumnLabel(image: "square.grid.2x2.fill", label: "Category"),
-        ColumnLabel(image: "doc.plaintext.fill", label: "Note"),
-        ColumnLabel(image: "calendar", label: "Date"),
-        ColumnLabel(image: "dollarsign.circle.fill", label: "Amount")
+        ColumnLabel(image: "square.grid.2x2.fill", label: "Categoria"),
+        ColumnLabel(image: "doc.plaintext.fill", label: "Nota"),
+        ColumnLabel(image: "calendar", label: "Data"),
+        ColumnLabel(image: "dollarsign.circle.fill", label: "Importo")
     ]
 
-    let pointers = ["Ensure that the values in the 'Amount' column do not contain any currency symbols.", "All dates should be of a consistent, recognizable format. If no timestamps are provided, the time of transaction will default to 12:00 am.", "Remove all commas in the 'Note' and 'Category' columns as they would disrupt the parsing of your file."]
+    let pointers = ["Assicurati che i valori nella colonna «Importo» non contengano simboli di valuta.", "Tutte le date devono avere un formato coerente e riconoscibile. Se non viene indicato un orario, il movimento userà le 00:00.", "Rimuovi tutte le virgole dalle colonne «Nota» e «Categoria», perché interromperebbero l’analisi del file."]
 
     var incomeCategories: [Category] {
         dataController.getAllCategories(income: true)
@@ -145,7 +145,7 @@ struct ImportDataView: View {
                             .controlSize(.large)
                             .scaleEffect(0.8)
 
-                        Text("Processing Import")
+                        Text("Importazione in corso")
                             .font(.system(.title2, design: .rounded).weight(.medium))
 
 //                            .font(.system(size: 22, weight: .medium, design: .rounded))
@@ -160,7 +160,7 @@ struct ImportDataView: View {
                             .frame(width: 35, height: 35)
                             .background(Color.IncomeGreen.opacity(0.3), in: Circle())
 
-                        Text("Import Successful")
+                        Text("Importazione completata")
                             .font(.system(.title2, design: .rounded).weight(.medium))
 
 //                            .font(.system(size: 22, weight: .medium, design: .rounded))
@@ -174,7 +174,7 @@ struct ImportDataView: View {
                             .frame(width: 35, height: 35)
                             .background(Color.Alert.opacity(0.3), in: Circle())
 
-                        Text("Import Failed")
+                        Text("Importazione non riuscita")
                             .font(.system(.title2, design: .rounded).weight(.medium))
 
 //                            .font(.system(size: 22, weight: .medium, design: .rounded))
@@ -276,7 +276,7 @@ struct ImportDataView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     if progress == 6 {
                         HStack {
-                            Text("Indicate date format")
+                            Text("Indica il formato della data")
                                 .foregroundColor(.PrimaryText)
                                 .font(.system(.title2, design: .rounded).weight(.semibold))
 
@@ -286,7 +286,7 @@ struct ImportDataView: View {
                         }
                         .frame(maxWidth: .infinity)
 
-                        Text("Referencing \(makeAttributedString()), state the format of the dates in the assigned column.")
+                            Text("Facendo riferimento a \(makeAttributedString()), indica il formato delle date nella colonna assegnata.")
                             .foregroundColor(.SubtitleText)
                             .font(.system(.body, design: .rounded).weight(.medium))
 
@@ -333,7 +333,7 @@ struct ImportDataView: View {
 
 //                            .font(.system(size: 15, weight: .semibold, design: .rounded))
 
-                        Text("Additional Pointers")
+                        Text("Indicazioni aggiuntive")
                             .font(.system(.body, design: .rounded).weight(.semibold))
 
 //                            .font(.system(size: 17, weight: .semibold, design: .rounded))
@@ -353,7 +353,7 @@ struct ImportDataView: View {
                     }
                 } else if progress < 6 {
                     VStack(spacing: 10) {
-                        Text("Sampled Rows from Import CSV")
+                        Text("Righe di esempio dal CSV importato")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
 
 //                            .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -469,7 +469,7 @@ struct ImportDataView: View {
                     }
                 } else if progress == 6 {
                     VStack(spacing: 10) {
-                        Text("Sample from 'Date' Column")
+                        Text("Esempio dalla colonna «Data»")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
 
 //                            .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -494,7 +494,7 @@ struct ImportDataView: View {
 //                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Color.SubtitleText)
 
-                            TextField("Date Format", text: $dateFormatString)
+                            TextField("Formato data", text: $dateFormatString)
                                 .foregroundColor(Color.PrimaryText)
                                 .font(.system(.title3, design: .rounded).weight(.semibold))
 
@@ -531,7 +531,7 @@ struct ImportDataView: View {
                     }
                 } else if progress == 7 {
                     VStack(spacing: 10) {
-                        Text("\(numberOfLinkedCategories)/^[\(uniqueCategories.count) category](inflect: true) linked")
+                        Text("\(numberOfLinkedCategories) di \(uniqueCategories.count) categorie collegate")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
 
 //                            .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -629,7 +629,7 @@ struct ImportDataView: View {
 
                         } label: {
                             HStack(spacing: 6) {
-                                Text("Import")
+                                Text("Importa")
                                     .font(.system(.title3, design: .rounded).weight(.semibold))
 
 //                                    .font(.system(size: 19, weight: .semibold, design: .rounded))
@@ -652,7 +652,7 @@ struct ImportDataView: View {
                             HStack(spacing: 6) {
 //                                Image(systemName: "doc.text")
 //                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                Text("Sample Sheet")
+                                Text("Foglio di esempio")
                                     .underline()
                                     .font(.system(.body, design: .rounded).weight(.semibold))
 
@@ -673,7 +673,7 @@ struct ImportDataView: View {
                                 importData()
                             } else {
                                 showToast = true
-                                toastMessage = "Unlinked Categories"
+                                toastMessage = "Categorie non collegate"
                             }
 
                         } else if progress > 5 {
@@ -689,7 +689,7 @@ struct ImportDataView: View {
 
                                     guard sample.containsDigits else {
                                         showToast = true
-                                        toastMessage = "Invalid Column"
+                                        toastMessage = "Colonna non valida"
                                         return
                                     }
                                 }
@@ -699,7 +699,7 @@ struct ImportDataView: View {
 
                                     guard validateDoubles(strings: stringColumn) else {
                                         showToast = true
-                                        toastMessage = "Invalid Column"
+                                        toastMessage = "Colonna non valida"
                                         return
                                     }
                                 }
@@ -714,7 +714,7 @@ struct ImportDataView: View {
                                 if progress < 5 {
                                     guard !remainingColumns.isEmpty else {
                                         showToast = true
-                                        toastMessage = "Insufficient Columns"
+                                    toastMessage = "Colonne insufficienti"
                                         return
                                     }
                                     selectedColumn = remainingColumns[0]
@@ -748,7 +748,7 @@ struct ImportDataView: View {
                             }
                         }
                     } label: {
-                        Text("Continue")
+                        Text("Continua")
                             .font(.system(.title3, design: .rounded).weight(.semibold))
 
 //                            .font(.system(size: 19, weight: .semibold, design: .rounded))
@@ -776,7 +776,7 @@ struct ImportDataView: View {
                     if file.startAccessingSecurityScopedResource() {
                         guard let message = try String(data: Data(contentsOf: file), encoding: .utf8) else {
                             showToast = true
-                            toastMessage = "Invalid File"
+                            toastMessage = "File non valido"
                             return
                         }
 
@@ -838,7 +838,7 @@ struct ImportDataView: View {
     func processCSV() {
         guard data.containsDigits else {
             showToast = true
-            toastMessage = "Invalid File"
+            toastMessage = "File non valido"
             return
         }
 
@@ -850,7 +850,7 @@ struct ImportDataView: View {
 
         guard !holdingRows.isEmpty else {
             showToast = true
-            toastMessage = "Invalid File"
+            toastMessage = "File non valido"
             return
         }
 
@@ -863,7 +863,7 @@ struct ImportDataView: View {
 //
         guard maxColumnCount > 3 else {
             showToast = true
-            toastMessage = "Invalid File"
+            toastMessage = "File non valido"
             return
         }
 
@@ -1047,7 +1047,7 @@ struct MatchCategoryStepperView: View {
                         .foregroundColor(Color.SubtitleText.opacity(0.7))
                         .padding(.top, 20)
 
-                    Text("No remaining\ncategories.")
+                    Text("Nessuna categoria\nrimanente.")
                         .font(.system(.callout, design: .rounded).weight(.medium))
 
 //                        .font(.system(size: 16, weight: .medium, design: .rounded))

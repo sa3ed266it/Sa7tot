@@ -117,13 +117,13 @@ struct LogView: View {
                     .padding(.bottom, 20)
                     .accessibility(hidden: true)
 
-                Text("Your Log is Empty")
+                Text("Il registro è vuoto")
                     .font(.system(.title2, design: .rounded).weight(.medium))
 //                    .font(.system(size: 23.5, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.PrimaryText.opacity(0.8))
 
-                Text("Press the plus button\nto add your first entry")
+                Text("Premi il pulsante più\nper aggiungere il primo movimento")
                     .font(.system(.body, design: .rounded).weight(.medium))
 //                    .font(.system(size: 18, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -630,9 +630,9 @@ struct LogInsightsView: View {
         if insightsType == 1 {
             return "Saldo totale"
         } else if insightsType == 2 {
-            return "Earned"
+        return "Entrate"
         } else {
-            return "Spent"
+        return "Spese"
         }
     }
 
@@ -661,7 +661,7 @@ struct LogInsightsView: View {
                     Button {
                         insightsType = 3
                     } label: {
-                        Label("Total Spent", systemImage: "minus")
+                        Label("Spesa totale", systemImage: "minus")
                     }
                 }
 
@@ -669,7 +669,7 @@ struct LogInsightsView: View {
                     Button {
                         insightsType = 2
                     } label: {
-                        Label("Total Income", systemImage: "plus")
+                        Label("Entrate totali", systemImage: "plus")
                     }
                 }
 
@@ -677,7 +677,7 @@ struct LogInsightsView: View {
                     Button {
                         insightsType = 1
                     } label: {
-                        Label("Net Total", systemImage: "alternatingcurrent")
+                        Label("Saldo totale", systemImage: "alternatingcurrent")
                     }
                 }
             }
@@ -996,7 +996,7 @@ struct ListView: View {
 //                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(homeSignedAmountColor(filtered.total, positive: Color.SubtitleText, neutral: Color.SubtitleText))
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(currencySymbol)\(String(format: "%.2f", filtered.string)) was spent \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
+                        .accessibilityLabel("\(currencySymbol)\(String(format: "%.2f", filtered.string)) spesi \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
 
                         Line()
                             .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
@@ -1020,7 +1020,7 @@ struct ListView: View {
 
                             self.toastPresenter.showToast.toggle()
                         } label: {
-                            Label("Save as Photo", systemImage: "square.and.arrow.up")
+                            Label("Salva come foto", systemImage: "square.and.arrow.up")
                         }
                     }
                 }
@@ -1148,7 +1148,7 @@ struct FutureListView: View {
             VStack(spacing: 0) {
                 VStack(spacing: 4) {
                     HStack {
-                        Text("UPCOMING")
+                        Text("IN ARRIVO")
                         Spacer()
 
                         Text(totalString)
@@ -1534,7 +1534,7 @@ struct NoResultsView: View {
 //                    .font(.system(size: 38, weight: .regular, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
 
-                Text("No entries found.")
+                Text("Nessun movimento trovato.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 //                    .font(.system(size: 21, weight: .medium, design: .rounded))
@@ -1558,7 +1558,7 @@ struct NoResultsView: View {
                     .font(.system(size: 38, weight: .regular, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
 
-                Text("No entries found.")
+                Text("Nessun movimento trovato.")
                     .font(.system(size: 21, weight: .medium, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
 
@@ -1732,7 +1732,7 @@ struct IncomeFilterToggleView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Text("Expense")
+            Text("Spesa")
 //                .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .font(.system(.body, design: .rounded).weight(.semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -2110,15 +2110,15 @@ func dateConverterAccessibilityLabel(date: Date) -> String {
     let calendar = Calendar.current
 
     if calendar.isDateInToday(date) {
-        return "today"
+        return "oggi"
     } else if calendar.isDateInYesterday(date) {
-        return "yesterday"
+        return "ieri"
     } else {
         let dateFormatter = DateFormatter()
 
         dateFormatter.dateFormat = "EEE, d MMM yyyy"
 
-        return "on " + dateFormatter.string(from: date)
+        return "il " + dateFormatter.string(from: date)
     }
 }
 

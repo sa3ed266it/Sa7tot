@@ -16,29 +16,29 @@ struct SuggestedCategory: Hashable, Identifiable {
 
     static var expenses: [SuggestedCategory] {
         [
-            SuggestedCategory(canonicalKey: "expense.food", name: "Food"),
-            SuggestedCategory(canonicalKey: "expense.transport", name: "Transport"),
-            SuggestedCategory(canonicalKey: "expense.rent", name: "Rent"),
-            SuggestedCategory(canonicalKey: "expense.subscriptions", name: "Subscriptions"),
-            SuggestedCategory(canonicalKey: "expense.groceries", name: "Groceries"),
-            SuggestedCategory(canonicalKey: "expense.family", name: "Family"),
-            SuggestedCategory(canonicalKey: "expense.utilities", name: "Utilities"),
-            SuggestedCategory(canonicalKey: "expense.fashion", name: "Fashion"),
-            SuggestedCategory(canonicalKey: "expense.healthcare", name: "Healthcare"),
-            SuggestedCategory(canonicalKey: "expense.pets", name: "Pets"),
+            SuggestedCategory(canonicalKey: "expense.food", name: "Cibo"),
+            SuggestedCategory(canonicalKey: "expense.transport", name: "Trasporti"),
+            SuggestedCategory(canonicalKey: "expense.rent", name: "Affitto"),
+            SuggestedCategory(canonicalKey: "expense.subscriptions", name: "Abbonamenti"),
+            SuggestedCategory(canonicalKey: "expense.groceries", name: "Spesa"),
+            SuggestedCategory(canonicalKey: "expense.family", name: "Famiglia"),
+            SuggestedCategory(canonicalKey: "expense.utilities", name: "Utenze"),
+            SuggestedCategory(canonicalKey: "expense.fashion", name: "Moda"),
+            SuggestedCategory(canonicalKey: "expense.healthcare", name: "Salute"),
+            SuggestedCategory(canonicalKey: "expense.pets", name: "Animali"),
             SuggestedCategory(canonicalKey: "expense.sneakers", name: "Sneakers"),
-            SuggestedCategory(canonicalKey: "expense.gifts", name: "Gifts")
+            SuggestedCategory(canonicalKey: "expense.gifts", name: "Regali")
         ]
     }
 
     static var incomes: [SuggestedCategory] {
         [
-            SuggestedCategory(canonicalKey: "income.paycheck", name: "Paycheck"),
-            SuggestedCategory(canonicalKey: "income.allowance", name: "Allowance"),
-            SuggestedCategory(canonicalKey: "income.part-time", name: "Part-Time"),
-            SuggestedCategory(canonicalKey: "income.investments", name: "Investments"),
-            SuggestedCategory(canonicalKey: "income.gifts", name: "Gifts"),
-            SuggestedCategory(canonicalKey: "income.tips", name: "Tips")
+            SuggestedCategory(canonicalKey: "income.paycheck", name: "Stipendio"),
+            SuggestedCategory(canonicalKey: "income.allowance", name: "Paghetta"),
+            SuggestedCategory(canonicalKey: "income.part-time", name: "Part-time"),
+            SuggestedCategory(canonicalKey: "income.investments", name: "Investimenti"),
+            SuggestedCategory(canonicalKey: "income.gifts", name: "Regali"),
+            SuggestedCategory(canonicalKey: "income.tips", name: "Mance")
         ]
     }
 }

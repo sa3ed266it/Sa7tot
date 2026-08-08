@@ -16,7 +16,7 @@ struct InsightsWidget: Widget {
         IntentConfiguration(kind: kind, intent: InsightsWidgetConfigurationIntent.self, provider: InsightsProvider()) { entry in
             InsightsWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Insights")
+        .configurationDisplayName("Analisi")
         .description("Analizza la suddivisione delle spese nei diversi periodi.")
         .supportedFamilies([.systemMedium])
     }

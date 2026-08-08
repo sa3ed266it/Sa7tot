@@ -19,7 +19,7 @@ struct SettingsUpcomingView: View {
 
   var body: some View {
     VStack(spacing: 10) {
-      Text("Upcoming Logs")
+      Text("Movimenti futuri")
         .font(.system(.title3, design: .rounded).weight(.semibold))
         .foregroundColor(Color.PrimaryText)
         .frame(maxWidth: .infinity)
@@ -34,7 +34,7 @@ struct SettingsUpcomingView: View {
 
       VStack(spacing: 0) {
         HStack {
-          Text("Display on Log Page")
+          Text("Mostra nella pagina Movimenti")
             .font(.system(.body, design: .rounded))
             .foregroundColor(Color.PrimaryText)
 
@@ -69,7 +69,7 @@ struct SettingsUpcomingView: View {
         .padding(.vertical, 9)
 
         HStack {
-          Text("Limit to 14-Day Outlook")
+          Text("Limita ai prossimi 14 giorni")
             .font(.system(.body, design: .rounded))
             .foregroundColor(Color.PrimaryText)
 

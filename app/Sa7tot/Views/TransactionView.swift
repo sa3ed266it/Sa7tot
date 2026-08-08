@@ -43,9 +43,9 @@ struct TransactionView: View {
 
     var transactionTypeString: String {
         if income {
-            return "Income"
+            return "Entrata"
         } else {
-            return "Expense"
+            return "Spesa"
         }
     }
 
@@ -125,7 +125,7 @@ struct TransactionView: View {
             dateSize = (getDateString(date: date) as NSString).size(withAttributes: attributes)
         }
 
-        let categorySize = (category?.fullName ?? "X Category").size(withAttributes: attributes)
+        let categorySize = (category?.fullName ?? "X Categoria").size(withAttributes: attributes)
         let timeSize = (getTimeString(date: date) as NSString).size(withAttributes: attributes)
 
         let screenWidth: CGFloat
@@ -207,7 +207,7 @@ struct TransactionView: View {
     var widthOfCategoryButton: CGFloat {
         let fontSize = UIFont.getBodyFontSize(dynamicTypeSize: dynamicTypeSize)
 
-        return "Category".widthOfRoundedString(size: fontSize, weight: .semibold) + 50
+        return "Categoria".widthOfRoundedString(size: fontSize, weight: .semibold) + 50
     }
 
     var capsuleWidth: CGFloat {
@@ -292,7 +292,7 @@ struct TransactionView: View {
                                 .offset(x: swipingOffset)
 
                             HStack(spacing: 0) {
-                                Text("Expense")
+                                Text("Spesa")
                                     .font(.system(.body, design: .rounded).weight(.semibold))
 
                                     .lineLimit(1)
@@ -568,7 +568,7 @@ struct TransactionView: View {
 
                             Group {
                                 if isDateToday(date: date) {
-                                    Text("Today, \(getDateString(date: date))")
+                                    Text("Oggi, \(getDateString(date: date))")
                                         .lineLimit(1)
                                 } else {
                                     Text(getDateString(date: date))
@@ -604,7 +604,7 @@ struct TransactionView: View {
                                 Image(systemName: "plus")
                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
 
-                                Text("Category")
+                                Text("Categoria")
                                     .font(.system(.body, design: .rounded).weight(.semibold))
                                     .lineLimit(1)
                             }
@@ -632,7 +632,7 @@ struct TransactionView: View {
                                 if showCategoryPicker {
                                     HStack(spacing: 10) {
 
-                                        Text("Close")
+                                        Text("Chiudi")
                                             .font(.system(.body, design: .rounded).weight(.semibold))
                                             .lineLimit(1)
 
@@ -696,7 +696,7 @@ struct TransactionView: View {
                                                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                             }
 
-                                            Text("Category")
+                                            Text("Categoria")
                                                 .font(.system(.body, design: .rounded).weight(.semibold))
                                                 .lineLimit(1)
                                         }
@@ -811,11 +811,11 @@ struct TransactionView: View {
                         }
 
                     VStack(alignment: .leading, spacing: 1.5) {
-                        Text("Delete Expense?")
+                        Text("Eliminare la spesa?")
                             .font(.system(size: 20, weight: .medium, design: .rounded))
                             .foregroundColor(.PrimaryText)
 
-                        Text("This action cannot be undone.")
+                        Text("Questa azione non può essere annullata.")
                             .font(.system(size: 16, weight: .medium, design: .rounded))
                             .foregroundColor(.SubtitleText)
                             .padding(.bottom, 15)
@@ -837,7 +837,7 @@ struct TransactionView: View {
                             }
 
                         } label: {
-                            Text("Delete")
+                            Text("Elimina")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                                 .foregroundColor(.white)
                                 .frame(height: 45)
@@ -854,7 +854,7 @@ struct TransactionView: View {
                             }
 
                         } label: {
-                            Text("Cancel")
+                            Text("Annulla")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                                 .foregroundColor(Color.PrimaryText.opacity(0.9))
                                 .frame(height: 45)
@@ -911,7 +911,7 @@ struct TransactionView: View {
                         showingDatePicker = false
                     }
 
-                    DatePicker("Date", selection: $date)
+                    DatePicker("Data", selection: $date)
                         .datePickerStyle(.graphical)
                         .padding(.horizontal, 15)
                         .padding(.vertical, 8)
@@ -1122,7 +1122,7 @@ struct TransactionView: View {
 
         if price == 0 && category == nil {
             toastImage = "questionmark.app"
-            toastTitle = "Incomplete Entry"
+            toastTitle = "Movimento incompleto"
             showToast = true
             toggleFieldColors()
 
@@ -1131,13 +1131,13 @@ struct TransactionView: View {
             return
         } else if price == 0 {
             toastImage = "centsign.circle"
-            toastTitle = "Missing Amount"
+            toastTitle = "Importo mancante"
             showToast = true
             generator.notificationOccurred(.error)
             return
         } else if category == nil {
             toastImage = "tray"
-            toastTitle = "Missing Category"
+            toastTitle = "Categoria mancante"
             showToast = true
 
             toggleFieldColors()
@@ -1441,7 +1441,7 @@ struct CategoryPickerView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "pencil")
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                    Text("Edit")
+                    Text("Modifica")
                         .font(.system(.body, design: .rounded).weight(.semibold))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
@@ -1589,7 +1589,7 @@ struct NoteView: View {
                     .foregroundColor(Color.PrimaryText)
 
                 if note.isEmpty {
-                    Text("Add Note")
+                        Text("Aggiungi nota")
                         .foregroundColor(Color.SubtitleText)
                 }
             }
@@ -1695,7 +1695,7 @@ struct RecurringPickerView: View {
 
             HStack {
                 if repeatCoefficient == 1 {
-                    Text("custom")
+                        Text("personalizzato")
                 } else {
                     if repeatType == 1 {
                         Text("\(repeatCoefficient) giorni")
@@ -1802,7 +1802,7 @@ struct CustomRecurringView: View {
 
                 Spacer()
 
-                Text("Custom Interval")
+                Text("Intervallo personalizzato")
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 //                    .font(.system(size: 18, weight: .semibold, design: .rounded))
@@ -1830,7 +1830,7 @@ struct CustomRecurringView: View {
             }
 
             HStack(spacing: 10) {
-                Text("Repeats every")
+                Text("Ripeti ogni")
                     .font(.system(size: 23, weight: .medium, design: .rounded))
                     .foregroundColor(Color.PrimaryText)
                     .padding(.trailing, 3)

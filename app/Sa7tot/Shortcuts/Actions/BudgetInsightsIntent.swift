@@ -60,13 +60,13 @@ struct BudgetIntent: AppIntent {
     static var parameterSummary: some ParameterSummary {
         Switch(\BudgetIntent.$type) {
             Case(ShortcutsBudgetsType.category) {
-                Summary("Calculate leftover amount for the \(\.$budget) \(\.$type)")
+                Summary("Calcola l’importo rimanente per \(\.$budget) \(\.$type)")
             }
             Case(ShortcutsBudgetsType.overall) {
-                Summary("Calculate leftover amount for the \(\.$type)")
+                Summary("Calcola l’importo rimanente per \(\.$type)")
             }
             DefaultCase {
-                Summary("Calculate leftover amount for the \(\.$type)")
+                Summary("Calcola l’importo rimanente per \(\.$type)")
             }
         }
     }
@@ -107,7 +107,7 @@ struct ShortcutBudgetView: View {
         case 4:
             return "quest’anno"
         default:
-            return "this week"
+            return "questa settimana"
         }
     }
 

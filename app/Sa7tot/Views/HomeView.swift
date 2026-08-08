@@ -40,6 +40,7 @@ struct HomeView: View {
     @State private var searchText = ""
     @State private var suppressInitialSearchActivation = true
     @State private var launchedFromSearchURL = false
+    @StateObject private var nativeSettingsNavigationRouter = NativeSettingsNavigationRouter()
 
     var topEdge: CGFloat
     var bottomEdge: CGFloat
@@ -88,10 +89,10 @@ struct HomeView: View {
             }
         }
         .toast(isPresenting: $toastPresenter.showToast, duration: 4, tapToDismiss: true, offsetY: 12, alert: {
-            AlertToast(displayMode: .hud, type: .systemImage("checkmark.circle.fill", Color.IncomeGreen), title: "Image Saved", subTitle: "Check it out in Photos")
+            AlertToast(displayMode: .hud, type: .systemImage("checkmark.circle.fill", Color.IncomeGreen), title: "Immagine salvata", subTitle: "Guardala nell'app Foto")
         })
         .toast(isPresenting: $transactionManager.showToast, duration: 4, tapToDismiss: true, offsetY: 12, alert: {
-            AlertToast(displayMode: .hud, type: .systemImage("arrow.uturn.backward.circle.fill", Color.AlertRed), title: "Log Deleted", subTitle: "Tap to Undo")
+            AlertToast(displayMode: .hud, type: .systemImage("arrow.uturn.backward.circle.fill", Color.AlertRed), title: "Movimento eliminato", subTitle: "Tocca per annullare")
         }, onTap: {
             withAnimation(.easeInOut(duration: 0.5)) {
                 moc.rollback()
@@ -227,7 +228,13 @@ struct HomeView: View {
             selection: $currentTab,
             logView: hosted(logTabContent(usesNativeNavigation: true)),
             budgetView: hosted(BudgetView()),
-            settingsView: hosted(SettingsView()),
+            settingsView: hosted(
+                SettingsView(
+                    usesNativeNavigation: true,
+                    nativeNavigationRouter: nativeSettingsNavigationRouter
+                )
+            ),
+            settingsNavigationRouter: nativeSettingsNavigationRouter,
             onAdd: presentAddMovement
         )
         .allowsHitTesting(transactionManager.showPopup ? false : true)
@@ -320,18 +327,23 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
     let logView: AnyView
     let budgetView: AnyView
     let settingsView: AnyView
+    let settingsNavigationRouter: NativeSettingsNavigationRouter
     let onAdd: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(selection: $selection, onAdd: onAdd)
+        Coordinator(
+            selection: $selection,
+            settingsNavigationRouter: settingsNavigationRouter,
+            onAdd: onAdd
+        )
     }
 
     func makeUIViewController(context: Context) -> InitialSelectionTabBarController {
         let coordinator = context.coordinator
-        let tabs: [UITab] = [
+            let tabs: [UITab] = [
             UITab(title: "Movimenti", image: Sa7totSymbolResolver.image("list.bullet.rectangle"), identifier: "Log") { _ in coordinator.movementsHost(logView) },
             UITab(title: "Budget", image: Sa7totSymbolResolver.image("chart.pie.fill"), identifier: "Budget") { _ in coordinator.host(budgetView) },
-            UITab(title: "Impostazioni", image: Sa7totSymbolResolver.image("gearshape.fill"), identifier: "Settings") { _ in coordinator.host(settingsView) }
+            UITab(title: "Impostazioni", image: Sa7totSymbolResolver.image("gearshape.fill"), identifier: "Settings") { _ in coordinator.settingsHost(settingsView) }
         ]
 
         let addTab = UISearchTab { _ in
@@ -358,10 +370,16 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
     @MainActor
     final class Coordinator: NSObject, UITabBarControllerDelegate {
         var selection: Binding<String>
+        let settingsNavigationRouter: NativeSettingsNavigationRouter
         let onAdd: () -> Void
 
-        init(selection: Binding<String>, onAdd: @escaping () -> Void) {
+        init(
+            selection: Binding<String>,
+            settingsNavigationRouter: NativeSettingsNavigationRouter,
+            onAdd: @escaping () -> Void
+        ) {
             self.selection = selection
+            self.settingsNavigationRouter = settingsNavigationRouter
             self.onAdd = onAdd
         }
 
@@ -370,6 +388,13 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
         func movementsHost(_ view: AnyView) -> UIViewController {
             let host = UIHostingController(rootView: view)
             let navigationController = UINavigationController(rootViewController: host)
+            return navigationController
+        }
+
+        func settingsHost(_ view: AnyView) -> UIViewController {
+            let settingsRoot = UIHostingController(rootView: view)
+            let navigationController = UINavigationController(rootViewController: settingsRoot)
+            settingsNavigationRouter.navigationController = navigationController
             return navigationController
         }
 
@@ -422,7 +447,7 @@ struct AppLockView: View {
                 .font(.system(size: 65))
                 .foregroundColor(Color.DarkIcon.opacity(0.7))
 
-            Text("App Locked")
+            Text("App bloccata")
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
                 .foregroundColor(Color.PrimaryText)
                 .padding(.bottom, 30)
@@ -433,7 +458,7 @@ struct AppLockView: View {
                 HStack {
                     Image(systemName: "faceid")
 
-                    Text("Unlock App")
+                    Text("Sblocca app")
                 }
                 .font(.system(size: 20, weight: .medium, design: .rounded))
                 .foregroundColor(Color.PrimaryText)
@@ -446,7 +471,7 @@ struct AppLockView: View {
             }
 
             if appLockVM.enrollmentError {
-                Text("Please re-enable Face ID access in the Settings app to unlock application.")
+                Text("Riabilita l'accesso a Face ID nell'app Impostazioni per sbloccare l'app.")
                     .font(.system(size: 15, weight: .regular, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
                     .multilineTextAlignment(.center)

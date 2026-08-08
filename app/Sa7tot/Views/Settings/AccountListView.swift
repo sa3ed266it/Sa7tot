@@ -151,7 +151,6 @@ struct AccountListView: View {
                     .accessibilityLabel("Nuovo conto")
             }
         }
-        .modifier(AccountTabBarVisibilityModifier())
         .sheet(isPresented: $showingEditor) {
             if #available(iOS 16.0, *) {
                 NavigationStack { AccountEditorView(account: nil) }
@@ -215,83 +214,6 @@ private extension View {
         } else {
             self
         }
-    }
-}
-
-private struct AccountTabBarVisibilityModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.0, *) {
-            content
-                .toolbar(.hidden, for: .tabBar)
-                .background(AccountTabBarVisibilityBridge())
-        } else {
-            content
-        }
-    }
-}
-
-private struct AccountTabBarVisibilityBridge: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> AccountTabBarVisibilityController {
-        AccountTabBarVisibilityController()
-    }
-
-    func updateUIViewController(_ controller: AccountTabBarVisibilityController, context: Context) {
-        controller.updateTabBarVisibility()
-    }
-}
-
-private final class AccountTabBarVisibilityController: UIViewController {
-    private weak var tabBarControllerToRestore: UITabBarController?
-    private var previousHiddenState = false
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        updateTabBarVisibility()
-    }
-
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        restoreTabBar()
-    }
-
-    func updateTabBarVisibility() {
-        guard let tabBarController = nearestTabBarController() else { return }
-        if tabBarControllerToRestore !== tabBarController {
-            tabBarControllerToRestore = tabBarController
-            previousHiddenState = tabBarController.tabBar.isHidden
-        }
-        tabBarController.tabBar.isHidden = true
-    }
-
-    private func restoreTabBar() {
-        guard let tabBarControllerToRestore else { return }
-        tabBarControllerToRestore.tabBar.isHidden = previousHiddenState
-        self.tabBarControllerToRestore = nil
-    }
-
-    private func nearestTabBarController() -> UITabBarController? {
-        var current: UIViewController? = self
-        while let viewController = current {
-            if let tabBarController = viewController as? UITabBarController {
-                return tabBarController
-            }
-            current = viewController.parent
-        }
-
-        guard let root = view.window?.rootViewController else { return nil }
-        return findTabBarController(in: root)
-    }
-
-    private func findTabBarController(in viewController: UIViewController) -> UITabBarController? {
-        if let tabBarController = viewController as? UITabBarController {
-            return tabBarController
-        }
-        for child in viewController.children {
-            if let result = findTabBarController(in: child) {
-                return result
-            }
-        }
-        return nil
     }
 }
 

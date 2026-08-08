@@ -20,7 +20,7 @@ struct SettingsCurrencyView: View {
 
   var body: some View {
     VStack(spacing: 10) {
-      Text("Currencies")
+      Text("Valute")
         .font(.system(.title3, design: .rounded).weight(.semibold))
         .foregroundColor(Color.PrimaryText)
         .frame(maxWidth: .infinity)

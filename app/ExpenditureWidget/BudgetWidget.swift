@@ -125,7 +125,7 @@ struct BudgetWidgetEntryView: View {
         case 4:
             return "quest’anno"
         default:
-            return "this week"
+            return "questa settimana"
         }
     }
 

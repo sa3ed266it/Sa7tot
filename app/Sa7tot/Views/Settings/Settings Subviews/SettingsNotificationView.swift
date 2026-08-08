@@ -24,7 +24,7 @@ struct SettingsNotificationsView: View {
 
   var body: some View {
     VStack {
-      Text("Notifications")
+      Text("Notifiche")
         .font(.system(.title3, design: .rounded).weight(.semibold))
         .foregroundColor(Color.PrimaryText)
         .frame(maxWidth: .infinity)
@@ -39,7 +39,7 @@ struct SettingsNotificationsView: View {
 
       VStack(spacing: 0) {
         HStack {
-          Text("Enable Notifications")
+          Text("Abilita notifiche")
             .font(.system(.body, design: .rounded))
             .foregroundColor(Color.PrimaryText)
 
@@ -159,7 +159,7 @@ struct SettingsNotificationsView: View {
           }
 
           HStack {
-            Text("Custom Time")
+            Text("Ora personalizzata")
               .font(.system(.body, design: .rounded))
               .foregroundColor(Color.PrimaryText)
 
@@ -167,7 +167,7 @@ struct SettingsNotificationsView: View {
 
             if option == 3 {
               DatePicker(
-                "Custom notification time", selection: $customTime,
+                "Orario personalizzato delle notifiche", selection: $customTime,
                 displayedComponents: .hourAndMinute
               )
               .labelsHidden()

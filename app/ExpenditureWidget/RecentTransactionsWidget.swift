@@ -34,7 +34,7 @@ struct RecentExpenditureWidget: Widget {
         IntentConfiguration(kind: kind, intent: RecentWidgetConfigurationIntent.self, provider: Provider()) { entry in
             ExpenditureWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Recent Transactions")
+        .configurationDisplayName("Movimenti recenti")
         .description("Visualizza le tue ultime spese.")
         .supportedFamilies(supportedFamilies)
     }

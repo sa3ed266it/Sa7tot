@@ -96,7 +96,7 @@ struct WelcomeSheetView: View {
                             firstPage = false
                         }
                     } label: {
-                        Text("Get Started")
+                        Text("Inizia")
                             .font(.system(size: 20, weight: .semibold, design: .rounded))
                             .foregroundColor(Color.LightIcon)
                             .padding(.vertical, 12)

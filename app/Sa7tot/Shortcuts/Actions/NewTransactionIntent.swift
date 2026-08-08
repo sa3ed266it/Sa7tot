@@ -126,13 +126,13 @@ struct NewTransactionIntent: AppIntent {
         Switch(\NewTransactionIntent.$income) {
             Case(ShortcutTransactionType.expense) {
                 When(\NewTransactionIntent.$recurringTransaction, .equalTo, true, {
-                    Summary("Log an \(\.$income) of \(\.$amount) under \(\.$expenseCategory)") {
+                    Summary("Registra un’\(\.$income) di \(\.$amount) in \(\.$expenseCategory)") {
                         \.$note
                         \.$recurringTransaction
                         \.$recurringType
                     }
                 }, otherwise: {
-                    Summary("Log an \(\.$income) of \(\.$amount) under \(\.$expenseCategory)") {
+                    Summary("Registra un’\(\.$income) di \(\.$amount) in \(\.$expenseCategory)") {
                         \.$note
                         \.$recurringTransaction
                     }
@@ -140,20 +140,20 @@ struct NewTransactionIntent: AppIntent {
             }
             Case(ShortcutTransactionType.income) {
                 When(\NewTransactionIntent.$recurringTransaction, .equalTo, true, {
-                    Summary("Log an \(\.$income) of \(\.$amount) under \(\.$incomeCategory)") {
+                    Summary("Registra un’\(\.$income) di \(\.$amount) in \(\.$incomeCategory)") {
                         \.$note
                         \.$recurringTransaction
                         \.$recurringType
                     }
                 }, otherwise: {
-                    Summary("Log an \(\.$income) of \(\.$amount) under \(\.$incomeCategory)") {
+                    Summary("Registra un’\(\.$income) di \(\.$amount) in \(\.$incomeCategory)") {
                         \.$note
                         \.$recurringTransaction
                     }
                 })
             }
             DefaultCase {
-                Summary("Log an \(\.$income) of \(\.$amount)") {
+                Summary("Registra un’\(\.$income) di \(\.$amount)") {
                     \.$note
                 }
             }

@@ -26,7 +26,7 @@ struct NewExpenseWidget: Widget {
             NewExpenseWidgetEntryView(entry: entry)
         }
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-        .configurationDisplayName("New Expense")
+        .configurationDisplayName("Nuova spesa")
         .description("Un pulsante pratico per registrare nuovi acquisti.")
         .supportedFamilies(supportedFamilies)
     }

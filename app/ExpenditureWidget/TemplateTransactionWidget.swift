@@ -27,8 +27,8 @@
 //            TemplateTransactionWidgetEntryView(entry: entry)
 //        }
 //        .supportedFamilies([.systemSmall])
-//        .configurationDisplayName("New Expense")
-//        .description("A convenient button to log new purchases.")
+//        .configurationDisplayName("Nuova spesa")
+//        .description("Un pulsante pratico per registrare nuovi acquisti.")
 //    }
 // }
 //
@@ -112,7 +112,7 @@
 //                        .frame(width: 30, height: 30)
 //                        .background(Color.IncomeGreen.opacity(0.3), in: Circle())
 //
-//                    Text("Transaction Added")
+//                    Text("Movimento aggiunto")
 //                        .font(.system(size: 15, weight: .semibold, design: .rounded))
 //                        .foregroundColor(Color.IncomeGreen)
 //                        .multilineTextAlignment(.center)

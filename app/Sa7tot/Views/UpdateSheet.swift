@@ -19,13 +19,13 @@ struct UpdateAlert: View {
     @State var opacity = 0.0
 
     let welcomeFeatures = [
-        WelcomeSheetFeatureRow(icon: "appclip", header: "Siri Shorcuts", subtitle: "3 new Siri shortcuts allow you to conveniently add new transactions."),
-        WelcomeSheetFeatureRow(icon: "arrow.down.doc.fill", header: "Data Import", subtitle: "Transfer pre-existing logs from other applications with a step-by-step guide."),
-        WelcomeSheetFeatureRow(icon: "sun.haze.fill", header: "Future Transactions", subtitle: "With date restrictions lifted, log and view upcoming expenses/incomes."),
-        WelcomeSheetFeatureRow(icon: "app.gift.fill", header: "App Icons", subtitle: "Choose from 3 new skeuomorphic icons beautifully crafted by the talented @rudra_dsigns."),
-        WelcomeSheetFeatureRow(icon: "circle.grid.2x2.fill", header: "Re-designed Screens", subtitle: "Budget and category creation screens have been completely reworked."),
-        WelcomeSheetFeatureRow(icon: "swatchpalette.fill", header: "Custom Category Colors", subtitle: "Using the stock iOS color picker, give your categories a long-awaited aesthetic refresh."),
-        WelcomeSheetFeatureRow(icon: "exclamationmark.octagon.fill", header: "New Toasts", subtitle: "Similarly, alert toasts across the app have been re-designed."),
+        WelcomeSheetFeatureRow(icon: "appclip", header: "Scorciatoie Siri", subtitle: "3 nuove scorciatoie Siri ti permettono di aggiungere comodamente nuovi movimenti."),
+        WelcomeSheetFeatureRow(icon: "arrow.down.doc.fill", header: "Importazione dati", subtitle: "Trasferisci i movimenti esistenti da altre app con una guida passo passo."),
+        WelcomeSheetFeatureRow(icon: "sun.haze.fill", header: "Movimenti futuri", subtitle: "Con le restrizioni sulle date rimosse, puoi registrare e visualizzare entrate e spese future."),
+        WelcomeSheetFeatureRow(icon: "app.gift.fill", header: "Icone dell’app", subtitle: "Scegli tra 3 nuove icone ispirate allo stile skeuomorfico, realizzate con cura da @rudra_dsigns."),
+        WelcomeSheetFeatureRow(icon: "circle.grid.2x2.fill", header: "Schermate rinnovate", subtitle: "Le schermate di creazione di budget e categorie sono state completamente rielaborate."),
+        WelcomeSheetFeatureRow(icon: "swatchpalette.fill", header: "Colori personalizzati", subtitle: "Usa il selettore colori nativo di iOS per dare alle categorie un nuovo tocco estetico."),
+        WelcomeSheetFeatureRow(icon: "exclamationmark.octagon.fill", header: "Nuovi messaggi", subtitle: "Anche i messaggi toast dell’app sono stati rinnovati."),
     ]
 
     var body: some View {
@@ -56,13 +56,13 @@ struct UpdateAlert: View {
                         Image(systemName: "star.fill")
                             .font(.system(.callout, design: .rounded))
 //                            .font(.system(size: 16))
-                        Text("What's New?")
+                        Text("Novità")
                             .font(.system(.title2, design: .rounded).weight(.medium))
 //                            .font(.system(size: 22, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(.PrimaryText)
 
-                    Text("Version \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? "")) · 18 Sep 2023")
+                    Text("Versione \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? "")) · 18 settembre 2023")
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                        .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(.SubtitleText)
@@ -121,7 +121,7 @@ struct UpdateAlert: View {
                 }
                 .frame(height: 300)
 
-                Text("Special thanks to \(makeAttributedString()) for contributing")
+                Text("Un ringraziamento speciale a \(makeAttributedString()) per il contributo")
                     .font(.system(.footnote, design: .rounded).weight(.medium))
                     .foregroundColor(Color.SubtitleText)
                     .frame(maxWidth: .infinity)

@@ -366,7 +366,7 @@ struct MainBudgetView: View {
                     }
                 }
 
-                CrookedText(text: String(localized: "OVERALL SPENT: \(percentString1)"), radius: width / 2 + 8)
+                CrookedText(text: "SPESA COMPLESSIVA: \(percentString1)", radius: width / 2 + 8)
                     .font(.system(.footnote, design: .rounded).weight(.medium))
 //                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
@@ -377,7 +377,7 @@ struct MainBudgetView: View {
                     BudgetDollarView(amount: difference, red: totalSpent >= budgetAmount, scale: 3, size: internalWidth)
                         .frame(width: internalWidth)
 
-                    Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
+                    Text("\(budgetAmount >= totalSpent ? "restante" : "oltre") \(budgetType)")
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                        .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(Color.SubtitleText)
@@ -413,13 +413,13 @@ struct MainBudgetView: View {
                 toEdit = budget
 
             } label: {
-                Label("Edit", systemImage: "pencil")
+                Label("Modifica", systemImage: "pencil")
             }
             Button {
                 toDelete = budget
 
             } label: {
-                Label("Delete", systemImage: "xmark.bin")
+                Label("Elimina", systemImage: "xmark.bin")
             }
         }
         .onAppear {
@@ -642,7 +642,7 @@ struct SingleBudgetView: View {
                                     .lineLimit(1)
                                     .foregroundColor(Color.PrimaryText)
 
-                                Text("\(timeLeft) • \(percentString1) spent")
+                                Text("\(timeLeft) • \(percentString1) speso")
                                     .font(.system(.footnote, design: .rounded).weight(.medium))
 //                                    .font(.system(size: 13, weight: .medium, design: .rounded))
                                     .lineLimit(1)
@@ -655,7 +655,7 @@ struct SingleBudgetView: View {
                         VStack(alignment: .trailing, spacing: -4) {
                             BudgetDollarView(amount: difference, red: totalSpent >= budgetAmount, scale: 1, size: 80)
 
-                            Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
+                            Text("\(budgetAmount >= totalSpent ? "restante" : "oltre") \(budgetType)")
                                 .font(.system(.caption2, design: .rounded).weight(.medium))
                                 .foregroundColor(Color.SubtitleText)
                         }
@@ -668,12 +668,12 @@ struct SingleBudgetView: View {
                             toEdit = budget
 
                         } label: {
-                            Label("Edit", systemImage: "pencil")
+                            Label("Modifica", systemImage: "pencil")
                         }
                         Button {
                             toDelete = budget
                         } label: {
-                            Label("Delete", systemImage: "xmark.bin")
+                            Label("Elimina", systemImage: "xmark.bin")
                         }
                     }
                     .offset(x: offset)
@@ -778,7 +778,7 @@ struct SingleBudgetView: View {
 
                             BudgetDollarView(amount: difference, red: totalSpent >= budgetAmount, scale: 2, size: width - 40)
 
-                            Text("\(budgetAmount >= totalSpent ? "left" : "over") \(budgetType)")
+                    Text("\(budgetAmount >= totalSpent ? "restante" : "oltre") \(budgetType)")
                                 .font(.system(.footnote, design: .rounded).weight(.medium))
                                 .foregroundColor(Color.SubtitleText)
                                 .minimumScaleFactor(0.7)
@@ -823,12 +823,12 @@ struct SingleBudgetView: View {
                         toEdit = budget
 
                     } label: {
-                        Label("Edit", systemImage: "pencil")
+                        Label("Modifica", systemImage: "pencil")
                     }
                     Button {
                         toDelete = budget
                     } label: {
-                        Label("Delete", systemImage: "xmark.bin")
+                        Label("Elimina", systemImage: "xmark.bin")
                     }
                 }
             }
@@ -1030,11 +1030,11 @@ struct DeleteBudgetAlert: View {
                 }
 
             VStack(alignment: .leading, spacing: 1.5) {
-                Text("Delete the '\(toDelete.category?.wrappedName ?? "")' budget?")
+                Text("Eliminare il budget di «\(toDelete.category?.wrappedName ?? "")»?")
                     .font(.system(.title2, design: .rounded).weight(.medium))
                     .foregroundColor(.PrimaryText)
 
-                Text("This action cannot be undone.")
+                Text("Questa azione non può essere annullata.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
                     .foregroundColor(.SubtitleText)
                     .padding(.bottom, 25)
@@ -1052,7 +1052,7 @@ struct DeleteBudgetAlert: View {
                     }
 
                 } label: {
-                    DeleteButton(text: "Delete", red: true)
+                    DeleteButton(text: "Elimina", red: true)
                 }
                 .padding(.bottom, 8)
 
@@ -1062,7 +1062,7 @@ struct DeleteBudgetAlert: View {
                     }
 
                 } label: {
-                    DeleteButton(text: "Cancel", red: false)
+                    DeleteButton(text: "Annulla", red: false)
                 }
             }
             .padding(13)
@@ -1117,11 +1117,11 @@ struct DeleteMainBudgetAlert: View {
                 }
 
             VStack(alignment: .leading, spacing: 1.5) {
-                Text("Delete your overall budget?")
+                Text("Eliminare il budget complessivo?")
                     .font(.system(.title2, design: .rounded).weight(.medium))
                     .foregroundColor(.PrimaryText)
 
-                Text("This action cannot be undone.")
+                Text("Questa azione non può essere annullata.")
                     .font(.system(.title3, design: .rounded).weight(.medium))
                     .foregroundColor(.SubtitleText)
                     .padding(.bottom, 25)
@@ -1138,7 +1138,7 @@ struct DeleteMainBudgetAlert: View {
                     }
 
                 } label: {
-                    DeleteButton(text: "Delete", red: true)
+                    DeleteButton(text: "Elimina", red: true)
                 }
                 .padding(.bottom, 8)
 
@@ -1148,7 +1148,7 @@ struct DeleteMainBudgetAlert: View {
                     }
 
                 } label: {
-                    DeleteButton(text: "Cancel", red: false)
+                    DeleteButton(text: "Annulla", red: false)
                 }
             }
             .multilineTextAlignment(.leading)
@@ -1600,7 +1600,7 @@ struct TimeBudgetView: View {
                         VStack(alignment: .trailing, spacing: -4) {
                             DetailedBudgetDollarView(amount: leftPerDay)
 
-                            Text("left each day")
+                            Text("restante ogni giorno")
                                 .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                                .font(.system(size: 15, weight: .medium, design: .rounded))
                                 .foregroundColor(Color.SubtitleText)
@@ -2064,7 +2064,7 @@ struct TimeMainBudgetView: View {
         VStack(spacing: 20) {
             // budget name, icon, and time left
             VStack(spacing: 10) {
-                Text("Overall Budget")
+                Text("Budget complessivo")
                     .font(.system(.title3, design: .rounded).weight(.medium))
                     .lineLimit(1)
                     .foregroundColor(Color.PrimaryText)
@@ -2095,7 +2095,7 @@ struct TimeMainBudgetView: View {
                         VStack(alignment: .trailing, spacing: -4) {
                             DetailedBudgetDollarView(amount: leftPerDay)
 
-                            Text("left each day")
+                        Text("restante ogni giorno")
                                 .font(.system(.subheadline, design: .rounded).weight(.medium))
                                 .foregroundColor(Color.SubtitleText)
                         }
