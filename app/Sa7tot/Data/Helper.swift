@@ -7,6 +7,23 @@
 
 import Foundation
 
+enum AppDateFormatters {
+    static let time24Hour: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_GB")
+        formatter.calendar = Calendar.current
+        formatter.timeZone = .current
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+}
+
+extension Date {
+    var sa7totTimeString: String {
+        AppDateFormatters.time24Hour.string(from: self)
+    }
+}
+
 enum CategoryNameNormalizer {
     static func displayName(_ name: String) -> String {
         name.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")

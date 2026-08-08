@@ -6,6 +6,7 @@
 //
 
 import ConfettiSwiftUI
+import CoreData
 import Foundation
 import SwiftUI
 import UIKit
@@ -21,6 +22,8 @@ enum DeletionType {
 
 class OverallTransactionManager: ObservableObject {
     @Published var toEdit: Transaction?
+    @Published var toDetail: Transaction?
+    @Published var detailSelectedAccount: Account?
     @Published var toDelete: Transaction?
     @Published var showToast: Bool = false
     @Published var showPopup: Bool = false
@@ -55,6 +58,8 @@ struct HomeView: View {
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
     @State private var addTransaction = false
     @State private var addTransactionCount = 0
+    @State private var selectedMovementsAccountID: NSManagedObjectID?
+    @State private var preferredAddAccountID: NSManagedObjectID?
 
     @AppStorage("confetti", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var confetti = false
     @AppStorage("firstTransactionViewLaunch", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var firstTransactionViewLaunch = true
@@ -118,7 +123,17 @@ struct HomeView: View {
             TransactionView(toEdit: transaction)
                 .modifier(TransactionEditorSheetPresentation())
         }
+        .sheet(item: $transactionManager.toDetail, onDismiss: {
+            transactionManager.toDetail = nil
+            transactionManager.detailSelectedAccount = nil
+        }) { transaction in
+            TransactionDetailView(
+                transaction: transaction,
+                selectedAccount: transactionManager.detailSelectedAccount
+            )
+        }
         .sheet(isPresented: $addTransaction, onDismiss: {
+            preferredAddAccountID = nil
             if confetti && addTransactionCount != transactions.count {
                 counter += 1
             }
@@ -126,7 +141,7 @@ struct HomeView: View {
                 firstTransactionViewLaunch = false
             }
         }) {
-            TransactionView(toEdit: nil)
+            TransactionView(toEdit: nil, preferredAccountID: preferredAddAccountID)
                 .modifier(TransactionEditorSheetPresentation())
         }
         .confettiCannon(counter: $counter, num: 50, openingAngle: Angle(degrees: 0), closingAngle: Angle(degrees: 360), radius: 200)
@@ -216,8 +231,9 @@ struct HomeView: View {
         }
     }
 
-    private func presentAddMovement() {
+    private func presentAddMovement(preferredAccountID: NSManagedObjectID? = nil) {
         guard !addTransaction else { return }
+        self.preferredAddAccountID = preferredAccountID
         addTransactionCount = transactions.count
         addTransaction = true
     }
@@ -226,6 +242,7 @@ struct HomeView: View {
     private var modernTabView: some View {
         NativeSearchTabView(
             selection: $currentTab,
+            selectedAccountID: $selectedMovementsAccountID,
             logView: hosted(logTabContent(usesNativeNavigation: true)),
             budgetView: hosted(BudgetView()),
             settingsView: hosted(
@@ -235,7 +252,7 @@ struct HomeView: View {
                 )
             ),
             settingsNavigationRouter: nativeSettingsNavigationRouter,
-            onAdd: presentAddMovement
+            onAdd: { presentAddMovement(preferredAccountID: selectedMovementsAccountID) }
         )
         .allowsHitTesting(transactionManager.showPopup ? false : true)
     }
@@ -265,7 +282,8 @@ struct HomeView: View {
             topEdge: topEdge,
             bottomEdge: bottomEdge,
             launchAdd: launchAdd,
-            onAdd: presentAddMovement,
+            selectedAccountID: $selectedMovementsAccountID,
+            onAdd: { presentAddMovement(preferredAccountID: $0?.objectID) },
             usesNativeNavigation: usesNativeNavigation
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -324,6 +342,7 @@ private final class InitialSelectionTabBarController: UITabBarController {
 @available(iOS 26.0, *)
 private struct NativeSearchTabView: UIViewControllerRepresentable {
     @Binding var selection: String
+    @Binding var selectedAccountID: NSManagedObjectID?
     let logView: AnyView
     let budgetView: AnyView
     let settingsView: AnyView

@@ -6,6 +6,7 @@
 //
 
 import Combine
+import CoreData
 import Foundation
 import Popovers
 import SwiftUI
@@ -23,6 +24,7 @@ struct TransactionView: View {
     @Environment(\.dismiss) var dismiss
 
     @Environment(\.colorScheme) var colorScheme
+    private let preferredAccountID: NSManagedObjectID?
     var boldText: Bool {
         UIAccessibility.isBoldTextEnabled
     }
@@ -1041,11 +1043,7 @@ struct TransactionView: View {
     }
 
     func getTimeString(date: Date) -> String {
-        let formatter = DateFormatter()
-
-        formatter.dateFormat = "HH:mm"
-
-        return formatter.string(from: date)
+        date.sa7totTimeString
     }
 
     func toggleFieldColors() {
@@ -1266,7 +1264,8 @@ struct TransactionView: View {
         dismiss()
     }
 
-    init(toEdit: Transaction? = nil) {
+    init(toEdit: Transaction? = nil, preferredAccountID: NSManagedObjectID? = nil) {
+        self.preferredAccountID = preferredAccountID
         if let transaction = toEdit {
             _note = State(initialValue: transaction.wrappedNote)
 
@@ -1288,12 +1287,16 @@ struct TransactionView: View {
             _date = State(initialValue: transaction.date ?? Date.now)
         }
         if toEdit == nil {
-            _account = State(initialValue: AccountMigrationService.defaultActiveAccount(in: DataController.shared.container.viewContext))
+            let context = DataController.shared.container.viewContext
+            let preferredAccount = preferredAccountID.flatMap { try? context.existingObject(with: $0) as? Account }
+                .flatMap { AccountQuery.isActive($0) ? $0 : nil }
+            _account = State(initialValue: preferredAccount ?? AccountMigrationService.defaultActiveAccount(in: context))
         }
         self.toEdit = toEdit
     }
 
     init(category: Category? = nil) {
+        preferredAccountID = nil
         if let unwrappedCategory = category {
             _income = State(initialValue: false)
             _category = State(initialValue: unwrappedCategory)

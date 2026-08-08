@@ -1719,7 +1719,7 @@ struct FilteredCategoryDayBudgetView: View {
                 NoResultsView(fullscreen: false)
             } else {
                 ForEach(transactions, id: \.id) { transaction in
-                    SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: currencySymbol, currency: currency, swapTimeLabel: swapTimeLabel, future: false, showExpenseOrIncomeSign: showExpenseOrIncomeSign)
+                    SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: currencySymbol, currency: currency, swapTimeLabel: swapTimeLabel, future: false, showExpenseOrIncomeSign: showExpenseOrIncomeSign, selectedAccount: nil)
                 }
             }
         }

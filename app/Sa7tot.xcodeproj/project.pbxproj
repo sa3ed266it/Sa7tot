@@ -164,6 +164,8 @@
 		D63B204C2D8728C300CAFB20 /* WidgetConfiguration.strings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20542D8728C300CAFB20 /* WidgetConfiguration.strings */; };
 		D6A4DE202D61744400F7F751 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = D6A4DE1F2D61744400F7F751 /* SwiftUIIntrospect */; };
 		D6A4DE242D61744400F7F751 /* SwiftUIIntrospect-Static in Frameworks */ = {isa = PBXBuildFile; productRef = D6A4DE232D61744400F7F751 /* SwiftUIIntrospect-Static */; };
+		F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F00300040000000000000001 /* ClashDisplay-Bold.otf */; };
+		F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */ = {isa = PBXBuildFile; fileRef = F00300050000000000000001 /* FFL-ClashDisplay.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -347,6 +349,8 @@
 		D63B20562D8728C300CAFB20 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/MainInterface.strings; sourceTree = "<group>"; };
 		F4A000000000000000000004 /* MainModel 4.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 4.xcdatamodel"; sourceTree = "<group>"; };
 		F4A000000000000000000005 /* MainModel 5.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "MainModel 5.xcdatamodel"; sourceTree = "<group>"; };
+		F00300040000000000000001 /* ClashDisplay-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ClashDisplay-Bold.otf; sourceTree = "<group>"; };
+		F00300050000000000000001 /* FFL-ClashDisplay.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = FFL-ClashDisplay.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -464,6 +468,8 @@
 		5327D285287C697400F76ADF /* Sa7tot */ = {
 			isa = PBXGroup;
 			children = (
+				F00300040000000000000001 /* ClashDisplay-Bold.otf */,
+				F00300050000000000000001 /* FFL-ClashDisplay.txt */,
 				5327D2E8287C6DF700F76ADF /* Sa7tot.entitlements */,
 				5327D2E7287C6DC200F76ADF /* Info.plist */,
 				53756F622AC3C25E0065D0C2 /* sample.csv */,
@@ -894,6 +900,8 @@
 				5327D295287C698900F76ADF /* Assets.xcassets in Resources */,
 				53756F632AC3C25E0065D0C2 /* sample.csv in Resources */,
 				5327D2E0287C6B7D00F76ADF /* DeviceModels.json in Resources */,
+				F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */,
+				F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1030,11 +1030,11 @@ class DataController: ObservableObject {
         }
     }
 
-    func getLineGraphDataNet(type: Int) -> [LineGraphDataPoint] {
+    func getLineGraphDataNet(type: Int, account: Account? = nil) -> [LineGraphDataPoint] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date.now)
 
-        let fetchRequest = fetchRequestForLineGraph(optionalIncome: nil)
+        let fetchRequest = fetchRequestForLineGraph(optionalIncome: nil, account: account)
         let transactions = results(for: fetchRequest)
 
         var holdingDataPoints = [LineGraphDataPoint]()
@@ -1186,11 +1186,11 @@ class DataController: ObservableObject {
         return holdingDataPoints
     }
 
-    func getLineGraphData(income: Bool, type: Int) -> [LineGraphDataPoint] {
+    func getLineGraphData(income: Bool, type: Int, account: Account? = nil) -> [LineGraphDataPoint] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date.now)
 
-        let fetchRequest = fetchRequestForLineGraph(optionalIncome: income)
+        let fetchRequest = fetchRequestForLineGraph(optionalIncome: income, account: account)
         let transactions = results(for: fetchRequest)
 
         var holdingDataPoints = [LineGraphDataPoint]()
@@ -1386,16 +1386,17 @@ class DataController: ObservableObject {
         return itemRequest
     }
 
-    func fetchRequestForLineGraph(optionalIncome: Bool?) -> NSFetchRequest<Transaction> {
+    func fetchRequestForLineGraph(optionalIncome: Bool?, account: Account? = nil) -> NSFetchRequest<Transaction> {
         let itemRequest: NSFetchRequest<Transaction> = Transaction.fetchRequest()
         itemRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Transaction.date, ascending: true)]
         let nonTransferPredicate = StatisticsTransactionFilter.excludingTransfersPredicate()
+        let accountPredicates = account.map { [AccountBalanceService.transactionPredicate(for: $0)] } ?? []
 
         if let income = optionalIncome {
-            itemRequest.predicate = NSCompoundPredicate(type: .and, subpredicates: [NSPredicate(format: "income = %d", income), nonTransferPredicate])
+            itemRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [NSPredicate(format: "income = %d", income), nonTransferPredicate] + accountPredicates)
             return itemRequest
         } else {
-            itemRequest.predicate = nonTransferPredicate
+            itemRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [nonTransferPredicate] + accountPredicates)
             return itemRequest
         }
     }

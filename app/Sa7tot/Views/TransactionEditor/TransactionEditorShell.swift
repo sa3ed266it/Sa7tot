@@ -307,7 +307,10 @@ struct TransactionEditorShell: View {
         GroupBox {
             VStack(spacing: 10) {
                 TransactionEditorRow(title: "Data e ora", systemImage: "calendar") {
-                    DatePicker("Data e ora", selection: $date).labelsHidden().datePickerStyle(.compact)
+                    DatePicker("Data e ora", selection: $date)
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                        .environment(\.locale, Locale(identifier: "it_IT"))
                 }
                 if isTransfer {
                     TransactionEditorRow(title: "Da", systemImage: "arrow.up.right") {

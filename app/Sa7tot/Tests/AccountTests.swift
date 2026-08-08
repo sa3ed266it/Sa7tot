@@ -2,6 +2,20 @@ import CoreData
 import XCTest
 
 final class AccountTests: XCTestCase {
+    func testAppTimeFormatterUses24HourClock() {
+        let calendar = Calendar.current
+        let testHours = [0, 0, 8, 12, 13, 15, 23]
+        let testMinutes = [0, 5, 5, 0, 29, 43, 59]
+        let expected = ["00:00", "00:05", "08:05", "12:00", "13:29", "15:43", "23:59"]
+
+        for (index, hour) in testHours.enumerated() {
+            let date = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: hour, minute: testMinutes[index]))!
+            XCTAssertEqual(date.sa7totTimeString, expected[index])
+            XCTAssertFalse(date.sa7totTimeString.contains("AM"))
+            XCTAssertFalse(date.sa7totTimeString.contains("PM"))
+        }
+    }
+
     private var contexts: [NSManagedObjectContext] = []
     private static let testModel: NSManagedObjectModel = {
         let bundle = Bundle(for: AccountTests.self)

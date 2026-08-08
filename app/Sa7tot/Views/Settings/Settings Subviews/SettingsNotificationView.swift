@@ -107,7 +107,7 @@ struct SettingsNotificationsView: View {
       if showNotifications {
         VStack(spacing: 0) {
           HStack {
-            Text("Every morning (8:00 AM)")
+            Text("Every morning (08:00)")
               .font(.system(.body, design: .rounded))
               .foregroundColor(Color.PrimaryText)
 
@@ -133,7 +133,7 @@ struct SettingsNotificationsView: View {
           }
 
           HStack {
-            Text("Every evening (8:00 PM)")
+            Text("Every evening (20:00)")
               .font(.system(.body, design: .rounded))
               .foregroundColor(Color.PrimaryText)
 
@@ -171,6 +171,7 @@ struct SettingsNotificationsView: View {
                 displayedComponents: .hourAndMinute
               )
               .labelsHidden()
+              .environment(\.locale, Locale(identifier: "it_IT"))
 
               Image(systemName: "checkmark")
                 .font(.system(.subheadline, design: .rounded))

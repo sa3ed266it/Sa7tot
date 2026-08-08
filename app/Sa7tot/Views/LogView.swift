@@ -7,6 +7,7 @@
 
 import CloudKitSyncMonitor
 import CoreData
+import CoreText
 import Foundation
 import SwiftUIIntrospect
 import SwiftUI
@@ -15,6 +16,38 @@ import UIKit
 private func homeSignedAmountColor(_ value: Double, positive: Color, neutral: Color) -> Color {
     if value < 0 { return Color.AlertRed }
     return value > 0 ? positive : neutral
+}
+
+private let privacyBlurRadius: CGFloat = 16
+private let privacyTransition = Animation.easeInOut(duration: 0.22)
+
+private enum ClashDisplayFont {
+    static let name = "ClashDisplay-Bold"
+
+    private static func register() -> Bool {
+        guard let url = Bundle.main.url(forResource: "ClashDisplay-Bold", withExtension: "otf") else {
+            assertionFailure("Clash Display Bold font asset is missing from the app bundle")
+            return false
+        }
+
+        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+
+#if DEBUG
+        assert(UIFont(name: name, size: 12) != nil, "Clash Display Bold runtime font name could not be resolved")
+#endif
+
+        return UIFont(name: name, size: 12) != nil
+    }
+
+    static func font(size: CGFloat) -> Font {
+        guard register() else { return .system(size: size, weight: .bold) }
+        return .custom(name, size: size)
+    }
+
+    static func compactFont() -> Font {
+        guard register() else { return .system(.title3, design: .rounded).weight(.bold) }
+        return .custom(name, size: 20, relativeTo: .title3)
+    }
 }
 
 // Shared by existing non-navigation buttons; retained when the obsolete
@@ -46,11 +79,19 @@ struct LogView: View {
     @State var updatedRecurring = false
 
     @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
+    @FetchRequest(
+        sortDescriptors: [
+            NSSortDescriptor(key: "order", ascending: true),
+            NSSortDescriptor(key: "createdAt", ascending: true)
+        ],
+        predicate: AccountQuery.activePredicate
+    ) private var activeAccounts: FetchedResults<Account>
 
     @EnvironmentObject var dataController: DataController
     @Environment(\.managedObjectContext) var moc
 
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
+    @AppStorage("hideBalances", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var hideBalances = false
 
     var topEdge: CGFloat
 
@@ -63,6 +104,7 @@ struct LogView: View {
     @State var navBarText = ""
 
     @State var filter = FilterType.all
+    @Binding var selectedAccountID: NSManagedObjectID?
 
     // filters
     @State var categoryFilter: Category?
@@ -73,8 +115,24 @@ struct LogView: View {
 
     var bottomEdge: CGFloat
     var launchAdd: Bool
-    var onAdd: () -> Void
+    var onAdd: (Account?) -> Void
     var usesNativeNavigation = false
+
+    init(
+        topEdge: CGFloat,
+        bottomEdge: CGFloat,
+        launchAdd: Bool,
+        selectedAccountID: Binding<NSManagedObjectID?>,
+        onAdd: @escaping (Account?) -> Void,
+        usesNativeNavigation: Bool = false
+    ) {
+        self.topEdge = topEdge
+        self.bottomEdge = bottomEdge
+        self.launchAdd = launchAdd
+        self._selectedAccountID = selectedAccountID
+        self.onAdd = onAdd
+        self.usesNativeNavigation = usesNativeNavigation
+    }
 
     // drag to open
 //    enum PullToReach {
@@ -94,8 +152,41 @@ struct LogView: View {
         min(max((balanceCollapseProgress - 0.50) / 0.28, 0), 1)
     }
 
-    private var currentNetTotal: (value: Double, positive: Bool) {
-        dataController.getLogViewTotalNet(type: 5)
+    private var selectedAccount: Account? {
+        guard let selectedAccountID else { return activeAccounts.first }
+        return activeAccounts.first(where: { $0.objectID == selectedAccountID }) ?? activeAccounts.first
+    }
+
+    private var activeAccountIDs: [NSManagedObjectID] {
+        activeAccounts.map(\.objectID)
+    }
+
+    private var selectedAccountCurrentTransactions: [Transaction] {
+        guard let selectedAccount else { return [] }
+        return transactions.filter {
+            $0.wrappedDate <= Date.now && AccountBalanceService.transactionBelongs($0, to: selectedAccount)
+        }
+    }
+
+    private var selectedAccountBalance: Double {
+        guard let selectedAccount else { return 0 }
+        return AccountBalanceService.balance(for: selectedAccount, transactions: selectedAccountCurrentTransactions)
+    }
+
+    private var selectedAccountCurrency: String {
+        selectedAccount?.currencyCode ?? currency
+    }
+
+    private var selectedAccountCurrencySymbol: String {
+        Locale.current.localizedCurrencySymbol(forCurrencyCode: selectedAccountCurrency) ?? currencySymbol
+    }
+
+    private func validateSelectedAccount() {
+        if let selectedAccount, selectedAccountID == nil || selectedAccountID != selectedAccount.objectID {
+            selectedAccountID = selectedAccount.objectID
+        } else if selectedAccount == nil {
+            selectedAccountID = nil
+        }
     }
 
     @ViewBuilder
@@ -112,7 +203,7 @@ struct LogView: View {
 
     private var navigationContent: some View {
             Group {
-        if transactions.isEmpty {
+        if selectedAccount == nil {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 5) {
                 Sa7totIcon(systemName: "tray.full.fill", role: .status, tint: .secondary)
@@ -121,13 +212,13 @@ struct LogView: View {
                     .padding(.bottom, 20)
                     .accessibility(hidden: true)
 
-                Text("Il registro è vuoto")
+                Text("Nessun conto")
                     .font(.system(.title2, design: .rounded).weight(.medium))
 //                    .font(.system(size: 23.5, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color.PrimaryText.opacity(0.8))
 
-                Text("Premi il pulsante più\nper aggiungere il primo movimento")
+                Text("Aggiungi un conto per iniziare")
                     .font(.system(.body, design: .rounded).weight(.medium))
 //                    .font(.system(size: 18, weight: .medium, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -188,14 +279,19 @@ struct LogView: View {
                 }
 
                 ZStack(alignment: .top) {
-                    ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 0) {
-                            if filter == .all {
-                                LogInsightsView(
-                                    navBarText: $navBarText,
+                    ScrollViewReader { proxy in
+                        ScrollView(showsIndicators: false) {
+                            LazyVStack(spacing: 0) {
+                                Color.clear
+                                    .frame(height: 0)
+                                    .id("movements-top")
+                            if filter == .all, let selectedAccount {
+                                AccountInsightsPager(
+                                    accounts: Array(activeAccounts),
+                                    selectedAccountID: $selectedAccountID,
+                                    transactions: Array(transactions),
                                     showCents: showCents,
-                                    currencySymbol: currencySymbol,
-                                    netTotal: currentNetTotal,
+                                    hideBalances: hideBalances,
                                     collapseProgress: balanceCollapseProgress,
                                     handoff: balanceHandoff
                                 )
@@ -215,7 +311,16 @@ struct LogView: View {
                                 }
                             }
 
-                            TransactionsList(filter: filter, category: categoryFilter, date: dateFilter, week: weekFilter, month: monthFilter, income: income)
+                            TransactionsList(
+                                filter: filter,
+                                account: selectedAccount,
+                                currencyCode: selectedAccountCurrency,
+                                category: categoryFilter,
+                                date: dateFilter,
+                                week: weekFilter,
+                                month: monthFilter,
+                                income: income
+                            )
                                 .padding(.horizontal, 20)
 
                             if filter == .all {
@@ -226,20 +331,24 @@ struct LogView: View {
                                     .frame(height: 180)
                                     .allowsHitTesting(false)
                             }
+                            }
+                        }
+                        .coordinateSpace(name: "HomeScroll")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .sa7totScrollDisabled(displayedContentIsEmpty)
+                        .onPreferenceChange(EmptyStatePreferenceKey.self) { isEmpty in
+                            displayedContentIsEmpty = isEmpty
+                        }
+                        .modifier(HomeScrollProgressModifier { offset in
+                            let collapseDistance = max(1, expandedBalanceHeaderHeight - compactBalanceHeaderHeight)
+                            let nextProgress = min(max(offset / collapseDistance, 0), 1)
+                            guard abs(nextProgress - balanceCollapseProgress) > 0.001 else { return }
+                            balanceCollapseProgress = nextProgress
+                        })
+                        .onChange(of: selectedAccountID) { _ in
+                            proxy.scrollTo("movements-top", anchor: .top)
                         }
                     }
-                    .coordinateSpace(name: "HomeScroll")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .sa7totScrollDisabled(displayedContentIsEmpty)
-                    .onPreferenceChange(EmptyStatePreferenceKey.self) { isEmpty in
-                        displayedContentIsEmpty = isEmpty
-                    }
-                    .modifier(HomeScrollProgressModifier { offset in
-                        let collapseDistance = max(1, expandedBalanceHeaderHeight - compactBalanceHeaderHeight)
-                        let nextProgress = min(max(offset / collapseDistance, 0), 1)
-                        guard abs(nextProgress - balanceCollapseProgress) > 0.001 else { return }
-                        balanceCollapseProgress = nextProgress
-                    })
 
                     if #unavailable(iOS 26.0) {
                         LinearGradient(
@@ -339,6 +448,15 @@ struct LogView: View {
             .onChange(of: filter) { _ in
                 balanceCollapseProgress = 0
             }
+            .onAppear {
+                validateSelectedAccount()
+            }
+            .onChange(of: activeAccountIDs) { _ in
+                validateSelectedAccount()
+            }
+            .onChange(of: selectedAccountID) { _ in
+                balanceCollapseProgress = 0
+            }
 //            .animation(.spring(duration: 0.5), value: released)
 //            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: pullStatus)
 //            .onChange(of: pullStatus) { newValue in
@@ -354,16 +472,22 @@ struct LogView: View {
         }
             }
             .background {
-                NativeFilterMenuBridge(filter: $filter)
+                NativeFilterMenuBridge(filter: $filter, hideBalances: $hideBalances)
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     if filter == .all {
-                        CompactBalanceToolbarTitle(
-                            showCents: showCents,
-                            currencySymbol: currencySymbol,
-                            netTotal: currentNetTotal
-                        )
+                        Group {
+                            if let selectedAccount {
+                                CompactBalanceToolbarTitle(
+                                    accountName: selectedAccount.name ?? "Conto",
+                                    showCents: showCents,
+                                    currencySymbol: selectedAccountCurrencySymbol,
+                                    netTotal: (abs(selectedAccountBalance), selectedAccountBalance >= 0),
+                                    hideBalances: hideBalances
+                                )
+                            }
+                        }
                         .opacity(balanceHandoff)
                         .offset(y: 4 * (1 - balanceHandoff))
                         .allowsHitTesting(false)
@@ -375,7 +499,7 @@ struct LogView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: launchAdd) { newValue in
                 if newValue {
-                    onAdd()
+                    onAdd(selectedAccount)
                 }
             }
         }
@@ -445,9 +569,11 @@ private struct HomeScrollProgressModifier: ViewModifier {
 }
 
 struct CompactBalanceToolbarTitle: View {
+    let accountName: String
     let showCents: Bool
     let currencySymbol: String
     let netTotal: (value: Double, positive: Bool)
+    let hideBalances: Bool
 
     var formattedAmount: String {
         String(format: showCents ? "%.2f" : "%.0f", netTotal.value)
@@ -455,7 +581,7 @@ struct CompactBalanceToolbarTitle: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Text("Saldo totale")
+            Text(accountName)
                 .font(.system(.caption, design: .rounded).weight(.medium))
                 .foregroundColor(Color.SubtitleText)
                 .lineLimit(1)
@@ -465,19 +591,212 @@ struct CompactBalanceToolbarTitle: View {
                 Text(netTotal.positive ? currencySymbol : "-\(currencySymbol)")
                     .font(.system(.subheadline, design: .rounded).weight(.medium))
                     .foregroundColor(Color.SubtitleText)
+                    .layoutPriority(1)
 
                 Text(formattedAmount)
-                    .font(.system(.title3, design: .rounded).weight(.semibold))
+                    .font(ClashDisplayFont.compactFont())
                     .foregroundColor(Color.PrimaryText)
-                    .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
+                    .allowsTightening(true)
+                    .layoutPriority(0)
+                    .blur(radius: hideBalances ? privacyBlurRadius : 0)
+                    .opacity(hideBalances ? 0.72 : 1)
+                    .animation(privacyTransition, value: hideBalances)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .accessibilityHidden(hideBalances)
             }
         }
         .lineLimit(1)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Saldo totale, \(netTotal.positive ? currencySymbol : "-\(currencySymbol)")\(formattedAmount)")
+        .accessibilityLabel(hideBalances ? "Saldo nascosto" : "\(accountName), saldo \(netTotal.positive ? currencySymbol : "-\(currencySymbol)")\(formattedAmount)")
+    }
+}
+
+private struct AccountInsightsPager: View {
+    let accounts: [Account]
+    @Binding var selectedAccountID: NSManagedObjectID?
+    let transactions: [Transaction]
+    let showCents: Bool
+    let hideBalances: Bool
+    let collapseProgress: CGFloat
+    let handoff: CGFloat
+    @AppStorage("logViewLineGraph", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var lineGraph = false
+
+    private var pageControlReservedSpace: CGFloat {
+        accounts.count > 1 ? 24 : 0
+    }
+
+    private var pagerHeight: CGFloat {
+        (lineGraph ? 190 : 175) + pageControlReservedSpace
+    }
+
+    var body: some View {
+        TabView(selection: $selectedAccountID) {
+            ForEach(accounts) { account in
+                AccountInsightsView(
+                    account: account,
+                    transactions: transactions,
+                    showCents: showCents,
+                    hideBalances: hideBalances,
+                    collapseProgress: collapseProgress,
+                    handoff: handoff
+                )
+                .padding(.bottom, pageControlReservedSpace)
+                .tag(Optional(account.objectID))
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .automatic))
+        .frame(height: pagerHeight)
+    }
+}
+
+private struct AccountInsightsView: View {
+    @EnvironmentObject var dataController: DataController
+    let account: Account
+    let transactions: [Transaction]
+    let showCents: Bool
+    let hideBalances: Bool
+    let collapseProgress: CGFloat
+    let handoff: CGFloat
+    @AppStorage("logViewLineGraph", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var lineGraph = false
+    @AppStorage("logInsightsTimeFrame", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var timeframe = 2
+
+    private var currentTransactions: [Transaction] {
+        transactions.filter {
+            $0.wrappedDate <= Date.now && AccountBalanceService.transactionBelongs($0, to: account)
+        }
+    }
+
+    private var balance: Double {
+        AccountBalanceService.balance(for: account, transactions: currentTransactions)
+    }
+
+    private var income: Double {
+        currentTransactions.reduce(0) { total, transaction in
+            total + (transaction.wrappedType == .income ? transaction.amount : 0)
+        }
+    }
+
+    private var expenses: Double {
+        currentTransactions.reduce(0) { total, transaction in
+            total + (transaction.wrappedType == .expense ? transaction.amount : 0)
+        }
+    }
+
+    private var currencySymbol: String {
+        Locale.current.localizedCurrencySymbol(forCurrencyCode: account.currencyCode ?? "EUR") ?? "€"
+    }
+
+    private func amountText(_ amount: Double) -> String {
+        String(format: showCents ? "%.2f" : "%.0f", amount)
+    }
+
+    private var balanceFont: Font {
+        ClashDisplayFont.font(size: 84 - (56 * collapseProgress))
+    }
+
+    private var lineGraphData: [LineGraphDataPoint] {
+        dataController.getLineGraphDataNet(type: timeframe, account: account)
+    }
+
+    private var lineGraphRange: Int {
+        let calendar = Calendar.current
+        if timeframe == 3 {
+            let start = calendar.date(from: calendar.dateComponents([.month, .year], from: Date.now)) ?? Date.now
+            return calendar.dateComponents([.day], from: start, to: Date.now).day.map { $0 + 1 } ?? 1
+        }
+        if timeframe == 4 {
+            let start = calendar.date(from: calendar.dateComponents([.year], from: Date.now)) ?? Date.now
+            return calendar.dateComponents([.month], from: start, to: Date.now).month.map { $0 + 1 } ?? 1
+        }
+        return calendar.dateComponents([.day], from: calendar.date(byAdding: .day, value: -7, to: Date.now) ?? Date.now, to: Date.now).day ?? 7
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: max(0, 6 - (4 * collapseProgress))) {
+                Text(account.name ?? "Conto")
+                    .font(.system(size: 19 - (4 * collapseProgress), design: .rounded).weight(.medium))
+                    .foregroundColor(Color.PrimaryText.opacity(0.9))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                HStack(alignment: .lastTextBaseline, spacing: 2) {
+                    Text(balance >= 0 ? currencySymbol : "-\(currencySymbol)")
+                        .font(.system(size: 34 - (8 * collapseProgress), design: .rounded))
+                        .foregroundColor(Color.SubtitleText)
+                        .layoutPriority(1)
+
+                    Text(amountText(abs(balance)))
+                        .font(balanceFont)
+                        .foregroundColor(Color.PrimaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .allowsTightening(true)
+                        .layoutPriority(0)
+                        .blur(radius: hideBalances ? privacyBlurRadius : 0)
+                        .opacity(hideBalances ? 0.72 : 1)
+                        .animation(privacyTransition, value: hideBalances)
+                }
+            }
+            .padding(.top, 8 - (4 * collapseProgress))
+
+            if income != 0 || expenses != 0 {
+                HStack {
+                    Text("+\(amountText(income))")
+                        .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
+                        .minimumScaleFactor(0.5)
+                        .monospacedDigit()
+                        .foregroundColor(Color.IncomeGreen)
+                        .blur(radius: hideBalances ? privacyBlurRadius : 0)
+                        .opacity(hideBalances ? 0.72 : 1)
+                        .animation(privacyTransition, value: hideBalances)
+                        .lineLimit(1)
+                        .accessibilityHidden(hideBalances)
+
+                    DottedLine()
+                        .stroke(style: StrokeStyle(lineWidth: 1.7, lineCap: .round))
+                        .frame(width: 1.7, height: 15)
+                        .foregroundColor(Color.Outline)
+
+                    Text("-\(amountText(expenses))")
+                        .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
+                        .minimumScaleFactor(0.5)
+                        .monospacedDigit()
+                        .foregroundColor(Color.AlertRed)
+                        .blur(radius: hideBalances ? privacyBlurRadius : 0)
+                        .opacity(hideBalances ? 0.72 : 1)
+                        .animation(privacyTransition, value: hideBalances)
+                        .lineLimit(1)
+                        .accessibilityHidden(hideBalances)
+                }
+                .padding(.top, 8)
+                .opacity(1 - handoff)
+                .frame(height: 31 * (1 - handoff))
+                .clipped()
+            }
+
+            if lineGraph && lineGraphData.count > 1 {
+                LineGraph(
+                    data: lineGraphData,
+                    green: (lineGraphData.first?.amount ?? 0) <= (lineGraphData.last?.amount ?? 0),
+                    type: timeframe,
+                    range: lineGraphRange
+                )
+                .frame(height: 25)
+                .padding(.horizontal, 60)
+                .padding(.top, 16)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .frame(minHeight: lineGraph ? 190 : 175)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(hideBalances ? "\(account.name ?? "Conto"), saldo nascosto" : "\(account.name ?? "Conto"), saldo \(balance >= 0 ? currencySymbol : "-\(currencySymbol)")\(amountText(abs(balance)) )")
     }
 }
 
@@ -486,6 +805,7 @@ struct NumberView: AnimatableModifier {
     var dynamicTypeSize: DynamicTypeSize
     let netTotal: Bool
     let positive: Bool
+    let hideBalances: Bool
     var collapseProgress: CGFloat = 0
 
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
@@ -524,19 +844,22 @@ struct NumberView: AnimatableModifier {
 
     func body(content _: Content) -> some View {
         HStack(alignment: .lastTextBaseline, spacing: 2) {
-            Group {
-                Text(netTotal ? (positive ? currencySymbol : "-\(currencySymbol)") : currencySymbol)
-                    .font(.system(size: 34 - (8 * collapseProgress), design: .rounded))
-                    .foregroundColor(Color.SubtitleText) +
+            Text(netTotal ? (positive ? currencySymbol : "-\(currencySymbol)") : currencySymbol)
+                .font(.system(size: 34 - (8 * collapseProgress), design: .rounded))
+                .foregroundColor(Color.SubtitleText)
 
-                Text("\(number, specifier: showCents  ? "%.2f" : "%.0f")")
-                    .font(.system(size: fontSize, weight: .regular, design: .rounded))
-                    .foregroundColor(Color.PrimaryText)
-                    .monospacedDigit()
-            }
+            Text("\(number, specifier: showCents  ? "%.2f" : "%.0f")")
+                .font(.system(size: fontSize, weight: .regular, design: .rounded))
+                .foregroundColor(Color.PrimaryText)
+                .monospacedDigit()
+                .blur(radius: hideBalances ? privacyBlurRadius : 0)
+                .opacity(hideBalances ? 0.72 : 1)
+                .animation(privacyTransition, value: hideBalances)
         }
         .minimumScaleFactor(0.5)
         .lineLimit(1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(hideBalances ? "Importo nascosto" : "\(netTotal ? (positive ? currencySymbol : "-\(currencySymbol)") : currencySymbol)\(String(format: showCents ? "%.2f" : "%.0f", number))")
 
     }
 }
@@ -550,6 +873,7 @@ struct LogInsightsView: View {
     let showCents: Bool
     let currencySymbol: String
     let netTotal: (value: Double, positive: Bool)
+    let hideBalances: Bool
     var collapseProgress: CGFloat = 0
     var handoff: CGFloat = 0
 
@@ -651,6 +975,7 @@ struct LogInsightsView: View {
                         dynamicTypeSize: _dynamicTypeSize.wrappedValue,
                         netTotal: insightsType == 1,
                         positive: netTotal.positive,
+                        hideBalances: hideBalances,
                         collapseProgress: collapseProgress
                     ))
             }
@@ -702,7 +1027,11 @@ struct LogInsightsView: View {
                         .monospacedDigit()
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.IncomeGreen)
+                        .blur(radius: hideBalances ? privacyBlurRadius : 0)
+                        .opacity(hideBalances ? 0.72 : 1)
+                        .animation(privacyTransition, value: hideBalances)
                         .lineLimit(1)
+                        .accessibilityHidden(hideBalances)
 
                     DottedLine()
                         .stroke(style: StrokeStyle(lineWidth: 1.7, lineCap: .round))
@@ -715,7 +1044,11 @@ struct LogInsightsView: View {
                         .monospacedDigit()
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.AlertRed)
+                        .blur(radius: hideBalances ? privacyBlurRadius : 0)
+                        .opacity(hideBalances ? 0.72 : 1)
+                        .animation(privacyTransition, value: hideBalances)
                         .lineLimit(1)
+                        .accessibilityHidden(hideBalances)
 
 //                    if showCents {
 //                        Text("-\(totalSpent, specifier: "%.2f")")
@@ -842,24 +1175,29 @@ struct FilteredSearchView: View {
 
 private struct NativeFilterMenuBridge: UIViewControllerRepresentable {
     @Binding var filter: FilterType
+    @Binding var hideBalances: Bool
 
     func makeUIViewController(context: Context) -> FilterMenuViewController {
-        FilterMenuViewController(filter: $filter)
+        FilterMenuViewController(filter: $filter, hideBalances: $hideBalances)
     }
 
     func updateUIViewController(_ viewController: FilterMenuViewController, context: Context) {
         viewController.filter = $filter
+        viewController.hideBalances = $hideBalances
         viewController.installMenuIfNeeded()
     }
 }
 
 private final class FilterMenuViewController: UIViewController {
     var filter: Binding<FilterType>
+    var hideBalances: Binding<Bool>
     private weak var installedNavigationItem: UINavigationItem?
     private weak var installedBarButtonItem: UIBarButtonItem?
+    private weak var installedPrivacyButtonItem: UIBarButtonItem?
 
-    init(filter: Binding<FilterType>) {
+    init(filter: Binding<FilterType>, hideBalances: Binding<Bool>) {
         self.filter = filter
+        self.hideBalances = hideBalances
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -883,20 +1221,39 @@ private final class FilterMenuViewController: UIViewController {
     func installMenuIfNeeded() {
         guard let navigationItem = navigationController?.topViewController?.navigationItem else { return }
 
-        if installedNavigationItem !== navigationItem || installedBarButtonItem == nil {
+        if installedNavigationItem !== navigationItem || installedBarButtonItem == nil || installedPrivacyButtonItem == nil {
             let barButtonItem = UIBarButtonItem(
                 image: UIImage(systemName: "line.3.horizontal.decrease"),
                 menu: makeFilterMenu()
             )
             barButtonItem.accessibilityLabel = "Filtra"
             barButtonItem.accessibilityValue = filter.wrappedValue.italianTitle
-            navigationItem.rightBarButtonItem = barButtonItem
+
+            let privacyButtonItem = UIBarButtonItem(
+                image: UIImage(systemName: hideBalances.wrappedValue ? "eye.slash" : "eye"),
+                style: .plain,
+                target: self,
+                action: #selector(toggleBalanceVisibility)
+            )
+            privacyButtonItem.accessibilityLabel = hideBalances.wrappedValue ? "Mostra saldo" : "Nascondi saldo"
+            privacyButtonItem.accessibilityValue = hideBalances.wrappedValue ? "Saldo nascosto" : "Saldo visibile"
+
+            navigationItem.rightBarButtonItems = [barButtonItem, privacyButtonItem]
             installedNavigationItem = navigationItem
             installedBarButtonItem = barButtonItem
+            installedPrivacyButtonItem = privacyButtonItem
         } else {
             installedBarButtonItem?.menu = makeFilterMenu()
             installedBarButtonItem?.accessibilityValue = filter.wrappedValue.italianTitle
+            installedPrivacyButtonItem?.image = UIImage(systemName: hideBalances.wrappedValue ? "eye.slash" : "eye")
+            installedPrivacyButtonItem?.accessibilityLabel = hideBalances.wrappedValue ? "Mostra saldo" : "Nascondi saldo"
+            installedPrivacyButtonItem?.accessibilityValue = hideBalances.wrappedValue ? "Saldo nascosto" : "Saldo visibile"
         }
+    }
+
+    @objc private func toggleBalanceVisibility() {
+        hideBalances.wrappedValue.toggle()
+        installMenuIfNeeded()
     }
 
     private func makeFilterMenu() -> UIMenu {
@@ -915,6 +1272,8 @@ private final class FilterMenuViewController: UIViewController {
 
 struct TransactionsList: View {
     var filter: FilterType
+    var account: Account?
+    var currencyCode: String
     var category: Category?
     var date: Date
     var week: Date
@@ -926,34 +1285,69 @@ struct TransactionsList: View {
 
     @EnvironmentObject var dataController: DataController
 
-    @SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
-            SortDescriptor(\.day, order: .reverse),
-            SortDescriptor(\.date, order: .reverse),
-            SortDescriptor(\.note)
-        ], predicate: NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)) private var transactions: SectionedFetchResults<Date?, Transaction>
+    @SectionedFetchRequest<Date?, Transaction> private var transactions: SectionedFetchResults<Date?, Transaction>
+
+    init(
+        filter: FilterType,
+        account: Account?,
+        currencyCode: String,
+        category: Category?,
+        date: Date,
+        week: Date,
+        month: Date,
+        income: Bool
+    ) {
+        self.filter = filter
+        self.account = account
+        self.currencyCode = currencyCode
+        self.category = category
+        self.date = date
+        self.week = week
+        self.month = month
+        self.income = income
+
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg),
+            AccountBalanceService.transactionPredicate(for: account)
+        ])
+
+        _transactions = SectionedFetchRequest<Date?, Transaction>(
+            sectionIdentifier: \.day,
+            sortDescriptors: [
+                SortDescriptor(\.day, order: .reverse),
+                SortDescriptor(\.date, order: .reverse),
+                SortDescriptor(\.note)
+            ],
+            predicate: predicate
+        )
+    }
 
     var body: some View {
         VStack {
             if (filter == .all && showUpcoming) || filter == .upcoming {
-                FutureListView(dataController: dataController, filterMode: filter == .upcoming, limitedMode: showSoon)
+                FutureListView(account: account, currencyCode: currencyCode, dataController: dataController, filterMode: filter == .upcoming, limitedMode: showSoon)
                     .padding(.top, 10)
             }
 
             switch filter {
             case .all:
-                ListView(transactions: _transactions)
+                if transactions.isEmpty {
+                    NoResultsView(fullscreen: true)
+                } else {
+                    ListView(transactions: _transactions, accountCurrency: currencyCode, selectedAccount: account)
+                }
             case .category:
-                FilteredCategoryView(category: category)
+                FilteredCategoryView(category: category, account: account, currencyCode: currencyCode)
             case .day:
-                FilteredDateView(date: date)
+                FilteredDateView(date: date, account: account, currencyCode: currencyCode)
             case .week:
-                FilteredInsightsView(startDate: week, period: .week)
+                FilteredInsightsView(startDate: week, period: .week, account: account, currencyCode: currencyCode)
             case .month:
-                FilteredInsightsView(startDate: month, period: .month)
+                FilteredInsightsView(startDate: month, period: .month, account: account, currencyCode: currencyCode)
             case .recurring:
-                FilteredRecurringView()
+                FilteredRecurringView(account: account, currencyCode: currencyCode)
             case .type:
-                FilteredTypeView(income: income)
+                FilteredTypeView(income: income, account: account, currencyCode: currencyCode)
             case .upcoming:
                 EmptyView()
             }
@@ -963,12 +1357,19 @@ struct TransactionsList: View {
 
 struct ListView: View {
     @SectionedFetchRequest<Date?, Transaction> var transactions: SectionedFetchResults<Date?, Transaction>
+    var accountCurrency: String? = nil
+    var selectedAccount: Account? = nil
 
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
     @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
+    }
+
+    private var displayCurrency: String { accountCurrency ?? currency }
+    private var displayCurrencySymbol: String {
+        Locale.current.localizedCurrencySymbol(forCurrencyCode: displayCurrency) ?? currencySymbol
     }
     
     @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
@@ -980,7 +1381,7 @@ struct ListView: View {
 
     var body: some View {
         LazyVStack(spacing: 0) {
-            ForEach(transactions) { day in
+            ForEach(transactions, id: \.id) { day in
                 let filtered = filterOutDupes(day: day)
                 let dateText = dateConverter(date: day.id ?? Date.now).uppercased()
 
@@ -999,7 +1400,7 @@ struct ListView: View {
 //                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(homeSignedAmountColor(filtered.total, positive: Color.SubtitleText, neutral: Color.SubtitleText))
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(currencySymbol)\(String(format: "%.2f", filtered.string)) spesi \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
+                        .accessibilityLabel("\(displayCurrencySymbol)\(String(format: "%.2f", filtered.total)) spesi \(dateConverterAccessibilityLabel(date: day.id ?? Date.now))")
 
                         Line()
                             .stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
@@ -1008,14 +1409,14 @@ struct ListView: View {
                     .padding(.top, 10)
 
                     ForEach(filtered.transactions, id: \.id) { transaction in
-                        SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: currencySymbol, currency: currency, swapTimeLabel: swapTimeLabel, future: false, showExpenseOrIncomeSign: showExpenseOrIncomeSign)
+                        SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: displayCurrencySymbol, currency: displayCurrency, swapTimeLabel: swapTimeLabel, future: false, showExpenseOrIncomeSign: showExpenseOrIncomeSign, selectedAccount: selectedAccount)
                     }
                 }
                 .contentShape(RoundedRectangle(cornerRadius: 10))
                 .contextMenu {
                     if #available(iOS 16.0, *) {
                         Button {
-                            guard let image = ImageRenderer(content: SingleDayPhotoView(amountText: filtered.string, dateText: dateText, transactions: filtered.transactions, showCents: showCents, currencySymbol: currencySymbol, currency: currency, swapTimeLabel: swapTimeLabel, future: false)).uiImage else {
+                            guard let image = ImageRenderer(content: SingleDayPhotoView(amountText: filtered.string, dateText: dateText, transactions: filtered.transactions, showCents: showCents, currencySymbol: displayCurrencySymbol, currency: displayCurrency, swapTimeLabel: swapTimeLabel, future: false)).uiImage else {
                                 return
                             }
 
@@ -1045,7 +1446,7 @@ struct ListView: View {
 
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = currency
+        numberFormatter.currencyCode = displayCurrency
 
         if showCents {
             numberFormatter.maximumFractionDigits = 2
@@ -1053,7 +1454,7 @@ struct ListView: View {
             numberFormatter.maximumFractionDigits = 0
         }
 
-        let total = dayTotal(dayTransaction: filtered)
+        let total = dayTotal(dayTransaction: filtered, selectedAccount: selectedAccount)
 
         let text: String
 
@@ -1071,6 +1472,8 @@ struct FutureListView: View {
     @EnvironmentObject var dataController: DataController
 
     @FetchRequest private var fetchedResults: FetchedResults<Transaction>
+    let account: Account?
+    let currencyCode: String
     var filterMode: Bool
     var limitedMode: Bool
 
@@ -1110,6 +1513,10 @@ struct FutureListView: View {
     var currencySymbol: String {
         return Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)!
     }
+
+    private var displayCurrencySymbol: String {
+        Locale.current.localizedCurrencySymbol(forCurrencyCode: currencyCode) ?? currencySymbol
+    }
     
     @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     var showExpenseOrIncomeSign: Bool = true
@@ -1118,20 +1525,15 @@ struct FutureListView: View {
 
     var total: Double {
         transactions.reduce(0) { total, transaction in
-            if transaction.wrappedType == .income {
-                return total + transaction.amount
-            } else if transaction.wrappedType == .expense {
-                return total - transaction.amount
-            } else {
-                return total
-            }
+            guard let account else { return total }
+            return total + AccountBalanceService.signedMovementAmount(transaction, for: account)
         }
     }
 
     var totalString: String {
         let numberFormatter = NumberFormatter()
         numberFormatter.numberStyle = .currency
-        numberFormatter.currencyCode = currency
+        numberFormatter.currencyCode = currencyCode
 
         if showCents {
             numberFormatter.maximumFractionDigits = 2
@@ -1169,7 +1571,7 @@ struct FutureListView: View {
                 .padding(.horizontal, 10)
 
                 ForEach(transactions) { transaction in
-                    SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: currencySymbol, currency: currency, swapTimeLabel: swapTimeLabel, future: true, showExpenseOrIncomeSign: showExpenseOrIncomeSign)
+                    SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: displayCurrencySymbol, currency: currencyCode, swapTimeLabel: swapTimeLabel, future: true, showExpenseOrIncomeSign: showExpenseOrIncomeSign, selectedAccount: account)
                 }
             }
             .padding(.bottom, 18)
@@ -1180,16 +1582,32 @@ struct FutureListView: View {
         }
     }
 
-    init(dataController _: DataController, filterMode: Bool, limitedMode: Bool) {
+    init(account: Account?, currencyCode: String, dataController _: DataController, filterMode: Bool, limitedMode: Bool) {
         let recurringPredicate = NSPredicate(format: "%K > %i", #keyPath(Transaction.recurringType), 0)
         let futurePredicate = NSPredicate(format: "%K > %@", #keyPath(Transaction.date), Date.now as CVarArg)
 
-        let andPredicate = NSCompoundPredicate(type: .or, subpredicates: [recurringPredicate, futurePredicate])
+        let datePredicate = NSCompoundPredicate(type: .or, subpredicates: [recurringPredicate, futurePredicate])
+        let andPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            datePredicate,
+            AccountBalanceService.transactionPredicate(for: account)
+        ])
 
         _fetchedResults = FetchRequest<Transaction>(sortDescriptors: [], predicate: andPredicate)
 
+        self.account = account
+        self.currencyCode = currencyCode
         self.filterMode = filterMode
         self.limitedMode = limitedMode
+    }
+
+    init(dataController: DataController, filterMode: Bool, limitedMode: Bool) {
+        self.init(
+            account: nil,
+            currencyCode: UserDefaults(suiteName: "group.com.saied.sa7tot")?.string(forKey: "currency") ?? Locale.current.currencyCode ?? "EUR",
+            dataController: dataController,
+            filterMode: filterMode,
+            limitedMode: limitedMode
+        )
     }
 }
 
@@ -1201,6 +1619,7 @@ struct SingleTransactionView: View {
     let swapTimeLabel: Bool
     let future: Bool
     let showExpenseOrIncomeSign: Bool
+    let selectedAccount: Account?
 
     @EnvironmentObject var dataController: DataController
     @EnvironmentObject var transactionManager: OverallTransactionManager
@@ -1217,6 +1636,25 @@ struct SingleTransactionView: View {
         }
 
         return numberFormatter.string(from: NSNumber(value: transaction.amount)) ?? "$0"
+    }
+
+    private var signedAmount: Double {
+        guard let selectedAccount else {
+            return transaction.income ? transaction.amount : -transaction.amount
+        }
+        return AccountBalanceService.signedMovementAmount(transaction, for: selectedAccount)
+    }
+
+    private var accessibilityAmount: String {
+        let prefix: String
+        if transaction.isTransfer, selectedAccount != nil {
+            prefix = signedAmount >= 0 ? "+" : "-"
+        } else if transaction.income {
+            prefix = showExpenseOrIncomeSign ? "+" : ""
+        } else {
+            prefix = showExpenseOrIncomeSign ? "-" : ""
+        }
+        return "\(prefix)\(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount))"
     }
 
     private var stableTransactionIdentifier: String {
@@ -1244,10 +1682,11 @@ struct SingleTransactionView: View {
         .fixedSize(horizontal: false, vertical: true)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onTapGesture {
-            transactionManager.toEdit = transaction
+            transactionManager.detailSelectedAccount = selectedAccount
+            transactionManager.toDetail = transaction
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(transaction.wrappedNote), \(currencySymbol)\(String(format: "%.2f", transaction.wrappedAmount)), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
+        .accessibilityLabel("\(transaction.wrappedNote), \(accessibilityAmount), Categoria del movimento: \(transaction.category?.wrappedName ?? "Sconosciuta"), Movimento registrato: \(timeConverterAccessibilityLabel(date: transaction.wrappedDate))")
     }
 
     private var transactionRowContent: some View {
@@ -1276,7 +1715,7 @@ struct SingleTransactionView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(transaction.wrappedNote)
+                    Text(transaction.isTransfer ? "Trasferimento" : transaction.wrappedNote)
                         .font(.system(.body, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
@@ -1287,14 +1726,15 @@ struct SingleTransactionView: View {
                         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                         .foregroundColor(future ? Color.EvenLighterText : Color.SubtitleText)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if transaction.isTransfer {
-                    Text(transactionAmountString)
+                    Text(selectedAccount == nil ? transactionAmountString : "\(signedAmount >= 0 ? "+" : "-")\(transactionAmountString)")
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .monospacedDigit()
-                        .foregroundColor(homeSignedAmountColor(transaction.amount, positive: future ? Color.SubtitleText : Color.PrimaryText, neutral: future ? Color.SubtitleText : Color.PrimaryText))
+                        .foregroundColor(homeSignedAmountColor(signedAmount, positive: future ? Color.SubtitleText : Color.IncomeGreen, neutral: future ? Color.SubtitleText : Color.IncomeGreen))
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -1325,7 +1765,7 @@ struct SingleTransactionView: View {
 
     func getSubtitle() -> String {
         if transaction.isTransfer {
-            return "Trasferimento: \(transaction.account?.name ?? "Conto") → \(transaction.destinationAccount?.name ?? "Conto")"
+            return "\(transaction.account?.name ?? "Conto") → \(transaction.destinationAccount?.name ?? "Conto")"
         }
         if future {
             if transaction.wrappedDate > Date.now {
@@ -1337,12 +1777,184 @@ struct SingleTransactionView: View {
             if swapTimeLabel {
                 return transaction.wrappedCategoryName
             } else {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "h:mm a"
-
-                return formatter.string(from: transaction.wrappedDate)
+                return transaction.wrappedDate.sa7totTimeString
             }
         }
+    }
+}
+
+struct TransactionDetailView: View {
+    let transaction: Transaction
+    let selectedAccount: Account?
+
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var showCents = true
+
+    private var currencyCode: String {
+        selectedAccount?.currencyCode
+            ?? transaction.account?.currencyCode
+            ?? Locale.current.currencyCode
+            ?? "EUR"
+    }
+
+    private var currencySymbol: String {
+        Locale.current.localizedCurrencySymbol(forCurrencyCode: currencyCode) ?? currencyCode
+    }
+
+    private var amountDigits: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.currencyCode = currencyCode
+        formatter.minimumFractionDigits = showCents ? 2 : 0
+        formatter.maximumFractionDigits = showCents ? 2 : 0
+        return formatter.string(from: NSNumber(value: abs(transaction.amount))) ?? "0"
+    }
+
+    private var amountPrefix: String {
+        if transaction.isTransfer {
+            guard let selectedAccount else { return "" }
+            return AccountBalanceService.signedMovementAmount(transaction, for: selectedAccount) >= 0 ? "+" : "-"
+        }
+        return transaction.income ? "+" : "-"
+    }
+
+    private var amountAccessibilityValue: String {
+        "\(amountPrefix)\(currencySymbol)\(amountDigits)"
+    }
+
+    private var amountColor: Color {
+        let signedValue: Double
+        if transaction.isTransfer {
+            guard let selectedAccount else { return Color.SubtitleText }
+            signedValue = AccountBalanceService.signedMovementAmount(transaction, for: selectedAccount)
+        } else {
+            signedValue = transaction.income ? transaction.amount : -transaction.amount
+        }
+        return homeSignedAmountColor(signedValue, positive: Color.IncomeGreen, neutral: Color.IncomeGreen)
+    }
+
+    private var dateValue: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        return formatter.string(from: transaction.wrappedDate)
+    }
+
+    private var timeValue: String {
+        transaction.wrappedDate.sa7totTimeString
+    }
+
+    private var heroTitle: String {
+        if transaction.isTransfer {
+            return "Trasferimento"
+        }
+        let categoryName = transaction.category?.wrappedName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return categoryName.isEmpty ? "Movimento" : categoryName
+    }
+
+    var body: some View {
+        Group {
+            if #available(iOS 16.4, *) {
+                detailContent
+                    .presentationDetents([.fraction(0.58)])
+                    .presentationDragIndicator(.visible)
+                    .presentationContentInteraction(.scrolls)
+            } else if #available(iOS 16.0, *) {
+                detailContent
+                    .presentationDetents([.fraction(0.58)])
+                    .presentationDragIndicator(.visible)
+            } else {
+                detailContent
+            }
+        }
+    }
+
+    private var detailContent: some View {
+        NavigationView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    VStack(spacing: 8) {
+                        Text(heroTitle)
+                            .font(.system(.title2, design: .rounded).weight(.medium))
+                            .foregroundColor(Color.PrimaryText)
+
+                        HStack(alignment: .lastTextBaseline, spacing: 3) {
+                            Text("\(amountPrefix)\(currencySymbol)")
+                                .font(.system(.headline, design: .rounded).weight(.medium))
+                                .foregroundColor(Color.SubtitleText)
+
+                            Text(amountDigits)
+                                .font(ClashDisplayFont.font(size: 34))
+                                .foregroundColor(amountColor)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.55)
+                                .allowsTightening(true)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Importo, \(amountAccessibilityValue)")
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
+
+                    VStack(spacing: 0) {
+                        if !transaction.isTransfer, let categoryName = transaction.category?.wrappedName, !categoryName.isEmpty {
+                            detailRow(label: "Categoria", value: categoryName)
+                        }
+                        if !transaction.isTransfer, let accountName = transaction.account?.name, !accountName.isEmpty {
+                            detailRow(label: "Conto", value: accountName)
+                        }
+                        if transaction.isTransfer {
+                            detailRow(label: "Da", value: transaction.account?.name ?? "Conto")
+                            detailRow(label: "A", value: transaction.destinationAccount?.name ?? "Conto")
+                        }
+                        detailRow(label: "Data", value: dateValue)
+                        detailRow(label: "Ora", value: timeValue)
+                    }
+
+                    if !transaction.wrappedNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Nota")
+                                .font(.system(.subheadline, design: .rounded).weight(.medium))
+                                .foregroundColor(Color.SubtitleText)
+
+                            Text(transaction.wrappedNote)
+                                .font(.system(.body, design: .rounded))
+                                .foregroundColor(Color.PrimaryText)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.top, 20)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Chiudi") { dismiss() }
+                }
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
+
+    private func detailRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .foregroundColor(Color.SubtitleText)
+
+            Spacer(minLength: 12)
+
+            Text(value)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1388,6 +2000,8 @@ struct BackgroundBlurView: UIViewRepresentable {
 
 struct FilteredRecurringView: View {
     @SectionedFetchRequest<Date?, Transaction> private var transactions: SectionedFetchResults<Date?, Transaction>
+    let account: Account?
+    let currencyCode: String
 
     var body: some View {
         VStack(spacing: 30) {
@@ -1395,22 +2009,28 @@ struct FilteredRecurringView: View {
                 NoResultsView(fullscreen: true)
             }
 
-            ListView(transactions: _transactions)
+            ListView(transactions: _transactions, accountCurrency: currencyCode, selectedAccount: account)
         }
         .frame(maxHeight: .infinity)
     }
 
-    init() {
+    init(account: Account?, currencyCode: String) {
         let recurringPredicate = NSPredicate(format: "%K = %d", #keyPath(Transaction.onceRecurring), true)
         let datePredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [recurringPredicate, datePredicate])
+        let andPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            recurringPredicate,
+            datePredicate,
+            AccountBalanceService.transactionPredicate(for: account)
+        ])
 
         _transactions = SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
             SortDescriptor(\.day, order: .reverse),
             SortDescriptor(\.date, order: .reverse),
             SortDescriptor(\.note, order: .reverse)
         ], predicate: andPredicate)
+        self.account = account
+        self.currencyCode = currencyCode
     }
 }
 
@@ -1418,6 +2038,8 @@ struct FilteredTypeView: View {
     @SectionedFetchRequest<Date?, Transaction> private var transactions: SectionedFetchResults<Date?, Transaction>
 
     var income: Bool
+    let account: Account?
+    let currencyCode: String
 
     var body: some View {
         VStack(spacing: 30) {
@@ -1425,16 +2047,20 @@ struct FilteredTypeView: View {
                 NoResultsView(fullscreen: true)
             }
 
-            ListView(transactions: _transactions)
+            ListView(transactions: _transactions, accountCurrency: currencyCode, selectedAccount: account)
         }
         .frame(maxHeight: .infinity)
     }
 
-    init(income: Bool) {
+    init(income: Bool, account: Account?, currencyCode: String) {
         let incomePredicate = NSPredicate(format: "income = %d", income)
         let datePredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [incomePredicate, datePredicate])
+        let andPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            incomePredicate,
+            datePredicate,
+            AccountBalanceService.transactionPredicate(for: account)
+        ])
 
         _transactions = SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
             SortDescriptor(\.day, order: .reverse),
@@ -1442,6 +2068,8 @@ struct FilteredTypeView: View {
         ], predicate: andPredicate)
 
         self.income = income
+        self.account = account
+        self.currencyCode = currencyCode
     }
 }
 
@@ -1449,24 +2077,30 @@ struct FilteredCategoryView: View {
     @SectionedFetchRequest<Date?, Transaction> private var transactions: SectionedFetchResults<Date?, Transaction>
 
     var category: Category?
+    let account: Account?
+    let currencyCode: String
 
     var body: some View {
         VStack(spacing: 30) {
             if transactions.count == 0 || category == nil {
                 NoResultsView(fullscreen: true)
             } else {
-                ListView(transactions: _transactions)
+                ListView(transactions: _transactions, accountCurrency: currencyCode, selectedAccount: account)
             }
         }
         .frame(maxHeight: .infinity)
     }
 
-    init(category: Category?) {
+    init(category: Category?, account: Account?, currencyCode: String) {
         if let unwrappedCategory = category {
             let categoryPredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.category), unwrappedCategory)
             let datePredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
 
-            let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [categoryPredicate, datePredicate])
+            let andPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                categoryPredicate,
+                datePredicate,
+                AccountBalanceService.transactionPredicate(for: account)
+            ])
 
             _transactions = SectionedFetchRequest<Date?, Transaction>(sectionIdentifier: \.day, sortDescriptors: [
                 SortDescriptor(\.day, order: .reverse),
@@ -1480,6 +2114,8 @@ struct FilteredCategoryView: View {
         }
 
         self.category = category
+        self.account = account
+        self.currencyCode = currencyCode
     }
 }
 
@@ -1487,6 +2123,8 @@ struct FilteredDateView: View {
     @FetchRequest private var transactions: FetchedResults<Transaction>
 
     var date: Date
+    let account: Account?
+    let currencyCode: String
 
     @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
     var currencySymbol: String {
@@ -1506,23 +2144,33 @@ struct FilteredDateView: View {
                 NoResultsView(fullscreen: true)
             }
             ForEach(transactions) { transaction in
-                SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: currencySymbol, currency: currency, swapTimeLabel: swapTimeLabel, future: false, showExpenseOrIncomeSign: showExpenseOrIncomeSign)
+                SingleTransactionView(transaction: transaction, showCents: showCents, currencySymbol: displayCurrencySymbol, currency: currencyCode, swapTimeLabel: swapTimeLabel, future: false, showExpenseOrIncomeSign: showExpenseOrIncomeSign, selectedAccount: account)
             }
         }
         .frame(maxHeight: .infinity)
     }
 
-    init(date: Date) {
+    private var displayCurrencySymbol: String {
+        Locale.current.localizedCurrencySymbol(forCurrencyCode: currencyCode) ?? currencySymbol
+    }
+
+    init(date: Date, account: Account?, currencyCode: String) {
         let datePredicate = NSPredicate(format: "%K == %@", #keyPath(Transaction.day), date as CVarArg)
         let futurePredicate = NSPredicate(format: "%K <= %@", #keyPath(Transaction.date), Date.now as CVarArg)
 
-        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [futurePredicate, datePredicate])
+        let andPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            futurePredicate,
+            datePredicate,
+            AccountBalanceService.transactionPredicate(for: account)
+        ])
 
         _transactions = FetchRequest<Transaction>(sortDescriptors: [
             SortDescriptor(\.date, order: .reverse)
         ], predicate: andPredicate)
 
         self.date = date
+        self.account = account
+        self.currencyCode = currencyCode
     }
 }
 
@@ -2014,6 +2662,8 @@ struct MonthStepperView: View {
 
 struct FilteredInsightsView: View {
     @SectionedFetchRequest<Date?, Transaction> private var transactions: SectionedFetchResults<Date?, Transaction>
+    let account: Account?
+    let currencyCode: String
 
     var body: some View {
         VStack(spacing: 30) {
@@ -2021,12 +2671,12 @@ struct FilteredInsightsView: View {
                 NoResultsView(fullscreen: false)
             }
 
-            ListView(transactions: _transactions)
+            ListView(transactions: _transactions, accountCurrency: currencyCode, selectedAccount: account)
         }
         .frame(maxHeight: .infinity)
     }
 
-    init(startDate: Date, income: Bool? = nil, period: InsightsPeriod) {
+    init(startDate: Date, income: Bool? = nil, period: InsightsPeriod, account: Account?, currencyCode: String) {
         let startPredicate = NSPredicate(format: "%K >= %@", #keyPath(Transaction.date), startDate as CVarArg)
 
         let endPredicate: NSPredicate
@@ -2063,17 +2713,19 @@ struct FilteredInsightsView: View {
 
         if let unwrappedIncome = income {
             let incomePredicate = NSPredicate(format: "income = %d", unwrappedIncome)
-            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+            andPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 startPredicate,
                 endPredicate,
                 incomePredicate,
-                StatisticsTransactionFilter.excludingTransfersPredicate()
+                StatisticsTransactionFilter.excludingTransfersPredicate(),
+                AccountBalanceService.transactionPredicate(for: account)
             ])
         } else {
-            andPredicate = NSCompoundPredicate(type: .and, subpredicates: [
+            andPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 startPredicate,
                 endPredicate,
-                StatisticsTransactionFilter.excludingTransfersPredicate()
+                StatisticsTransactionFilter.excludingTransfersPredicate(),
+                AccountBalanceService.transactionPredicate(for: account)
             ])
         }
 
@@ -2081,6 +2733,8 @@ struct FilteredInsightsView: View {
             SortDescriptor(\.day, order: .reverse),
             SortDescriptor(\.date, order: .reverse)
         ], predicate: andPredicate)
+        self.account = account
+        self.currencyCode = currencyCode
     }
 }
 
@@ -2130,18 +2784,16 @@ func dateConverterAccessibilityLabel(date: Date) -> String {
 }
 
 func timeConverterAccessibilityLabel(date: Date) -> String {
-    let dateFormatter = DateFormatter()
-
-    dateFormatter.dateFormat = "h:mm a"
-
-    return dateFormatter.string(from: date)
+    date.sa7totTimeString
 }
 
-func dayTotal(dayTransaction: [Transaction]) -> Double {
+func dayTotal(dayTransaction: [Transaction], selectedAccount: Account? = nil) -> Double {
     var total = 0.0
 
     dayTransaction.forEach { transaction in
-        if transaction.wrappedType == .income {
+        if let selectedAccount {
+            total += AccountBalanceService.signedMovementAmount(transaction, for: selectedAccount)
+        } else if transaction.wrappedType == .income {
             total += transaction.amount
         } else if transaction.wrappedType == .expense {
             total -= transaction.amount

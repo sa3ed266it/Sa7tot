@@ -316,6 +316,31 @@ enum AccountAssignmentService {
 }
 
 enum AccountBalanceService {
+    static func transactionBelongs(_ transaction: Transaction, to account: Account) -> Bool {
+        transaction.account == account || transaction.destinationAccount == account
+    }
+
+    static func transactionPredicate(for account: Account?) -> NSPredicate {
+        guard let account else { return NSPredicate(value: false) }
+        return NSCompoundPredicate(orPredicateWithSubpredicates: [
+            NSPredicate(format: "%K == %@", #keyPath(Transaction.account), account),
+            NSPredicate(format: "%K == %@", #keyPath(Transaction.destinationAccount), account)
+        ])
+    }
+
+    static func signedMovementAmount(_ transaction: Transaction, for account: Account) -> Double {
+        guard transactionBelongs(transaction, to: account) else { return 0 }
+
+        switch transaction.wrappedType {
+        case .income:
+            return transaction.amount
+        case .expense:
+            return -transaction.amount
+        case .transfer:
+            return transaction.account == account ? -transaction.amount : transaction.amount
+        }
+    }
+
     static func balance(openingBalance: Double, type: AccountType, income: Double, expenses: Double) -> Double {
         type.isCredit ? openingBalance + expenses - income : openingBalance + income - expenses
     }
