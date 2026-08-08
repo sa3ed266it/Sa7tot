@@ -35,6 +35,7 @@ struct SingleDayPhotoView: View {
                         Spacer()
 
                         Text(amountText)
+                            .monospacedDigit()
                     }
                     .font(.system(size: 35, weight: .semibold, design: .rounded))
                     .foregroundColor(Color.SubtitleText)
@@ -140,6 +141,7 @@ struct SingleTransactionPhotoView: View {
                 Text("+\(transactionAmountString)")
                     .font(.system(size: 45, weight: .medium, design: .rounded))
                     .foregroundColor(future ? Color.SubtitleText : Color.IncomeGreen)
+                    .monospacedDigit()
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                     .layoutPriority(1)
@@ -147,6 +149,7 @@ struct SingleTransactionPhotoView: View {
                 Text("-\(transactionAmountString)")
                     .font(.system(size: 45, weight: .medium, design: .rounded))
                     .foregroundColor(future ? Color.SubtitleText : Color.PrimaryText)
+                    .monospacedDigit()
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                     .layoutPriority(1)

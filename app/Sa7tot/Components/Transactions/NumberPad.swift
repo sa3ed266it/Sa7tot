@@ -343,6 +343,7 @@ struct NumberPadTextView: View {
                 + Text(amount)
                     .font(.system(size: largerFontSize, weight: .regular, design: .rounded))
                     .foregroundColor(Color.PrimaryText)
+                    .monospacedDigit()
 
             }
         }

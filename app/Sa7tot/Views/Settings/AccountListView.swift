@@ -110,6 +110,7 @@ struct AccountListView: View {
                             Spacer()
                             Text(accountBalance(account), format: .currency(code: account.currencyCode ?? "EUR"))
                                 .font(.subheadline.weight(.semibold))
+                                .monospacedDigit()
                         }
                         .opacity(account.isArchived ? 0.5 : 1)
                     }
@@ -425,6 +426,7 @@ struct AccountEditorView: View {
                             .font(.headline)
                         Text(previewBalance, format: .currency(code: currencyCode))
                             .font(.subheadline)
+                            .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
@@ -458,6 +460,7 @@ struct AccountEditorView: View {
                                 }
                                 Spacer()
                                 Text(transaction.amount, format: .currency(code: account.currencyCode ?? "EUR"))
+                                    .monospacedDigit()
                             }
                         }
                     }
@@ -701,6 +704,7 @@ struct WalletReviewView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(transaction.amount, format: .currency(code: transaction.account?.currencyCode ?? "EUR"))
                         .font(.headline)
+                        .monospacedDigit()
                     TextField("Esercente", text: Binding(get: { transaction.merchant ?? "" }, set: { transaction.merchant = $0 }))
                     Text(transaction.account?.name ?? "Conto non disponibile")
                         .font(.caption)

@@ -387,15 +387,19 @@ struct MainBudgetView: View {
             HStack {
                 if totalSpent < 1000 && budgetAmount < 1000 {
                     Text("\(totalSpent, specifier: "%.2f")")
+                        .monospacedDigit()
                         .frame(width: 60, alignment: .leading)
                     Spacer()
                     Text("\(budgetAmount, specifier: "%.2f")")
+                        .monospacedDigit()
                         .frame(width: 60, alignment: .trailing)
                 } else {
                     Text("\(Int(round(totalSpent)))")
+                        .monospacedDigit()
                         .frame(width: 60, alignment: .leading)
                     Spacer()
                     Text("\(Int(round(budgetAmount)))")
+                        .monospacedDigit()
                         .frame(width: 60, alignment: .trailing)
                 }
             }
@@ -947,6 +951,7 @@ struct BudgetDollarView: View {
                 Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
                     .font(.system(dynamicTypeSizes.amount, design: .rounded).weight(.medium))
                     .foregroundColor(red ? Color("BudgetRed") : Color.PrimaryText)
+                    .monospacedDigit()
             }
         }
         .minimumScaleFactor(0.5)
@@ -973,6 +978,7 @@ struct DetailedBudgetDollarView: View {
                 Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
                     .font(.system(.largeTitle, design: .rounded).weight(.medium))
                     .foregroundColor(Color.PrimaryText)
+                    .monospacedDigit()
             }
         }
         .minimumScaleFactor(0.5)
@@ -1001,6 +1007,7 @@ struct DetailedBudgetDifferenceDollarView: View {
                 Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
                     .font(.system(.largeTitle, design: .rounded).weight(.medium))
                     .foregroundColor(red ? Color("BudgetRed") : Color.PrimaryText)
+                    .monospacedDigit()
             }
         }
         .minimumScaleFactor(0.5)
@@ -1644,8 +1651,10 @@ struct TimeBudgetView: View {
 
                 HStack {
                     Text("\(currencySymbol)\(totalSpent, specifier: "%.2f")")
+                        .monospacedDigit()
                     Spacer()
                     Text("\(currencySymbol)\(budgetAmount, specifier: "%.2f")")
+                        .monospacedDigit()
                 }
                 .frame(maxWidth: .infinity)
                 .font(.system(.caption, design: .rounded))
@@ -2135,8 +2144,10 @@ struct TimeMainBudgetView: View {
 
                 HStack {
                     Text("\(currencySymbol)\(totalSpent, specifier: "%.2f")")
+                        .monospacedDigit()
                     Spacer()
                     Text("\(currencySymbol)\(budgetAmount, specifier: "%.2f")")
+                        .monospacedDigit()
                 }
                 .frame(maxWidth: .infinity)
                 .font(.system(.caption, design: .rounded))

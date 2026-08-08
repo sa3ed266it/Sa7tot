@@ -94,6 +94,10 @@ struct LogView: View {
         min(max((balanceCollapseProgress - 0.50) / 0.28, 0), 1)
     }
 
+    private var currentNetTotal: (value: Double, positive: Bool) {
+        dataController.getLogViewTotalNet(type: 5)
+    }
+
     @ViewBuilder
     var body: some View {
         if usesNativeNavigation {
@@ -191,6 +195,7 @@ struct LogView: View {
                                     navBarText: $navBarText,
                                     showCents: showCents,
                                     currencySymbol: currencySymbol,
+                                    netTotal: currentNetTotal,
                                     collapseProgress: balanceCollapseProgress,
                                     handoff: balanceHandoff
                                 )
@@ -356,7 +361,8 @@ struct LogView: View {
                     if filter == .all {
                         CompactBalanceToolbarTitle(
                             showCents: showCents,
-                            currencySymbol: currencySymbol
+                            currencySymbol: currencySymbol,
+                            netTotal: currentNetTotal
                         )
                         .opacity(balanceHandoff)
                         .offset(y: 4 * (1 - balanceHandoff))
@@ -439,14 +445,9 @@ private struct HomeScrollProgressModifier: ViewModifier {
 }
 
 struct CompactBalanceToolbarTitle: View {
-    @EnvironmentObject var dataController: DataController
-
     let showCents: Bool
     let currencySymbol: String
-
-    var netTotal: (value: Double, positive: Bool) {
-        dataController.getLogViewTotalNet(type: 5)
-    }
+    let netTotal: (value: Double, positive: Bool)
 
     var formattedAmount: String {
         String(format: showCents ? "%.2f" : "%.0f", netTotal.value)
@@ -468,6 +469,7 @@ struct CompactBalanceToolbarTitle: View {
                 Text(formattedAmount)
                     .font(.system(.title3, design: .rounded).weight(.semibold))
                     .foregroundColor(Color.PrimaryText)
+                    .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
             }
@@ -530,6 +532,7 @@ struct NumberView: AnimatableModifier {
                 Text("\(number, specifier: showCents  ? "%.2f" : "%.0f")")
                     .font(.system(size: fontSize, weight: .regular, design: .rounded))
                     .foregroundColor(Color.PrimaryText)
+                    .monospacedDigit()
             }
         }
         .minimumScaleFactor(0.5)
@@ -546,6 +549,7 @@ struct LogInsightsView: View {
 
     let showCents: Bool
     let currencySymbol: String
+    let netTotal: (value: Double, positive: Bool)
     var collapseProgress: CGFloat = 0
     var handoff: CGFloat = 0
 
@@ -553,10 +557,6 @@ struct LogInsightsView: View {
     @AppStorage("logInsightsType", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var insightsType = 1
 
     @AppStorage("logViewLineGraph", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var lineGraph: Bool = false
-
-    var netTotal: (value: Double, positive: Bool) {
-        dataController.getLogViewTotalNet(type: 5)
-    }
 
     var range: Int {
         var calendar = Calendar(identifier: .gregorian)
@@ -699,6 +699,7 @@ struct LogInsightsView: View {
                     Text("+\(formatNumber(showCents: showCents, number: totalIncome))")
                         .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
+                        .monospacedDigit()
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.IncomeGreen)
                         .lineLimit(1)
@@ -711,6 +712,7 @@ struct LogInsightsView: View {
                     Text("-\(formatNumber(showCents: showCents, number: totalSpent))")
                         .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
+                        .monospacedDigit()
 //                        .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(Color.AlertRed)
                         .lineLimit(1)
@@ -989,6 +991,7 @@ struct ListView: View {
                             Spacer()
 
                             Text(filtered.string)
+                                .monospacedDigit()
                                 .layoutPriority(1)
                         }
                         .font(.system(.callout, design: .rounded).weight(.semibold))
@@ -1152,6 +1155,7 @@ struct FutureListView: View {
                         Spacer()
 
                         Text(totalString)
+                            .monospacedDigit()
                     }
                     .font(.system(.callout, design: .rounded).weight(.semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -1289,6 +1293,7 @@ struct SingleTransactionView: View {
                 if transaction.isTransfer {
                     Text(transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
+                        .monospacedDigit()
                         .foregroundColor(homeSignedAmountColor(transaction.amount, positive: future ? Color.SubtitleText : Color.PrimaryText, neutral: future ? Color.SubtitleText : Color.PrimaryText))
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
@@ -1296,6 +1301,7 @@ struct SingleTransactionView: View {
                 } else if transaction.income {
                     Text(showExpenseOrIncomeSign ? "+\(transactionAmountString)" : transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
+                        .monospacedDigit()
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundColor(homeSignedAmountColor(transaction.amount, positive: future ? Color.SubtitleText : Color.IncomeGreen, neutral: future ? Color.SubtitleText : Color.IncomeGreen))
                         .minimumScaleFactor(0.7)
@@ -1305,6 +1311,7 @@ struct SingleTransactionView: View {
                 } else {
                     Text(showExpenseOrIncomeSign ? "-\(transactionAmountString)" : transactionAmountString)
                         .font(.system(.title3, design: .rounded).weight(.medium))
+                        .monospacedDigit()
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundColor(homeSignedAmountColor(-abs(transaction.amount), positive: Color.AlertRed, neutral: Color.AlertRed))
                         .minimumScaleFactor(0.7)

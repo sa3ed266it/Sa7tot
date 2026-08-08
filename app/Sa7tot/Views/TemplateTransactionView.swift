@@ -347,6 +347,7 @@ struct TemplateTransactionView: View {
                                 Text(amount)
                                     .font(.system(size: downsize.big, weight: .regular, design: .rounded))
                                     .foregroundColor(Color.PrimaryText)
+                                    .monospacedDigit()
                             }
                             .frame(maxWidth: .infinity)
                             .overlay(alignment: .trailing) {
@@ -1133,6 +1134,7 @@ struct SingleTemplateButton: View {
                 Text(downsize.amountText)
                     .font(.system(size: downsize.big, weight: .semibold, design: .rounded))
                     .foregroundColor(Color.PrimaryText)
+                    .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

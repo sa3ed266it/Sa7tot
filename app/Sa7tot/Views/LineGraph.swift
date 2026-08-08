@@ -122,6 +122,7 @@ struct LineGraph: View {
                         Text(currentPlot?.amountString ?? "")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .foregroundColor(Color.PrimaryText)
+                            .monospacedDigit()
                     }
                     .frame(height: 33)
                     .padding(.horizontal, 7)

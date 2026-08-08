@@ -52,6 +52,7 @@ struct SuggestedTransactions: View {
 
                             Text("\(currencySymbol)\(Int(round(transaction.wrappedAmount)))")
                                 .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .monospacedDigit()
                                 .lineLimit(1)
                                 .foregroundStyle(Color(hex: transaction.wrappedColour))
                                 .padding(.vertical, 3.5)

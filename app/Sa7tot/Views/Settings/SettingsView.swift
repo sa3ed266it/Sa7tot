@@ -279,16 +279,6 @@ struct SettingsView: View {
           .buttonStyle(.plain)
         }
 
-        SettingsCard(title: "AVANZATE") {
-          SettingsNavigationRow(title: "Feedback aptico", subtitle: hapticValue, systemImage: "hand.tap.fill", tint: .pink) {
-            SettingsHapticsView()
-          }
-          SettingsDivider()
-          Button { } label: {
-            SettingsRowLayout(title: "Laboratorio funzioni", systemImage: "flame.fill", tint: .orange) { EmptyView() }
-          }
-          .buttonStyle(.plain)
-        }
       }
       .padding(.horizontal, 16)
       .padding(.top, 8)

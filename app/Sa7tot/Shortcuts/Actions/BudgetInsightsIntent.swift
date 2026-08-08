@@ -129,6 +129,7 @@ struct ShortcutBudgetView: View {
         VStack(spacing: 2) {
             Text(amountString)
                 .font(.system(size: 32, weight: .medium, design: .rounded))
+                .monospacedDigit()
                 .lineLimit(1)
 
             if amount > 0 {
