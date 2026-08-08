@@ -98,6 +98,7 @@ struct SettingsView: View {
 
   @State var showImportGuide = false
   @State private var showCategoriesSheet = false
+  @State private var showEraseConfirmation = false
 
   var body: some View {
     Group {
@@ -126,6 +127,17 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
       }
+    }
+    .alert(
+      "Zona pericolosa",
+      isPresented: $showEraseConfirmation
+    ) {
+      Button("Elimina tutto definitivamente", role: .destructive) {
+        dataController.deleteAll()
+      }
+      Button("Annulla", role: .cancel) { }
+    } message: {
+      Text("Questa azione eliminerà tutti i movimenti, le categorie e i budget esistenti e non può essere annullata.")
     }
   }
 
@@ -261,9 +273,10 @@ struct SettingsView: View {
           }
           .buttonStyle(.plain)
           SettingsDivider()
-          SettingsNavigationRow(title: "Elimina dati", subtitle: nil, systemImage: "trash.fill", tint: .red) {
-            SettingsEraseView()
+          Button { showEraseConfirmation = true } label: {
+            SettingsRowLayout(title: "Elimina dati", systemImage: "trash.fill", tint: .red) { EmptyView() }
           }
+          .buttonStyle(.plain)
         }
 
         SettingsCard(title: "AVANZATE") {
