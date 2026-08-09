@@ -341,7 +341,7 @@ struct RemoteMovimentiView: View {
                 .padding(.top, 10)
 
                 ForEach(day.movements) { transaction in
-                    RemoteMovementRow(transaction: transaction, showCents: showCents, hideBalances: hideBalances) {
+                    RemoteMovementRow(transaction: transaction, showCents: showCents) {
                         detail = transaction
                     } onEdit: {
                         guard transaction.kind != .transfer else { return }
@@ -381,7 +381,7 @@ struct RemoteMovimentiView: View {
                 .padding(.top, 10)
 
                 ForEach(store.upcomingItems) { item in
-                    RemoteMovementRow(upcoming: item, showCents: showCents, hideBalances: hideBalances)
+                    RemoteMovementRow(upcoming: item, showCents: showCents)
                         .padding(.horizontal, 10)
                 }
             }
@@ -786,26 +786,23 @@ private struct RemoteMovementRow: View {
     let transaction: RemoteTransactionDTO?
     let upcoming: RemoteUpcomingItemDTO?
     let showCents: Bool
-    let hideBalances: Bool
     let onDetail: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
 
-    init(transaction: RemoteTransactionDTO, showCents: Bool, hideBalances: Bool, onDetail: @escaping () -> Void, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    init(transaction: RemoteTransactionDTO, showCents: Bool, onDetail: @escaping () -> Void, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.transaction = transaction
         self.upcoming = nil
         self.showCents = showCents
-        self.hideBalances = hideBalances
         self.onDetail = onDetail
         self.onEdit = onEdit
         self.onDelete = onDelete
     }
 
-    init(upcoming: RemoteUpcomingItemDTO, showCents: Bool, hideBalances: Bool) {
+    init(upcoming: RemoteUpcomingItemDTO, showCents: Bool) {
         self.transaction = nil
         self.upcoming = upcoming
         self.showCents = showCents
-        self.hideBalances = hideBalances
         self.onDetail = {}
         self.onEdit = {}
         self.onDelete = {}
@@ -835,9 +832,6 @@ private struct RemoteMovementRow: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                         .layoutPriority(1)
-                        .blur(radius: hideBalances ? remotePrivacyBlurRadius : 0)
-                        .opacity(hideBalances ? 0.72 : 1)
-                        .animation(remotePrivacyTransition, value: hideBalances)
                 }
             }
             .padding(.vertical, 8)
