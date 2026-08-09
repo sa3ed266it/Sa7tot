@@ -51,8 +51,6 @@ extension Color {
         "24": "#D46D7F"
     ]
 
-    static let colorArray: [String] = StatisticsCategoryColor.paletteHex
-
     static let neuBackground = Color(hex: "f0f0f3")
     static let dropShadow = Color(hex: "aeaec0").opacity(0.4)
     static let dropLight = Color(hex: "ffffff")
@@ -168,12 +166,6 @@ extension Color {
 
     static var EvenLighterText: Color {
         return Color("EvenLighterText")
-    }
-}
-
-extension Category {
-    var statisticsColor: Color {
-        Color(hex: StatisticsCategoryColor.hex(for: self))
     }
 }
 

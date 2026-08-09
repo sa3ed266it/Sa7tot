@@ -6,13 +6,11 @@
 //
 
 import Combine
-import ConfettiSwiftUI
 import Foundation
 import StoreKit
 import SwiftUI
 import UIKit
 import UserNotifications
-import WidgetKit
 
 struct SettingsView: View {
   let usesNativeNavigation: Bool
@@ -42,17 +40,7 @@ struct SettingsView: View {
   @State private var showingNotificationPermissionAlert = false
 
   @EnvironmentObject var appLockVM: AppLockViewModel
-  @Environment(\.managedObjectContext) private var moc
-  @EnvironmentObject private var dataController: DataController
   @Namespace var animation
-
-  var iCloudString: String {
-    if NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") {
-      return String(localized: "On")
-    } else {
-      return String(localized: "Off")
-    }
-  }
 
   @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showCents: Bool = true
@@ -69,18 +57,6 @@ struct SettingsView: View {
   @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showExpenseOrIncomeSign: Bool = true
 
-  @AppStorage(
-    "showUpcomingTransactions", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var showUpcoming: Bool = true
-
-  var upcomingString: String {
-    if showUpcoming {
-      return String(localized: "Shown")
-    } else {
-      return String(localized: "Hidden")
-    }
-  }
-
     @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     var hapticType: Int = 1
 
@@ -96,9 +72,7 @@ struct SettingsView: View {
 
   // popups
 
-  @State var showImportGuide = false
   @State private var showCategoriesSheet = false
-  @State private var showEraseConfirmation = false
 
   var body: some View {
     Group {
@@ -110,34 +84,22 @@ struct SettingsView: View {
         else { NavigationView { settingsList } }
       }
     }
-    .fullScreenCover(isPresented: $showImportGuide) { ImportDataView() }
     .sheet(isPresented: $showCategoriesSheet) {
       if #available(iOS 16.0, *) {
         NavigationStack {
-          CategoryView(mode: .settings, income: false)
-            .navigationTitle("Categorie")
-            .navigationBarTitleDisplayMode(.inline)
+          if #available(iOS 26.0, *) {
+            RemoteCategoryListView()
+          } else {
+            RemoteConfigurationUnavailableView()
+          }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
       } else {
         NavigationView {
-          CategoryView(mode: .settings, income: false)
-            .navigationTitle("Categorie")
-            .navigationBarTitleDisplayMode(.inline)
+          RemoteConfigurationUnavailableView()
         }
       }
-    }
-    .alert(
-      "Zona pericolosa",
-      isPresented: $showEraseConfirmation
-    ) {
-      Button("Elimina tutto definitivamente", role: .destructive) {
-        dataController.deleteAll()
-      }
-      Button("Annulla", role: .cancel) { }
-    } message: {
-      Text("Questa azione eliminerà tutti i movimenti, le categorie e i budget esistenti e non può essere annullata.")
     }
   }
 
@@ -185,20 +147,30 @@ struct SettingsView: View {
         SettingsCard(title: "GESTIONE") {
           if usesNativeNavigation {
             NativeSettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
-              nativeNavigationRouter?.pushAccounts(
-                AccountListView()
-                  .environment(\.managedObjectContext, moc)
-                  .environmentObject(dataController)
-              )
+              if #available(iOS 26.0, *) {
+                nativeNavigationRouter?.pushAccounts(RemoteAccountListView())
+              } else {
+                nativeNavigationRouter?.pushView(RemoteConfigurationUnavailableView())
+              }
             }
           } else {
             SettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
-              AccountListView()
+              if #available(iOS 26.0, *) {
+                RemoteAccountListView()
+              } else {
+                RemoteConfigurationUnavailableView()
+              }
             }
           }
           SettingsDivider()
-          SettingsNavigationRow(title: "Automazione Wallet", subtitle: "Comandi Rapidi", systemImage: "wallet.pass.fill", tint: .orange) {
-            WalletAutomationView()
+          if usesNativeNavigation {
+            NativeSettingsNavigationRow(title: "Budget", subtitle: "Gestisci i tuoi budget", systemImage: "chart.pie.fill", tint: .purple) {
+              nativeNavigationRouter?.pushView(RemoteBudgetView())
+            }
+          } else {
+            SettingsNavigationRow(title: "Budget", subtitle: "Gestisci i tuoi budget", systemImage: "chart.pie.fill", tint: .purple) {
+              RemoteBudgetView()
+            }
           }
         }
 
@@ -238,10 +210,6 @@ struct SettingsView: View {
             Toggle("", isOn: $showCents).labelsHidden().tint(.green)
           }
           SettingsDivider()
-          SettingsNavigationRow(title: "Movimenti futuri", subtitle: upcomingValue, systemImage: "clock.arrow.circlepath", tint: .orange) {
-            SettingsUpcomingView()
-          }
-          SettingsDivider()
           SettingsRowLayout(title: "Mostra simbolo +/-", systemImage: "plus.forwardslash.minus", tint: .pink) {
             Toggle("", isOn: $showExpenseOrIncomeSign).labelsHidden().tint(.green)
           }
@@ -258,25 +226,6 @@ struct SettingsView: View {
             }
           }
           .buttonStyle(.plain)
-          SettingsDivider()
-          SettingsNavigationRow(title: "iCloud", subtitle: iCloudValue, systemImage: "icloud.fill", tint: .blue) {
-            SettingsCloudView()
-          }
-          SettingsDivider()
-          Button { showImportGuide = true } label: {
-            SettingsRowLayout(title: "Importa dati", systemImage: "arrow.down.circle.fill", tint: .green) { EmptyView() }
-          }
-          .buttonStyle(.plain)
-          SettingsDivider()
-          Button { exportData() } label: {
-            SettingsRowLayout(title: "Esporta dati", systemImage: "arrow.up.circle.fill", tint: .orange) { EmptyView() }
-          }
-          .buttonStyle(.plain)
-          SettingsDivider()
-          Button { showEraseConfirmation = true } label: {
-            SettingsRowLayout(title: "Elimina dati", systemImage: "trash.fill", tint: .red) { EmptyView() }
-          }
-          .buttonStyle(.plain)
         }
 
       }
@@ -291,11 +240,6 @@ struct SettingsView: View {
       if let weekday = Sa7totWeekday(rawValue: newValue) {
         Sa7totCalendarSettings.updateWeekday(weekday)
       }
-    }
-    .onChange(of: showCents) { _ in WidgetCenter.shared.reloadAllTimelines() }
-    .onChange(of: currency) { newValue in
-      NSUbiquitousKeyValueStore.default.set(newValue, forKey: "currency")
-      WidgetCenter.shared.reloadAllTimelines()
     }
     .onChange(of: scenePhase) { newPhase in
       if newPhase == .active { refreshNotificationPermission() }
@@ -383,20 +327,12 @@ struct SettingsView: View {
     guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
     UIApplication.shared.open(settingsURL)
   }
-  private var upcomingValue: String {
-    showUpcoming ? "Mostrati" : "Nascosti"
-  }
-
   private var themeValue: String {
     switch colourScheme {
     case 1: return "Chiaro"
     case 2: return "Scuro"
     default: return "Sistema"
     }
-  }
-
-  private var iCloudValue: String {
-    NSUbiquitousKeyValueStore.default.bool(forKey: "icloud_sync") ? "Attivo" : "Disattivo"
   }
 
   private var hapticValue: String {
@@ -467,48 +403,6 @@ struct SettingsView: View {
     .frame(maxWidth: .infinity)
   }
 
-  func exportData() {
-    let fetchRequest = dataController.fetchRequestForExport()
-    let transactions = dataController.results(for: fetchRequest)
-
-    let fileName = "export.csv"
-    let path = NSURL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
-    var csvText = "Date,Note,Amount,Category,Type\n"
-
-    for transaction in transactions {
-      var string = transaction.wrappedNote
-      let type: String
-
-      if transaction.income {
-        type = "Income"
-      } else {
-        type = "Expense"
-      }
-
-      string.removeAll(where: { $0 == "," })
-
-      csvText +=
-        "\(transaction.wrappedDate),\(string),\(String(format: "%.2f", transaction.wrappedAmount)),\(transaction.category?.wrappedName ?? ""),\(type)\n"
-    }
-
-    do {
-      try csvText.write(to: path!, atomically: true, encoding: String.Encoding.utf8)
-    } catch {
-      print("\(error)")
-    }
-
-    var filesToShare = [Any]()
-    filesToShare.append(path!)
-
-    let av = UIActivityViewController(activityItems: filesToShare, applicationActivities: nil)
-
-    let allScenes = UIApplication.shared.connectedScenes
-    let scene = allScenes.first { $0.activationState == .foregroundActive }
-
-    if let windowScene = scene as? UIWindowScene {
-      windowScene.keyWindow?.rootViewController?.present(av, animated: true, completion: nil)
-    }
-  }
 }
 
 private struct SettingsCard<Content: View>: View {
@@ -653,9 +547,13 @@ final class NativeSettingsNavigationRouter: ObservableObject {
   weak var navigationController: UINavigationController?
 
   func pushAccounts<Destination: View>(_ destination: Destination) {
+    pushView(destination)
+  }
+
+  func pushView<Destination: View>(_ destination: Destination) {
     assert(
       navigationController?.tabBarController != nil,
-      "Conti must be pushed by the navigation controller inside the native tab bar controller."
+      "Settings destinations must be pushed by the navigation controller inside the native tab bar controller."
     )
     guard let navigationController,
           navigationController.tabBarController != nil else { return }
@@ -772,6 +670,7 @@ private struct SettingsNativeIcon: View {
   }
 }
 
+#if false
 struct TipJarAlert: View {
   @Environment(\.dismiss) var dismiss
   @Environment(\.colorScheme) var systemColorScheme
@@ -804,6 +703,9 @@ struct TipJarAlert: View {
   //    }
 
   var body: some View {
+    let caption = bottomCaption
+    let supportMessage = "Hey! Sa7tot was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Sa7tot and want to support development, please consider a small tip."
+
     ZStack(alignment: .bottom) {
       Color.AppPageBackground.opacity(opacity)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -881,9 +783,7 @@ struct TipJarAlert: View {
               .offset(x: 5, y: -5)
             }
 
-            Text(
-              "Hey! Sa7tot was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Sa7tot and want to support development, please consider a small tip."
-            )
+            Text(supportMessage)
             .font(.system(.callout, design: .rounded).weight(.medium))
 
             //                            .font(.system(size: 16, weight: .medium, design: .rounded))
@@ -897,7 +797,7 @@ struct TipJarAlert: View {
             )
             .padding(.bottom, 20)
 
-            Text(bottomCaption)
+            Text(verbatim: caption)
               .font(.system(.subheadline, design: .rounded).weight(.medium))
 
               //                                .font(.system(size: 14, weight: .medium, design: .rounded))
@@ -1005,6 +905,8 @@ struct ProductView: View {
     }
   }
 }
+
+#endif
 
 struct SettingsRowView: View {
   var systemImage: String

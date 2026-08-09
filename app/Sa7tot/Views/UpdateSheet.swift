@@ -8,6 +8,12 @@
 import Foundation
 import SwiftUI
 
+struct WelcomeSheetFeatureRow: Hashable {
+    let icon: String
+    let header: String
+    let subtitle: String
+}
+
 struct UpdateAlert: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var systemColorScheme

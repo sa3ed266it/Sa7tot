@@ -5,11 +5,9 @@
 //
 
 import SwiftUI
-import WidgetKit
 
 struct ContentView: View {
     @EnvironmentObject var appLockVM: AppLockViewModel
-    @EnvironmentObject var dataController: DataController
 
     @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var colourScheme: Int = 0
     @Environment(\.scenePhase) var scenePhase
@@ -18,16 +16,6 @@ struct ContentView: View {
 
     @AppStorage("firstLaunch", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var firstLaunch: Bool = true
 
-    // adds category orders
-    @AppStorage("dataMigration1", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var dataMigration1: Bool = true
-
-    // converts category colors to hex codes
-    @AppStorage("dataMigration2", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var dataMigration2: Bool = true
-
-
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
-
-    @State var showIntro: Bool = false
     @State var showUpdate: Bool = false
 
     var center = UNUserNotificationCenter.current()
@@ -49,9 +37,6 @@ struct ContentView: View {
             HomeView(topEdge: topEdge, bottomEdge: bottomEdge == 0 ? 15 : bottomEdge)
                 .ignoresSafeArea(.all, edges: .bottom)
                 .preferredColorScheme(colourScheme == 1 ? .light : colourScheme == 2 ? .dark : nil)
-                .fullScreenCover(isPresented: $showIntro) {
-                    WelcomeSheetView()
-                }
                 .fullScreenCover(isPresented: $showUpdate) {
                     UpdateAlert()
                 }
@@ -61,25 +46,7 @@ struct ContentView: View {
                 }
         }
         .ignoresSafeArea(.keyboard)
-        .alert("Errore migrazione conti", isPresented: Binding(
-            get: { dataController.accountMigrationErrorMessage != nil },
-            set: { if !$0 { dataController.clearAccountMigrationError() } }
-        )) {
-            Button("OK", role: .cancel) { dataController.clearAccountMigrationError() }
-        } message: {
-            Text(dataController.accountMigrationErrorMessage ?? "Impossibile completare la migrazione dei conti.")
-        }
-        .alert("Impossibile salvare", isPresented: Binding(
-            get: { dataController.persistenceErrorMessage != nil },
-            set: { if !$0 { dataController.clearPersistenceError() } }
-        )) {
-            Button("OK", role: .cancel) { dataController.clearPersistenceError() }
-        } message: {
-            Text(dataController.persistenceErrorMessage ?? "Le modifiche non sono state salvate. Riprova.")
-        }
         .onAppear {
-//            UserDefaults(suiteName: "group.com.saied.sa7tot")!.set(false, forKey: "newTransactionAdded")
-//            WidgetCenter.shared.reloadTimelines(ofKind: "TemplateTransactions")
 
             if appLockVM.isAppLockEnabled {
                 appLockVM.appLockValidation()
@@ -91,7 +58,6 @@ struct ContentView: View {
 
 
             if firstLaunch {
-                showIntro = true
                 firstLaunch = false
                 showUpdateSheet = false
 
@@ -104,52 +70,7 @@ struct ContentView: View {
                 defaults.set(true, forKey: "showCents")
                 defaults.set(true, forKey: "animated")
 
-                if NSUbiquitousKeyValueStore.default.string(forKey: "currency") == nil {
-                    NSUbiquitousKeyValueStore.default.set(Locale.current.currencyCode!, forKey: "currency")
-                } else {
-                    currency = NSUbiquitousKeyValueStore.default.string(forKey: "currency")!
-                }
-
                 defaults.set(2, forKey: "numberEntryType")
-            } else {
-                if let holdingCurrency = NSUbiquitousKeyValueStore.default.string(forKey: "currency") {
-                    currency = holdingCurrency
-                } else {
-                    currency = Locale.current.currencyCode!
-                    NSUbiquitousKeyValueStore.default.set(Locale.current.currencyCode!, forKey: "currency")
-                }
-            }
-
-            if dataMigration1 {
-                let categoryFetch = dataController.fetchRequestForCategoriesMigration(income: false)
-                let categories = dataController.results(for: categoryFetch)
-
-                categories.forEach { category in
-                    category.order = Int64(categories.firstIndex(of: category) ?? 0)
-                }
-
-                do { try dataController.save() } catch { dataController.reportPersistenceFailure(error) }
-
-                dataMigration1 = false
-            }
-
-            if dataMigration2 {
-                let categoryFetch = dataController.fetchRequestForCategoriesMigration()
-                let categories = dataController.results(for: categoryFetch)
-
-                categories.forEach { category in
-                    if category.income {
-                        category.colour = "#76FBB1"
-                    } else {
-                        if Double(category.wrappedColour) != nil {
-                            category.colour = Color.colourMigrationDictionary[category.wrappedColour] ?? "#FFFFFF"
-                        }
-                    }
-                }
-
-                do { try dataController.save() } catch { dataController.reportPersistenceFailure(error) }
-
-                dataMigration2 = false
             }
 
             if showUpdateSheet {

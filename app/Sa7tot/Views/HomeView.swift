@@ -1,68 +1,16 @@
 //
 //  HomeView.swift
-//  xpenz
-//
-//  Created by Rafael Soh on 20/5/22.
+//  Sa7tot
 //
 
-import ConfettiSwiftUI
-import CoreData
 import Foundation
 import SwiftUI
-import UIKit
-
-class OverallToastPresenter: ObservableObject {
-    @Published var showToast: Bool = false
-}
-
-enum DeletionType {
-    case instant
-    case prompt
-}
-
-class OverallTransactionManager: ObservableObject {
-    @Published var toEdit: Transaction?
-    @Published var toDetail: Transaction?
-    @Published var detailSelectedAccount: Account?
-    @Published var toDelete: Transaction?
-    @Published var showToast: Bool = false
-    @Published var showPopup: Bool = false
-    @Published var future: Bool = false
-}
 
 struct HomeView: View {
-    @EnvironmentObject var appLockVM: AppLockViewModel
-    @EnvironmentObject var unlockManager: UnlockManager
+    @EnvironmentObject private var remoteFinancialStore: FinancialRemoteStore
 
-    @StateObject var toastPresenter = OverallToastPresenter()
-    @StateObject var transactionManager = OverallTransactionManager()
-    @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var dataController: DataController
-
-    @State var currentTab = "Log"
-    @State private var searchText = ""
-    @State private var suppressInitialSearchActivation = true
-    @State private var launchedFromSearchURL = false
-    @StateObject private var nativeSettingsNavigationRouter = NativeSettingsNavigationRouter()
-
-    var topEdge: CGFloat
-    var bottomEdge: CGFloat
-
-    @State var fromURL1: Bool = false
-    @State var fromURL2: Bool = false
-    @State var fromURL4: Bool = false
-
-    @State var launchAdd: Bool = false
-    @State var counter = 0
-
-    @FetchRequest(sortDescriptors: []) private var transactions: FetchedResults<Transaction>
-    @State private var addTransaction = false
-    @State private var addTransactionCount = 0
-    @State private var selectedMovementsAccountID: NSManagedObjectID?
-    @State private var preferredAddAccountID: NSManagedObjectID?
-
-    @AppStorage("confetti", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var confetti = false
-    @AppStorage("firstTransactionViewLaunch", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var firstTransactionViewLaunch = true
+    let topEdge: CGFloat
+    let bottomEdge: CGFloat
 
     init(topEdge: CGFloat, bottomEdge: CGFloat) {
         self.topEdge = topEdge
@@ -70,313 +18,77 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ZStack {
-            if #available(iOS 26.0, *) {
-                modernTabView
+        if #available(iOS 26.0, *) {
+            if remoteFinancialStore.isRemoteOnly {
+                RemoteFinancialHomeView(topEdge: topEdge, bottomEdge: bottomEdge)
             } else {
-                legacyTabView
-            }
-
-            if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
-                AppLockView()
-                    .ignoresSafeArea(.all)
-                    .onOpenURL { url in
-
-                        if url.host == "newExpense" {
-                            fromURL1 = true
-                        } else if url.host == "search" {
-                            launchedFromSearchURL = true
-                            fromURL2 = true
-                        } else if url.host == "budget" {
-                            fromURL4 = true
-                        }
-                    }
-            }
-        }
-        .toast(isPresenting: $toastPresenter.showToast, duration: 4, tapToDismiss: true, offsetY: 12, alert: {
-            AlertToast(displayMode: .hud, type: .systemImage("checkmark.circle.fill", Color.IncomeGreen), title: "Immagine salvata", subTitle: "Guardala nell'app Foto")
-        })
-        .toast(isPresenting: $transactionManager.showToast, duration: 4, tapToDismiss: true, offsetY: 12, alert: {
-            AlertToast(displayMode: .hud, type: .systemImage("arrow.uturn.backward.circle.fill", Color.AlertRed), title: "Movimento eliminato", subTitle: "Tocca per annullare")
-        }, onTap: {
-            withAnimation(.easeInOut(duration: 0.5)) {
-                moc.rollback()
-            }
-            transactionManager.toDelete = nil
-        }, completion: {
-            do { try dataController.save() } catch { moc.rollback() }
-            transactionManager.toDelete = nil
-        })
-        .alert(deleteAlertTitle, isPresented: $transactionManager.showPopup) {
-            Button(deleteAlertActionTitle, role: .destructive) {
-                confirmDeletion()
-            }
-            Button("Annulla", role: .cancel) {
-                transactionManager.toDelete = nil
-            }
-        } message: {
-            Text(deleteAlertMessage)
-        }
-        .sheet(item: $transactionManager.toEdit, onDismiss: {
-            transactionManager.toEdit = nil
-        }) { transaction in
-            TransactionView(toEdit: transaction)
-                .modifier(TransactionEditorSheetPresentation())
-        }
-        .sheet(item: $transactionManager.toDetail, onDismiss: {
-            transactionManager.toDetail = nil
-            transactionManager.detailSelectedAccount = nil
-        }) { transaction in
-            TransactionDetailView(
-                transaction: transaction,
-                selectedAccount: transactionManager.detailSelectedAccount
-            )
-        }
-        .sheet(isPresented: $addTransaction, onDismiss: {
-            preferredAddAccountID = nil
-            if confetti && addTransactionCount != transactions.count {
-                counter += 1
-            }
-            if firstTransactionViewLaunch {
-                firstTransactionViewLaunch = false
-            }
-        }) {
-            TransactionView(toEdit: nil, preferredAccountID: preferredAddAccountID)
-                .modifier(TransactionEditorSheetPresentation())
-        }
-        .confettiCannon(counter: $counter, num: 50, openingAngle: Angle(degrees: 0), closingAngle: Angle(degrees: 360), radius: 200)
-        .onAppear {
-            if appLockVM.isAppLockEnabled && fromURL1 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    launchAdd.toggle()
-                }
-
-                fromURL1 = false
-            }
-
-            if appLockVM.isAppLockEnabled && fromURL2 {
-                currentTab = "Search"
-                fromURL2 = false
-            }
-
-            if appLockVM.isAppLockEnabled && fromURL4 {
-                currentTab = "Budget"
-            }
-
-            if suppressInitialSearchActivation {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    if !launchedFromSearchURL {
-                        currentTab = "Log"
-                    }
-                    suppressInitialSearchActivation = false
-                }
-            }
-        }
-        .onOpenURL { url in
-            if url.host == "newExpense" {
-                if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
-                    fromURL1 = true
-                } else {
-                    presentAddMovement()
-                }
-            } else if url.host == "search" {
-                if appLockVM.isAppLockEnabled && !appLockVM.isAppUnLocked {
-                    launchedFromSearchURL = true
-                    fromURL2 = true
-                } else {
-                    launchedFromSearchURL = true
-                    currentTab = "Search"
-                }
-            } else if url.host == "budget" {
-                currentTab = "Budget"
-            }
-        }
-    }
-
-    private var deleteAlertIsRecurring: Bool {
-        guard let transaction = transactionManager.toDelete else { return false }
-        return transactionManager.future && transaction.wrappedDate < Date.now && transaction.recurringType > 0
-    }
-
-    private var deleteAlertTitle: String {
-        guard let transaction = transactionManager.toDelete else { return "Elimina movimento" }
-        return deleteAlertIsRecurring ? "Interrompere la ricorrenza?" : "Elimina \"\(transaction.wrappedNote)\"?"
-    }
-
-    private var deleteAlertMessage: String {
-        deleteAlertIsRecurring
-            ? "Il movimento non verrà più registrato automaticamente."
-            : "Questa azione non può essere annullata."
-    }
-
-    private var deleteAlertActionTitle: String {
-        deleteAlertIsRecurring ? "Conferma" : "Elimina"
-    }
-
-    private func confirmDeletion() {
-        guard let transaction = transactionManager.toDelete else { return }
-
-        transactionManager.showPopup = false
-
-        if deleteAlertIsRecurring {
-            withAnimation(.easeInOut(duration: 0.5)) {
-                transaction.recurringType = 0
-                do { try dataController.save() } catch { moc.rollback() }
+                RemoteConfigurationUnavailableView()
             }
         } else {
-            withAnimation(.easeInOut(duration: 0.5)) {
-                moc.delete(transaction)
-                transactionManager.showToast = true
-            }
-        }
-    }
-
-    private func presentAddMovement(preferredAccountID: NSManagedObjectID? = nil) {
-        guard !addTransaction else { return }
-        self.preferredAddAccountID = preferredAccountID
-        addTransactionCount = transactions.count
-        addTransaction = true
-    }
-
-    @available(iOS 26.0, *)
-    private var modernTabView: some View {
-        NativeSearchTabView(
-            selection: $currentTab,
-            selectedAccountID: $selectedMovementsAccountID,
-            logView: hosted(logTabContent(usesNativeNavigation: true)),
-            budgetView: hosted(BudgetView()),
-            settingsView: hosted(
-                SettingsView(
-                    usesNativeNavigation: true,
-                    nativeNavigationRouter: nativeSettingsNavigationRouter
-                )
-            ),
-            settingsNavigationRouter: nativeSettingsNavigationRouter,
-            onAdd: { presentAddMovement(preferredAccountID: selectedMovementsAccountID) }
-        )
-        .allowsHitTesting(transactionManager.showPopup ? false : true)
-    }
-
-    private var legacyTabView: some View {
-        TabView(selection: $currentTab) {
-            logTabContent()
-                .tabItem { Label("Movimenti", systemImage: "list.bullet.rectangle") }
-                .tag("Log")
-            BudgetView()
-                .tabItem { Label("Budget", systemImage: "chart.pie.fill") }
-                .tag("Budget")
-            SettingsView()
-                .tabItem { Label("Impostazioni", systemImage: "gearshape") }
-                .tag("Settings")
-            SearchTabView(searchText: $searchText)
-                .tabItem { Label("Cerca", systemImage: "magnifyingglass") }
-                .tag("Search")
-        }
-        .allowsHitTesting(transactionManager.showPopup ? false : true)
-        .environmentObject(toastPresenter)
-        .environmentObject(transactionManager)
-    }
-
-    private func logTabContent(usesNativeNavigation: Bool = false) -> some View {
-        LogView(
-            topEdge: topEdge,
-            bottomEdge: bottomEdge,
-            launchAdd: launchAdd,
-            selectedAccountID: $selectedMovementsAccountID,
-            onAdd: { presentAddMovement(preferredAccountID: $0?.objectID) },
-            usesNativeNavigation: usesNativeNavigation
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func hosted<V: View>(_ view: V) -> AnyView {
-        AnyView(
-            view
-                .environment(\.managedObjectContext, moc)
-                .environmentObject(appLockVM)
-                .environmentObject(unlockManager)
-                .environmentObject(dataController)
-                .environmentObject(toastPresenter)
-                .environmentObject(transactionManager)
-        )
-    }
-}
-
-private struct TransactionEditorSheetPresentation: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
-    func body(content: Content) -> some View {
-        if #available(iOS 16.4, *) {
-            content
-                .presentationDetents([.height(600), .large])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(28)
-                .presentationBackground(
-                    colorScheme == .dark
-                        ? AnyShapeStyle(Color.AppPageBackground.opacity(0.14))
-                        : AnyShapeStyle(Color.AppPageBackground.opacity(0.14))
-                )
-        } else if #available(iOS 16.0, *) {
-            content
-                .presentationDetents([.height(600), .large])
-                .presentationDragIndicator(.visible)
-        } else {
-            content
+            Text("Questa versione di iOS non è supportata.")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
 
 @available(iOS 26.0, *)
-private final class InitialSelectionTabBarController: UITabBarController {
+final class InitialSelectionTabBarController: UITabBarController {
     private var didApplyInitialSelection = false
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         guard !didApplyInitialSelection,
-              let tab = tab(forIdentifier: "Log") else { return }
+              let tab = tab(forIdentifier: Sa7totMainTabConfiguration.movements) else { return }
         didApplyInitialSelection = true
         selectedTab = tab
     }
 }
 
 @available(iOS 26.0, *)
-private struct NativeSearchTabView: UIViewControllerRepresentable {
+struct NativeSearchTabView: UIViewControllerRepresentable {
     @Binding var selection: String
-    @Binding var selectedAccountID: NSManagedObjectID?
     let logView: AnyView
-    let budgetView: AnyView
+    let subscriptionView: AnyView
     let settingsView: AnyView
     let settingsNavigationRouter: NativeSettingsNavigationRouter
     let onAdd: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(
-            selection: $selection,
-            settingsNavigationRouter: settingsNavigationRouter,
-            onAdd: onAdd
-        )
+        Coordinator(selection: $selection, settingsNavigationRouter: settingsNavigationRouter, onAdd: onAdd)
     }
 
     func makeUIViewController(context: Context) -> InitialSelectionTabBarController {
         let coordinator = context.coordinator
-            let tabs: [UITab] = [
-            UITab(title: "Movimenti", image: Sa7totSymbolResolver.image("list.bullet.rectangle"), identifier: "Log") { _ in coordinator.movementsHost(logView) },
-            UITab(title: "Budget", image: Sa7totSymbolResolver.image("chart.pie.fill"), identifier: "Budget") { _ in coordinator.host(budgetView) },
-            UITab(title: "Impostazioni", image: Sa7totSymbolResolver.image("gearshape.fill"), identifier: "Settings") { _ in coordinator.settingsHost(settingsView) }
+        let tabs: [UITab] = [
+            UITab(
+                title: "Movimenti",
+                image: Sa7totSymbolResolver.image("list.bullet.rectangle"),
+                identifier: Sa7totMainTabConfiguration.movements
+            ) { _ in coordinator.movementsHost(logView) },
+            UITab(
+                title: "Abbonamenti",
+                image: Sa7totSymbolResolver.image("repeat"),
+                identifier: Sa7totMainTabConfiguration.subscriptions
+            ) { _ in coordinator.host(subscriptionView) },
+            UITab(
+                title: "Impostazioni",
+                image: Sa7totSymbolResolver.image("gearshape.fill"),
+                identifier: Sa7totMainTabConfiguration.settings
+            ) { _ in coordinator.settingsHost(settingsView) }
         ]
 
         let addTab = UISearchTab { _ in
             let placeholder = UIViewController()
-            placeholder.tabBarItem.accessibilityLabel = "Aggiungi movimento"
+            placeholder.tabBarItem.accessibilityLabel = Sa7totMainTabConfiguration.trailingAddTitle
             return placeholder
         }
         addTab.image = Sa7totSymbolResolver.image("plus")
-        addTab.title = "Aggiungi movimento"
+        addTab.title = Sa7totMainTabConfiguration.trailingAddTitle
         addTab.automaticallyActivatesSearch = false
 
         let controller = InitialSelectionTabBarController(tabs: tabs + [addTab])
         controller.delegate = coordinator
-        controller.selectedTab = controller.tab(forIdentifier: "Log")
+        controller.selectedTab = controller.tab(forIdentifier: Sa7totMainTabConfiguration.movements)
         return controller
     }
 
@@ -402,12 +114,13 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
             self.onAdd = onAdd
         }
 
-        func host(_ view: AnyView) -> UIViewController { UIHostingController(rootView: view) }
+        func host(_ view: AnyView) -> UIViewController {
+            UIHostingController(rootView: view)
+        }
 
         func movementsHost(_ view: AnyView) -> UIViewController {
             let host = UIHostingController(rootView: view)
-            let navigationController = UINavigationController(rootViewController: host)
-            return navigationController
+            return UINavigationController(rootViewController: host)
         }
 
         func settingsHost(_ view: AnyView) -> UIViewController {
@@ -423,81 +136,19 @@ private struct NativeSearchTabView: UIViewControllerRepresentable {
             return false
         }
 
+        @available(iOS 26.0, *)
+        func tabBarController(_ tabBarController: UITabBarController, didSelectTab tab: UITab, previousTab: UITab?) {
+            updateSelection(for: tab)
+        }
+
         func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-            guard !(viewController.tab is UISearchTab),
-                  let identifier = viewController.tab?.identifier else { return }
+            updateSelection(for: viewController.tab)
+        }
+
+        private func updateSelection(for tab: UITab?) {
+            guard !(tab is UISearchTab),
+                  let identifier = tab?.identifier else { return }
             selection.wrappedValue = identifier
         }
-
-    }
-}
-
-private struct SearchTabView: View {
-    @Binding var searchText: String
-
-    var body: some View {
-        NavigationView {
-            SearchView(searchQuery: $searchText)
-                .sa7totLegacySearchable(text: $searchText)
-                .navigationTitle("Cerca")
-                .navigationBarTitleDisplayMode(.inline)
-        }
-        .navigationViewStyle(.stack)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func sa7totLegacySearchable(text: Binding<String>) -> some View {
-        if #available(iOS 26.0, *) {
-            self
-        } else {
-            searchable(text: text, placement: .automatic, prompt: "Cerca movimento per nota")
-        }
-    }
-}
-
-struct AppLockView: View {
-    @EnvironmentObject var appLockVM: AppLockViewModel
-
-    var body: some View {
-        VStack(spacing: 15) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 65))
-                .foregroundColor(Color.DarkIcon.opacity(0.7))
-
-            Text("App bloccata")
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .foregroundColor(Color.PrimaryText)
-                .padding(.bottom, 30)
-
-            Button {
-                appLockVM.appLockValidation()
-            } label: {
-                HStack {
-                    Image(systemName: "faceid")
-
-                    Text("Sblocca app")
-                }
-                .font(.system(size: 20, weight: .medium, design: .rounded))
-                .foregroundColor(Color.PrimaryText)
-                .padding(.horizontal, 40)
-                .padding(.vertical, 15)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 13)
-                        .stroke(Color.Outline)
-                }
-            }
-
-            if appLockVM.enrollmentError {
-                Text("Riabilita l'accesso a Face ID nell'app Impostazioni per sbloccare l'app.")
-                    .font(.system(size: 15, weight: .regular, design: .rounded))
-                    .foregroundColor(Color.SubtitleText)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .padding(.horizontal, 30)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.AppPageBackground)
     }
 }

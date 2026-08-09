@@ -1,6 +1,6 @@
 # Sa7tot
 
-Sa7tot is a native iPhone personal-finance application written with SwiftUI. It has an Italian-first interface, local-first Core Data storage, optional iCloud/CloudKit synchronization, and is designed for private personal use.
+Sa7tot is a native iPhone personal-finance application written with SwiftUI. Its financial data is remote-only through the authenticated FastAPI/Supabase backend, and it is designed for private personal use.
 
 ## Features
 
@@ -9,33 +9,18 @@ Sa7tot is a native iPhone personal-finance application written with SwiftUI. It 
 - Transfers between accounts
 - Budgets and recurring transactions
 - Multiple currencies
-- Home and Lock Screen widgets
 - Face ID and app lock
-- iCloud synchronization
 - Import/export where currently supported
-- Apple Shortcuts and App Intents
 - Merchant categorization and duplicate prevention
-- Review queue for uncertain Wallet entries
 - Italian localization
-
-## Apple Wallet Automation
-
-Sa7tot can receive a Wallet transaction through a user-created Apple Shortcuts Personal Automation:
-
-```text
-Apple Wallet transaction → Personal Automation in Shortcuts → Sa7tot App Intent → local expense record
-```
-
-The user must configure the automation in Apple Shortcuts. Availability depends on iOS, the card, the bank, and Wallet variables. Sa7tot does not scrape notifications and does not connect directly to a bank.
 
 ## Technology
 
 - Swift
 - SwiftUI
-- Core Data
-- `NSPersistentCloudKitContainer` and CloudKit
-- WidgetKit
-- App Intents and Shortcuts
+- APIClient and authenticated remote repositories
+- FastAPI and Supabase PostgreSQL
+- Keychain-backed Supabase Auth
 - LocalAuthentication
 - XCTest
 
@@ -43,8 +28,7 @@ The user must configure the automation in Apple Shortcuts. Availability depends 
 
 - Xcode 26.6 was used for the current project build.
 - iOS 15.0 or later for the app target.
-- An Apple Developer signing team is required for device builds and for testing iCloud, CloudKit, App Groups, and Wallet-related integrations.
-- Real Apple Wallet automation cannot be fully validated in the iOS Simulator; use a compatible physical device and Wallet configuration.
+- An Apple Developer signing team is required for device builds and Sign in with Apple/APNs testing.
 
 ## Getting Started
 
@@ -60,22 +44,18 @@ In Xcode:
 
 1. Select the `Sa7tot` scheme and an Apple Development team.
 2. Allow Swift Package Manager to resolve the project dependencies. If needed, use **File > Packages > Resolve Package Versions**.
-3. Configure the App Group and CloudKit container for the selected development team when building for a device or iCloud testing.
-4. Build and run the `Sa7tot` scheme.
+3. Build and run the `Sa7tot` scheme.
 
 The repository does not contain secrets, signing credentials, or personal team configuration.
 
 ## Project Structure
 
-- `app/Sa7tot` — main iPhone application, views, models, data, localization, and App Intents
-- `app/ExpenditureWidget` — WidgetKit extension
-- `app/BudgetIntent` — budget App Intent extension
-- `app/BudgetIntentUI` — budget App Intent UI extension
-- `app/MainModel.xcdatamodeld` — Core Data model
+- `app/Sa7tot` — main iPhone application, remote repositories, views, models, and localization
+- `backend` — FastAPI service and Supabase database migrations
 
 ## Privacy
 
-Financial data is stored locally and can synchronize through iCloud/CloudKit as implemented by the app. Sa7tot includes no advertising SDK, collects no bank credentials, and has no direct bank connection. Notification content should remain privacy-conscious when configuring Wallet automations.
+Financial data is loaded and saved through authenticated remote APIs. Sa7tot includes no advertising SDK, collects no bank credentials, and has no direct bank connection.
 
 ## Current Status
 

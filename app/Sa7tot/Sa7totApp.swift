@@ -9,29 +9,36 @@ import SwiftUI
 
 @main
 struct Sa7totApp: App {
-    @StateObject var dataController: DataController
     @StateObject var unlockManager: UnlockManager
     @StateObject var appLockVM = AppLockViewModel()
+    @StateObject var authService: SupabaseAuthService
+    @StateObject var remoteFinancialStore: FinancialRemoteStore
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, dataController.container.viewContext)
+            AuthRootView()
                 .environmentObject(appLockVM)
-                .environmentObject(dataController)
                 .environmentObject(unlockManager)
+                .environmentObject(authService)
+                .environmentObject(remoteFinancialStore)
         }
     }
 
     init() {
-        let dataController = DataController.shared
-//        let dataController = DataController()
-        let unlockManager = UnlockManager(dataController: dataController)
+        let unlockManager = UnlockManager()
+        let authService = SupabaseAuthService.current()
+        let apiClient: APIClient?
+        if let configuration = try? APIConfiguration.current() {
+            apiClient = APIClient(configuration: configuration, tokenProvider: authService.tokenProvider)
+        } else {
+            apiClient = nil
+        }
 
-        _dataController = StateObject(wrappedValue: dataController)
         _unlockManager = StateObject(wrappedValue: unlockManager)
+        _authService = StateObject(wrappedValue: authService)
+        _remoteFinancialStore = StateObject(wrappedValue: FinancialRemoteStore(client: apiClient))
 
         UITableView.appearance().backgroundColor = .clear
     }

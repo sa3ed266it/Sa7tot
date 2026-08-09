@@ -27,7 +27,6 @@ class UnlockManager: NSObject, ObservableObject, SKPaymentTransactionObserver, S
     @Published var purchaseCount: Int
     @Published var failedTransaction = false
 
-    private let dataController: DataController
     private let request: SKProductsRequest
 
     var loadedProducts = [SKProduct]()
@@ -39,7 +38,7 @@ class UnlockManager: NSObject, ObservableObject, SKPaymentTransactionObserver, S
                 case .purchased, .restored:
 
                     self.purchaseCount += 1
-                    self.dataController.tipCounter = purchaseCount
+                    UserDefaults.standard.set(purchaseCount, forKey: "tipCounter")
                     queue.finishTransaction(transaction)
 
                 case .failed:
@@ -88,16 +87,13 @@ class UnlockManager: NSObject, ObservableObject, SKPaymentTransactionObserver, S
         SKPaymentQueue.default().restoreCompletedTransactions()
     }
 
-    init(dataController: DataController) {
-        // Store the data controller we were sent.
-        self.dataController = dataController
-
+    override init() {
         // Prepare to look for our unlock product.
         let productIDs = Set(["com.saied.sa7tot.smalltip", "com.saied.sa7tot.mediumtip", "com.saied.sa7tot.largetip"])
         request = SKProductsRequest(productIdentifiers: productIDs)
 
         // This is required because we inherit from NSObject.
-        purchaseCount = dataController.tipCounter
+        purchaseCount = UserDefaults.standard.integer(forKey: "tipCounter")
 
         super.init()
 

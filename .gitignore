@@ -1,9 +1,19 @@
 ## User settings
 xcuserdata/
 
+## Local-only subscription artwork downloaded from App Store metadata
+scripts/local_subscription_icons/
+app/Sa7tot/Assets.xcassets/SubscriptionLogos/subscription-app-icon-*.imageset/
+
 ## Xcode 8 and earlier
 *.xcscmblueprint
 *.xccheckout
 
 ## MacOS
 .DS_Store
+
+## Local backend environment
+backend/.env
+backend/.venv/
+backend/**/__pycache__/
+backend/*.egg-info/

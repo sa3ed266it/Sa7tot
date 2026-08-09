@@ -61,7 +61,6 @@ enum CategoryIconPresentation {
         if case .sfSymbol(let symbol) = parsed, UIImage(systemName: symbol) == nil { return .fallback }
         return parsed
     }
-    static func descriptor(for category: Category) -> CategoryIconDescriptor { descriptor(for: category.iconIdentifier) }
     static func foreground(for storedColour: String) -> Color { .primary }
 }
 
