@@ -13,6 +13,7 @@ struct Sa7totApp: App {
     @StateObject var appLockVM = AppLockViewModel()
     @StateObject var authService: SupabaseAuthService
     @StateObject var remoteFinancialStore: FinancialRemoteStore
+    @StateObject var appToastCoordinator = AppToastCoordinator()
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
@@ -23,6 +24,7 @@ struct Sa7totApp: App {
                 .environmentObject(unlockManager)
                 .environmentObject(authService)
                 .environmentObject(remoteFinancialStore)
+                .environmentObject(appToastCoordinator)
         }
     }
 

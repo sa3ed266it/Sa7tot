@@ -94,6 +94,13 @@
 		D6A4DE242D61744400F7F751 /* SwiftUIIntrospect-Static in Frameworks */ = {isa = PBXBuildFile; productRef = D6A4DE232D61744400F7F751 /* SwiftUIIntrospect-Static */; };
 		F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F00300040000000000000001 /* ClashDisplay-Bold.otf */; };
 		F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */ = {isa = PBXBuildFile; fileRef = F00300050000000000000001 /* FFL-ClashDisplay.txt */; };
+		F00300090000000000000001 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = F00300080000000000000001 /* Lottie */; };
+		F003000A0000000000000001 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00300070000000000000001 /* LoginView.swift */; };
+		F003000B0000000000000001 /* Wallet.json in Resources */ = {isa = PBXBuildFile; fileRef = F00300060000000000000001 /* Wallet.json */; };
+		A10000010000000000000001 /* AppToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000100000000000000001 /* AppToast.swift */; };
+		A10000020000000000000001 /* AppToastCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000001 /* AppToastCoordinator.swift */; };
+		A10000030000000000000001 /* AppToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000120000000000000001 /* AppToastView.swift */; };
+		A10000040000000000000001 /* AppToastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000130000000000000001 /* AppToastTests.swift */; };
 		D70000000000000000000001 /* APIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000001 /* APIConfiguration.swift */; };
 		D70000000000000000000002 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000002 /* APIError.swift */; };
 		D70000000000000000000003 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000003 /* APIRequest.swift */; };
@@ -293,6 +300,12 @@
 		D63B205B2D8728C300CAFB20 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 		F00300040000000000000001 /* ClashDisplay-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "ClashDisplay-Bold.otf"; sourceTree = "<group>"; };
 		F00300050000000000000001 /* FFL-ClashDisplay.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "FFL-ClashDisplay.txt"; sourceTree = "<group>"; };
+		F00300060000000000000001 /* Wallet.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../Wallet.json"; sourceTree = "<group>"; };
+		F00300070000000000000001 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/LoginView.swift"; sourceTree = "<group>"; };
+		A10000100000000000000001 /* AppToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToast.swift; sourceTree = "<group>"; };
+		A10000110000000000000001 /* AppToastCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastCoordinator.swift; sourceTree = "<group>"; };
+		A10000120000000000000001 /* AppToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastView.swift; sourceTree = "<group>"; };
+		A10000130000000000000001 /* AppToastTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -300,6 +313,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F00300090000000000000001 /* Lottie in Frameworks */,
 				D6A4DE242D61744400F7F751 /* SwiftUIIntrospect-Static in Frameworks */,
 				D6A4DE202D61744400F7F751 /* SwiftUIIntrospect in Frameworks */,
 				53A4148028B7DA4C008C30E7 /* ConfettiSwiftUI in Frameworks */,
@@ -345,6 +359,7 @@
 		5327D285287C697400F76ADF /* Sa7tot */ = {
 			isa = PBXGroup;
 			children = (
+				F00300060000000000000001 /* Wallet.json */,
 				F00300040000000000000001 /* ClashDisplay-Bold.otf */,
 				F00300050000000000000001 /* FFL-ClashDisplay.txt */,
 				5327D2E8287C6DF700F76ADF /* Sa7tot.entitlements */,
@@ -353,6 +368,7 @@
 				53A4147828B6625D008C30E7 /* AppDelegate.swift */,
 				53A4147A28B66265008C30E7 /* SceneDelegate.swift */,
 				5327D286287C697400F76ADF /* Sa7totApp.swift */,
+				F00300070000000000000001 /* LoginView.swift */,
 				5327D2DF287C6B7C00F76ADF /* DeviceModels.json */,
 				5327D2CA287C6B4700F76ADF /* ContentView.swift */,
 				5327D294287C698900F76ADF /* Assets.xcassets */,
@@ -493,6 +509,7 @@
 				C70000000000000000000027 /* RemoteBudgetView.swift */,
 				C70000000000000000000028 /* RemoteBudgetEditor.swift */,
 				C70000000000000000000031 /* RemoteMovimentiSupport.swift */,
+				A10000120000000000000001 /* AppToastView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -500,6 +517,8 @@
 		5327D299287C69C100F76ADF /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				A10000100000000000000001 /* AppToast.swift */,
+				A10000110000000000000001 /* AppToastCoordinator.swift */,
 				8C6E7A1A2A00000100000001 /* BudgetAmountSupport.swift */,
 				7A7E1A032026080300000001 /* CategoryIconPresentation.swift */,
 				A7B000000000000000000008 /* SubscriptionServiceCatalog.swift */,
@@ -553,6 +572,7 @@
 		C72000000000000000000006 /* Remote */ = {
 			isa = PBXGroup;
 			children = (
+				A10000130000000000000001 /* AppToastTests.swift */,
 				C70000000000000000000011 /* RemoteAPIClientTests.swift */,
 				C70000000000000000000012 /* RemoteDTOTests.swift */,
 				C70000000000000000000013 /* RemoteValueAndConfigurationTests.swift */,
@@ -633,6 +653,7 @@
 				533A38F32AA49E5900F66957 /* Alamofire */,
 				D6A4DE1F2D61744400F7F751 /* SwiftUIIntrospect */,
 				D6A4DE232D61744400F7F751 /* SwiftUIIntrospect-Static */,
+				F00300080000000000000001 /* Lottie */,
 			);
 			productName = Sa7tot;
 			productReference = 5327D283287C697400F76ADF /* Sa7tot.app */;
@@ -672,9 +693,9 @@
 						};
 					};
 				};
-					53BC2A522A8B21920019E4A8 = {
-						CreatedOnToolsVersion = 26.0;
-					};
+				53BC2A522A8B21920019E4A8 = {
+					CreatedOnToolsVersion = 26.0;
+				};
 				};
 			};
 			buildConfigurationList = 5327D27E287C697400F76ADF /* Build configuration list for PBXProject "Sa7tot" */;
@@ -694,6 +715,7 @@
 				538D10732A5AB7E7008F1AFB /* XCRemoteSwiftPackageReference "IsScrolling" */,
 				533A38F22AA49E0100F66957 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				D6A4DE1E2D61744400F7F751 /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */,
+				F00300070000000000000002 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 			);
 			productRefGroup = 5327D284287C697400F76ADF /* Products */;
 			projectDirPath = "";
@@ -718,6 +740,7 @@
 				5327D2E0287C6B7D00F76ADF /* DeviceModels.json in Resources */,
 				F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */,
 				F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */,
+				F003000B0000000000000001 /* Wallet.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -796,6 +819,7 @@
 				53D40B652AB1B2DB001D3866 /* UpdateSheet.swift in Sources */,
 				5327D2BA287C6AFB00F76ADF /* ViewExtension.swift in Sources */,
 				5327D287287C697400F76ADF /* Sa7totApp.swift in Sources */,
+				F003000A0000000000000001 /* LoginView.swift in Sources */,
 				53B9079D2AE818A00001F496 /* CustomCapsule.swift in Sources */,
 				53A4147D28B7C70D008C30E7 /* AppVersion.swift in Sources */,
 				5327D2B6287C6AFB00F76ADF /* Authentication.swift in Sources */,
@@ -832,6 +856,9 @@
 				D70000000000000000000022 /* TransactionsRepository.swift in Sources */,
 				D70000000000000000000023 /* RemoteFinancialViews.swift in Sources */,
 				D70000000000000000000024 /* SubscriptionsRepository.swift in Sources */,
+				A10000010000000000000001 /* AppToast.swift in Sources */,
+				A10000020000000000000001 /* AppToastCoordinator.swift in Sources */,
+				A10000030000000000000001 /* AppToastView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -879,7 +906,10 @@
 				F70000000000000000000007 /* SupabaseAuthService.swift in Sources */,
 				F70000000000000000000008 /* AppleAuthorizationCredentialBuilder.swift in Sources */,
 				E70000000000000000000028 /* AppLocalization.swift in Sources */,
+				A10000010000000000000001 /* AppToast.swift in Sources */,
+				A10000020000000000000001 /* AppToastCoordinator.swift in Sources */,
 				F7000000000000000000000A /* SupabaseAuthTests.swift in Sources */,
+				A10000040000000000000001 /* AppToastTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1189,6 +1219,14 @@
 				minimumVersion = 1.0.0;
 			};
 		};
+		F00300070000000000000002 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1226,6 +1264,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D6A4DE1E2D61744400F7F751 /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */;
 			productName = "SwiftUIIntrospect-Static";
+		};
+		F00300080000000000000001 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F00300070000000000000002 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
 		};
 /* End XCSwiftPackageProductDependency section */
 

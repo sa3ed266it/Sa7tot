@@ -40,6 +40,7 @@ struct SettingsView: View {
   @State private var showingNotificationPermissionAlert = false
 
   @EnvironmentObject var appLockVM: AppLockViewModel
+  @EnvironmentObject private var authService: SupabaseAuthService
   @EnvironmentObject private var remoteStore: FinancialRemoteStore
   @Namespace var animation
 
@@ -74,6 +75,7 @@ struct SettingsView: View {
   // popups
 
   @State private var showCategoriesSheet = false
+  @State private var showingSignOutConfirmation = false
 
   var body: some View {
     Group {
@@ -229,6 +231,26 @@ struct SettingsView: View {
           .buttonStyle(.plain)
         }
 
+        HStack {
+          Spacer()
+          Button(role: .destructive) {
+            showingSignOutConfirmation = true
+          } label: {
+            SettingsRowLayout(
+              title: "settings.signout",
+              systemImage: "rectangle.portrait.and.arrow.right",
+              tint: .red,
+              titleColor: .red
+            ) {
+              EmptyView()
+            }
+            .fixedSize(horizontal: true, vertical: false)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel(AppLocalization.key("settings.signout"))
+          Spacer()
+        }
+
       }
       .padding(.horizontal, 16)
       .padding(.top, 8)
@@ -254,6 +276,17 @@ struct SettingsView: View {
       Button(AppLocalization.key("action.openSettings")) { openNotificationSettings() }
     } message: {
       Text(AppLocalization.key("settings.notificationsDisabledMessage"))
+    }
+    .alert(
+      AppLocalization.key("settings.signout.confirm.title"),
+      isPresented: $showingSignOutConfirmation
+    ) {
+      Button(AppLocalization.key("settings.signout.confirm.action"), role: .destructive) {
+        Task { await authService.signOut() }
+      }
+      Button(AppLocalization.key("action.cancel"), role: .cancel) {}
+    } message: {
+      Text(AppLocalization.key("settings.signout.confirm.message"))
     }
   }
 
@@ -440,6 +473,7 @@ private struct SettingsRowLayout<Trailing: View>: View {
   let subtitle: String?
   let systemImage: String
   let tint: Color
+  let titleColor: Color
   @ViewBuilder let trailing: Trailing
 
   init(
@@ -447,12 +481,14 @@ private struct SettingsRowLayout<Trailing: View>: View {
     subtitle: String? = nil,
     systemImage: String,
     tint: Color,
+    titleColor: Color = .primary,
     @ViewBuilder trailing: () -> Trailing
   ) {
     self.title = title
     self.subtitle = subtitle
     self.systemImage = systemImage
     self.tint = tint
+    self.titleColor = titleColor
     self.trailing = trailing()
   }
 
@@ -463,7 +499,7 @@ private struct SettingsRowLayout<Trailing: View>: View {
       VStack(alignment: .leading, spacing: 2) {
         Text(AppLocalization.key(title))
           .font(.body.weight(.medium))
-          .foregroundStyle(.primary)
+          .foregroundStyle(titleColor)
           .fixedSize(horizontal: false, vertical: true)
         if let subtitle {
           Text(AppLocalization.key(subtitle))

@@ -46,6 +46,7 @@ private func remoteTimeLabel(_ date: Date) -> String {
 @available(iOS 26.0, *)
 struct RemoteFinancialHomeView: View {
     @EnvironmentObject private var store: FinancialRemoteStore
+    @EnvironmentObject private var authService: SupabaseAuthService
 
     @State private var currentTab = Sa7totMainTabConfiguration.movements
     @State private var route: RemoteFinancialRoute?
@@ -67,6 +68,7 @@ struct RemoteFinancialHomeView: View {
                     usesNativeNavigation: true,
                     nativeNavigationRouter: settingsNavigationRouter
                 )
+                .environmentObject(authService)
             ),
             settingsNavigationRouter: settingsNavigationRouter,
             onAdd: { route = store.activeAccounts.isEmpty ? .account : .transaction(nil) }
@@ -154,7 +156,7 @@ struct RemoteMovimentiView: View {
     private let compactBalanceHeaderHeight: CGFloat = 54
 
     private var balanceHandoff: CGFloat {
-        min(max((balanceCollapseProgress - 0.50) / 0.28, 0), 1)
+        min(max(balanceCollapseProgress, 0), 1)
     }
 
     private var selectedBinding: Binding<UUID?> {
@@ -189,6 +191,7 @@ struct RemoteMovimentiView: View {
                 filter: $store.filter,
                 hideBalances: $hideBalances,
                 selectedAccountID: store.selectedAccountID,
+                collapseProgress: balanceCollapseProgress,
                 onFilter: { store.setFilter($0) },
                 onTransfer: onTransfer
             )
@@ -206,6 +209,7 @@ struct RemoteMovimentiView: View {
                         hideBalances: hideBalances
                     )
                     .opacity(balanceHandoff)
+                    .scaleEffect(0.80 + (0.20 * balanceHandoff))
                     .offset(y: 4 * (1 - balanceHandoff))
                     .allowsHitTesting(false)
                     .accessibilityHidden(balanceHandoff < 0.5)
@@ -458,6 +462,7 @@ private struct RemoteNativeFilterMenuBridge: UIViewControllerRepresentable {
     @Binding var filter: RemoteMovementFilter
     @Binding var hideBalances: Bool
     let selectedAccountID: UUID?
+    let collapseProgress: CGFloat
     let onFilter: (RemoteMovementFilter) -> Void
     let onTransfer: () -> Void
 
@@ -466,6 +471,7 @@ private struct RemoteNativeFilterMenuBridge: UIViewControllerRepresentable {
             filter: $filter,
             hideBalances: $hideBalances,
             selectedAccountID: selectedAccountID,
+            collapseProgress: collapseProgress,
             onFilter: onFilter,
             onTransfer: onTransfer
         )
@@ -475,9 +481,11 @@ private struct RemoteNativeFilterMenuBridge: UIViewControllerRepresentable {
         viewController.filter = $filter
         viewController.hideBalances = $hideBalances
         viewController.selectedAccountID = selectedAccountID
+        viewController.collapseProgress = collapseProgress
         viewController.onFilter = onFilter
         viewController.onTransfer = onTransfer
         viewController.installMenuIfNeeded()
+        viewController.updateButtonVisibilities()
     }
 }
 
@@ -485,6 +493,7 @@ private final class RemoteFilterMenuViewController: UIViewController {
     var filter: Binding<RemoteMovementFilter>
     var hideBalances: Binding<Bool>
     var selectedAccountID: UUID?
+    var collapseProgress: CGFloat
     var onFilter: (RemoteMovementFilter) -> Void
     var onTransfer: () -> Void
 
@@ -497,12 +506,14 @@ private final class RemoteFilterMenuViewController: UIViewController {
         filter: Binding<RemoteMovementFilter>,
         hideBalances: Binding<Bool>,
         selectedAccountID: UUID?,
+        collapseProgress: CGFloat,
         onFilter: @escaping (RemoteMovementFilter) -> Void,
         onTransfer: @escaping () -> Void
     ) {
         self.filter = filter
         self.hideBalances = hideBalances
         self.selectedAccountID = selectedAccountID
+        self.collapseProgress = collapseProgress
         self.onFilter = onFilter
         self.onTransfer = onTransfer
         super.init(nibName: nil, bundle: nil)
@@ -555,7 +566,7 @@ private final class RemoteFilterMenuViewController: UIViewController {
             transferButton.accessibilityLabel = AppLocalization.string("action.addTransfer")
             transferButton.isEnabled = selectedAccountID != nil
 
-            navigationItem.rightBarButtonItems = [filterButton, privacyButton]
+            navigationItem.rightBarButtonItems = collapseProgress > 0.4 ? [privacyButton] : [filterButton, privacyButton]
             navigationItem.leftBarButtonItem = transferButton
             installedNavigationItem = navigationItem
             installedBarButtonItem = filterButton
@@ -569,6 +580,21 @@ private final class RemoteFilterMenuViewController: UIViewController {
             installedPrivacyButtonItem?.accessibilityValue = AppLocalization.string(hideBalances.wrappedValue ? "movement.balanceHidden" : "movement.balanceVisible")
             installedTransferButtonItem?.isEnabled = selectedAccountID != nil
         }
+        updateButtonVisibilities()
+    }
+
+    func updateButtonVisibilities() {
+        guard let navigationItem = installedNavigationItem else { return }
+        guard let filterButton = installedBarButtonItem, let privacyButton = installedPrivacyButtonItem else { return }
+
+        let currentlySingle = (navigationItem.rightBarButtonItems?.count ?? 0) == 1
+        let shouldBeSingle = currentlySingle ? (collapseProgress > 0.28) : (collapseProgress > 0.45)
+        let targetRightItems = shouldBeSingle ? [privacyButton] : [filterButton, privacyButton]
+
+        if (navigationItem.rightBarButtonItems ?? []) != targetRightItems {
+            navigationItem.setRightBarButtonItems(targetRightItems, animated: true)
+        }
+        installedTransferButtonItem?.isEnabled = selectedAccountID != nil
     }
 
     @objc private func openTransfer() {
@@ -683,20 +709,20 @@ private struct RemoteAccountHeader: View {
     var body: some View {
         VStack(spacing: 0) {
             Text(account.name)
-                .font(.system(size: 19 - (4 * collapseProgress), design: .rounded).weight(.medium))
+                .font(.system(size: 19, design: .rounded).weight(.medium))
                 .foregroundStyle(Color.PrimaryText.opacity(0.9))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .padding(.top, 8 - (4 * collapseProgress))
+                .padding(.top, 8)
 
             if let snapshot {
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
                     Text(snapshot.balanceMinor >= 0 ? currencySymbol : "-\(currencySymbol)")
-                        .font(.system(size: 34 - (8 * collapseProgress), design: .rounded))
+                        .font(.system(size: 34, design: .rounded))
                         .foregroundStyle(Color.SubtitleText)
                         .layoutPriority(1)
                     Text(remoteAmountDigits(abs(snapshot.balanceMinor), currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))
-                        .font(RemoteClashDisplayFont.font(size: 84 - (56 * collapseProgress)))
+                        .font(RemoteClashDisplayFont.font(size: 84))
                         .foregroundStyle(Color.PrimaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.55)
@@ -709,8 +735,8 @@ private struct RemoteAccountHeader: View {
                 }
 
                 HStack {
-                        Text("+\(remoteAmountDigits(store.summary.incomeMinor, currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))")
-                        .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
+                    Text("+\(remoteAmountDigits(store.summary.incomeMinor, currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))")
+                        .font(.system(size: 24, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
                         .monospacedDigit()
                         .foregroundStyle(Color.IncomeGreen)
@@ -722,7 +748,7 @@ private struct RemoteAccountHeader: View {
                         .foregroundStyle(Color.Outline)
 
                     Text("-\(remoteAmountDigits(store.summary.expensesMinor, currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))")
-                        .font(.system(size: 24 - (6 * collapseProgress), design: .rounded).weight(.medium))
+                        .font(.system(size: 24, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
                         .monospacedDigit()
                         .foregroundStyle(Color.AlertRed)
@@ -742,6 +768,8 @@ private struct RemoteAccountHeader: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 24)
+        .scaleEffect(1 - (0.35 * collapseProgress), anchor: .top)
+        .offset(y: -12 * collapseProgress)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .frame(minHeight: 175)
         .accessibilityElement(children: .combine)
@@ -1142,8 +1170,10 @@ private struct RemoteMovementEditorSurface: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FinancialRemoteStore
+    @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FocusState private var amountFocused: Bool
+    @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var showCents = true
 
     let kind: Kind
     let initialAccountID: UUID?
@@ -1715,7 +1745,7 @@ private struct RemoteMovementEditorSurface: View {
                         reviewStatus: "confirmed"
                     ))
                 } else {
-                    _ = try await store.createTransaction(RemoteTransactionCreatePayload(
+                    let createdTransaction = try await store.createTransaction(RemoteTransactionCreatePayload(
                         kind: mode.kind,
                         accountID: accountID,
                         amountMinor: amountMinor,
@@ -1726,6 +1756,23 @@ private struct RemoteMovementEditorSurface: View {
                         note: note.isEmpty ? nil : note,
                         merchant: merchant.isEmpty ? nil : merchant
                     ))
+                    if let createdTransaction {
+                        let signedAmountMinor = mode == .expense
+                            ? -abs(createdTransaction.amountMinor)
+                            : abs(createdTransaction.amountMinor)
+                        appToastCoordinator.show(
+                            kind: mode == .expense ? .expenseAdded : .incomeAdded,
+                            amount: remoteSignedAmount(
+                                signedAmountMinor,
+                                currencyCode: createdTransaction.currencyCode,
+                                exponent: createdTransaction.currencyExponent,
+                                showCents: showCents
+                            )
+                        )
+                    }
+                    dismiss()
+                    isSaving = false
+                    return
                 }
                 dismiss()
             } catch {

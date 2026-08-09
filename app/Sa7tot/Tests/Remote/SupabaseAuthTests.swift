@@ -112,6 +112,26 @@ final class SupabaseAuthTests: XCTestCase {
         XCTAssertEqual(signOutCount, 1)
     }
 
+    @MainActor
+    func testAuthServiceSignOutClearsSessionAndPublishesSignedOut() async throws {
+        let session = makeSession(accessToken: "access", expiresAt: Date(timeIntervalSinceNow: 3600))
+        let store = InMemorySessionStore(session: session)
+        let client = MockSupabaseAuthClient(refreshedSession: session)
+        let service = SupabaseAuthService(
+            coordinator: SupabaseAuthSessionCoordinator(client: client, store: store)
+        )
+
+        await service.restoreSession()
+        XCTAssertEqual(service.state, .signedIn(session))
+
+        await service.signOut()
+
+        XCTAssertEqual(service.state, .signedOut)
+        XCTAssertNil(try store.load())
+        let signOutCount = await client.signOutCount
+        XCTAssertEqual(signOutCount, 1)
+    }
+
     func testMissingSessionDoesNotProduceAnEmptyBearerToken() async throws {
         let coordinator = SupabaseAuthSessionCoordinator(
             client: MockSupabaseAuthClient(refreshedSession: makeSession()),

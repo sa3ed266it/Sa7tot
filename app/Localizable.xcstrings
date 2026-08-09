@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "it",
   "strings" : {
+    "" : {
+
+    },
     "-%@" : {
       "localizations" : {
         "en" : {
@@ -45,6 +48,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
           }
         }
       }
@@ -468,23 +481,6 @@
         }
       }
     },
-    "action.addAccount" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add account"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi conto"
-          }
-        }
-      }
-    },
     "action.add" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -498,6 +494,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiungi"
+          }
+        }
+      }
+    },
+    "action.addAccount" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi conto"
           }
         }
       }
@@ -804,6 +817,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Non è stato possibile completare l’accesso con Apple."
+          }
+        }
+      }
+    },
+    "auth.login.privacy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your data stays private and protected."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi dati restano privati e protetti."
+          }
+        }
+      }
+    },
+    "auth.login.signIn" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi con Apple"
+          }
+        }
+      }
+    },
+    "auth.login.tagline" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your finances, made simple."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tue finanze, semplicemente."
           }
         }
       }
@@ -2321,23 +2385,6 @@
         }
       }
     },
-    "note.addPlaceholder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add a note"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi una nota"
-          }
-        }
-      }
-    },
     "note.add" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2351,6 +2398,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiungi nota"
+          }
+        }
+      }
+    },
+    "note.addPlaceholder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a note"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi una nota"
           }
         }
       }
@@ -2474,6 +2538,9 @@
         }
       }
     },
+    "Sa7tot" : {
+
+    },
     "Saldo nascosto" : {
       "localizations" : {
         "en" : {
@@ -2520,6 +2587,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ASPETTO"
+          }
+        }
+      }
+    },
+    "settings.authentication" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentication"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autenticazione"
           }
         }
       }
@@ -2609,6 +2693,23 @@
         }
       }
     },
+    "settings.incomeTracking" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Income tracking"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitoraggio delle entrate"
+          }
+        }
+      }
+    },
     "settings.light" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2622,23 +2723,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chiaro"
-          }
-        }
-      }
-    },
-    "settings.management" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MANAGEMENT"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GESTIONE"
           }
         }
       }
@@ -2677,6 +2761,23 @@
         }
       }
     },
+    "settings.management" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MANAGEMENT"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GESTIONE"
+          }
+        }
+      }
+    },
     "settings.monitoring" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2690,23 +2791,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "MONITORAGGIO"
-          }
-        }
-      }
-    },
-    "settings.incomeTracking" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Income tracking"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Monitoraggio delle entrate"
           }
         }
       }
@@ -2796,23 +2880,6 @@
         }
       }
     },
-    "settings.authentication" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authentication"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autenticazione"
-          }
-        }
-      }
-    },
     "settings.showCents" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2843,6 +2910,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostra simbolo +/-"
+          }
+        }
+      }
+    },
+    "settings.signout" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign Out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "settings.signout.confirm.action" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign Out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "settings.signout.confirm.message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll need to sign in again to use Sa7tot."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dovrai accedere di nuovo per usare Sa7tot."
+          }
+        }
+      }
+    },
+    "settings.signout.confirm.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign out?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi uscire?"
           }
         }
       }
@@ -3608,6 +3743,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abbonamenti"
+          }
+        }
+      }
+    },
+    "toast.movement.expenseAdded" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expense added"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spesa aggiunta"
+          }
+        }
+      }
+    },
+    "toast.movement.incomeAdded" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Income added"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrata aggiunta"
           }
         }
       }
