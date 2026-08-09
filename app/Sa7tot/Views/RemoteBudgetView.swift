@@ -13,7 +13,7 @@ struct RemoteBudgetView: View {
                 RemoteConfigurationUnavailableView()
             }
         } else {
-            Text("Questa versione di iOS non è supportata.")
+            Text(AppLocalization.key("unsupported.ios"))
         }
     }
 }
@@ -57,13 +57,13 @@ private struct RemoteBudgetContent: View {
                 }
             }
         }
-        .navigationTitle("Budget")
+        .navigationTitle(AppLocalization.key("budget.title"))
         .navigationBarTitleDisplayMode(.inline)
         .budgetNavigationBackground()
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { showingNewBudget = true } label: { Image(systemName: "plus") }
-                    .accessibilityLabel("Nuovo budget")
+                    .accessibilityLabel(AppLocalization.key("budget.new"))
             }
         }
         .task {
@@ -79,29 +79,29 @@ private struct RemoteBudgetContent: View {
         .sheet(item: $editingCategory) { budget in
             RemoteBudgetEditor(categoryBudget: budget).environmentObject(store)
         }
-        .alert("Eliminare il budget?", isPresented: $deletingMain) {
-            Button("Elimina", role: .destructive) {
+        .alert(AppLocalization.key("budget.deleteTitle"), isPresented: $deletingMain) {
+            Button(AppLocalization.key("action.delete"), role: .destructive) {
                 Task { try? await store.deleteMainBudget() }
             }
-            Button("Annulla", role: .cancel) {}
+            Button(AppLocalization.key("action.cancel"), role: .cancel) {}
         }
-        .alert("Eliminare il budget?", isPresented: Binding(
+        .alert(AppLocalization.key("budget.deleteTitle"), isPresented: Binding(
             get: { deletingCategory != nil },
             set: { if !$0 { deletingCategory = nil } }
         )) {
-            Button("Elimina", role: .destructive) {
+            Button(AppLocalization.key("action.delete"), role: .destructive) {
                 guard let budget = deletingCategory else { return }
                 Task { try? await store.deleteCategoryBudget(categoryID: budget.categoryID) }
             }
-            Button("Annulla", role: .cancel) {}
+            Button(AppLocalization.key("action.cancel"), role: .cancel) {}
         }
-        .alert("Impossibile caricare il budget", isPresented: Binding(
+        .alert(AppLocalization.key("budget.loadErrorTitle"), isPresented: Binding(
             get: { store.budgetErrorMessage != nil },
             set: { _ in }
         )) {
-            Button("OK", role: .cancel) {}
+            Button(AppLocalization.key("action.ok"), role: .cancel) {}
         } message: {
-            Text(store.budgetErrorMessage ?? "Riprova più tardi.")
+            Text(verbatim: store.budgetErrorMessage ?? AppLocalization.string("budget.loadError"))
         }
     }
 
@@ -139,7 +139,12 @@ private struct RemoteMainBudgetCard: View {
     private var spent: Double { Double(budget.spentMinor) / pow(10, Double(budget.currencyExponent)) }
     private var difference: Double { abs(total - spent) }
     private var periodName: String {
-        switch budget.periodType { case .day: "oggi"; case .week: "questa settimana"; case .month: "questo mese"; case .year: "quest’anno" }
+        switch budget.periodType {
+        case .day: AppLocalization.string("budget.daily")
+        case .week: AppLocalization.string("budget.weekly")
+        case .month: AppLocalization.string("budget.monthly")
+        case .year: AppLocalization.string("budget.yearly")
+        }
     }
     private var width: CGFloat { 250 }
 
@@ -154,14 +159,14 @@ private struct RemoteMainBudgetCard: View {
                         .fill(Color.DarkBackground)
                         .frame(width: width, height: width / 2)
                 }
-                CrookedText(text: "SPESA COMPLESSIVA: \(Int(round(budget.progress * 100)))%", radius: width / 2 + 8)
+                CrookedText(text: AppLocalization.format("budget.spentOverall", Int(round(budget.progress * 100))), radius: width / 2 + 8)
                     .font(.system(.footnote, design: .rounded).weight(.medium))
                     .foregroundColor(Color.SubtitleText)
                     .frame(width: width, height: 10)
                 VStack(spacing: -4) {
                     BudgetDollarView(amount: difference, red: spent >= total, scale: 3, size: width - 60)
                         .frame(width: width - 60)
-                    Text("\(total >= spent ? "restante" : "oltre") \(periodName)")
+                    Text(verbatim: "\(AppLocalization.string(total >= spent ? "budget.remaining" : "budget.over")) \(periodName)")
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
                         .foregroundColor(Color.SubtitleText)
                 }
@@ -179,8 +184,8 @@ private struct RemoteMainBudgetCard: View {
         .frame(width: width + 30, height: 200, alignment: .bottom)
         .background(Color.AppPageBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         .contextMenu {
-            Button(action: onEdit) { Label("Modifica", systemImage: "pencil") }
-            Button(role: .destructive, action: onDelete) { Label("Elimina", systemImage: "xmark.bin") }
+            Button(action: onEdit) { Label(AppLocalization.key("action.edit"), systemImage: "pencil") }
+            Button(role: .destructive, action: onDelete) { Label(AppLocalization.key("action.delete"), systemImage: "xmark.bin") }
         }
     }
 }
@@ -193,7 +198,7 @@ private struct RemoteCategoryBudgetCard: View {
 
     private var total: Double { Double(budget.amountMinor) / pow(10, Double(budget.currencyExponent)) }
     private var spent: Double { Double(budget.spentMinor) / pow(10, Double(budget.currencyExponent)) }
-    private var name: String { budget.categoryName ?? "Categoria rimossa" }
+    private var name: String { budget.categoryName ?? AppLocalization.string("budget.deletedCategory") }
     private var color: Color { Color(hex: budget.categoryColor ?? "#FFFFFF") }
 
     var body: some View {
@@ -224,20 +229,14 @@ private struct RemoteCategoryBudgetCard: View {
         .frame(maxWidth: .infinity, minHeight: 180)
         .background(Color.AppPageBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         .contextMenu {
-            Button(action: onEdit) { Label("Modifica", systemImage: "pencil") }
-            Button(role: .destructive, action: onDelete) { Label("Elimina", systemImage: "xmark.bin") }
+            Button(action: onEdit) { Label(AppLocalization.key("action.edit"), systemImage: "pencil") }
+            Button(role: .destructive, action: onDelete) { Label(AppLocalization.key("action.delete"), systemImage: "xmark.bin") }
         }
     }
 }
 
 private func remoteBudgetDisplay(_ minor: Int64, code: String, exponent: Int) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .currency
-    formatter.currencyCode = code
-    formatter.minimumFractionDigits = exponent
-    formatter.maximumFractionDigits = exponent
-    let value = NSDecimalNumber(mantissa: UInt64(abs(minor)), exponent: Int16(-exponent), isNegative: minor < 0)
-    return formatter.string(from: value) ?? "0"
+    return FinancialFormatting.currency(minorUnits: minor, currencyCode: code, exponent: exponent)
 }
 
 private struct BudgetEmptyState: View {
@@ -245,18 +244,18 @@ private struct BudgetEmptyState: View {
         Group {
             if #available(iOS 17.0, *) {
                 ContentUnavailableView {
-                    Label("Nessun budget", systemImage: "chart.pie")
+                    Label(AppLocalization.key("budget.empty"), systemImage: "chart.pie")
                 } description: {
-                    Text("Aggiungi il tuo primo budget.")
+                    Text(AppLocalization.key("budget.emptyDescription"))
                 }
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "chart.pie")
                         .font(.title)
                         .foregroundStyle(.secondary)
-                    Text("Nessun budget")
+                Text(AppLocalization.key("budget.empty"))
                         .font(.title3.weight(.medium))
-                    Text("Aggiungi il tuo primo budget.")
+                Text(AppLocalization.key("budget.emptyDescription"))
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }

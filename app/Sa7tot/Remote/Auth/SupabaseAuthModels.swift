@@ -71,15 +71,15 @@ public enum SupabaseAuthPresentationError: Equatable, Sendable {
     public var message: String {
         switch self {
         case .configuration:
-            return "Configura Supabase per accedere con Apple."
+            return AppLocalization.string("auth.configuration")
         case .network:
-            return "Controlla la connessione e riprova."
+            return AppLocalization.string("auth.network")
         case .credential, .exchange:
-            return "Non è stato possibile completare l’accesso con Apple."
+            return AppLocalization.string("auth.credential")
         case .refresh:
-            return "La sessione non è più valida. Accedi di nuovo."
+            return AppLocalization.string("auth.refresh")
         case .unknown:
-            return "Si è verificato un errore. Riprova."
+            return AppLocalization.string("error.generic")
         }
     }
 }

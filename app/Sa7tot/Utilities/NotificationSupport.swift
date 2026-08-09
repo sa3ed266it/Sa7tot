@@ -5,8 +5,8 @@ func newNotification() {
     UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
 
     let content = UNMutableNotificationContent()
-    content.title = String(localized: "Keep the streak going!")
-    content.subtitle = String(localized: "Remember to input your expenses today.")
+    content.title = AppLocalization.string("notification.title")
+    content.subtitle = AppLocalization.string("notification.subtitle")
     content.sound = UNNotificationSound.default
 
     var components = DateComponents()

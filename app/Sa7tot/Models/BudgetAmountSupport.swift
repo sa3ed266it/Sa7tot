@@ -7,7 +7,7 @@ enum BudgetAmountParser {
 
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.locale = Locale(identifier: "it_IT")
+        formatter.locale = .current
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
         return formatter.number(from: value)?.decimalValue

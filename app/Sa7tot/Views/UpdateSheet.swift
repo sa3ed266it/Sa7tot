@@ -10,8 +10,8 @@ import SwiftUI
 
 struct WelcomeSheetFeatureRow: Hashable {
     let icon: String
-    let header: String
-    let subtitle: String
+    let headerKey: String
+    let subtitleKey: String
 }
 
 struct UpdateAlert: View {
@@ -25,13 +25,13 @@ struct UpdateAlert: View {
     @State var opacity = 0.0
 
     let welcomeFeatures = [
-        WelcomeSheetFeatureRow(icon: "appclip", header: "Scorciatoie Siri", subtitle: "3 nuove scorciatoie Siri ti permettono di aggiungere comodamente nuovi movimenti."),
-        WelcomeSheetFeatureRow(icon: "arrow.down.doc.fill", header: "Importazione dati", subtitle: "Trasferisci i movimenti esistenti da altre app con una guida passo passo."),
-        WelcomeSheetFeatureRow(icon: "sun.haze.fill", header: "Movimenti futuri", subtitle: "Con le restrizioni sulle date rimosse, puoi registrare e visualizzare entrate e spese future."),
-        WelcomeSheetFeatureRow(icon: "app.gift.fill", header: "Icone dell’app", subtitle: "Scegli tra 3 nuove icone ispirate allo stile skeuomorfico, realizzate con cura da @rudra_dsigns."),
-        WelcomeSheetFeatureRow(icon: "circle.grid.2x2.fill", header: "Schermate rinnovate", subtitle: "Le schermate di creazione di budget e categorie sono state completamente rielaborate."),
-        WelcomeSheetFeatureRow(icon: "swatchpalette.fill", header: "Colori personalizzati", subtitle: "Usa il selettore colori nativo di iOS per dare alle categorie un nuovo tocco estetico."),
-        WelcomeSheetFeatureRow(icon: "exclamationmark.octagon.fill", header: "Nuovi messaggi", subtitle: "Anche i messaggi toast dell’app sono stati rinnovati."),
+        WelcomeSheetFeatureRow(icon: "appclip", headerKey: "update.feature.shortcuts", subtitleKey: "update.feature.shortcutsDescription"),
+        WelcomeSheetFeatureRow(icon: "arrow.down.doc.fill", headerKey: "update.feature.import", subtitleKey: "update.feature.importDescription"),
+        WelcomeSheetFeatureRow(icon: "sun.haze.fill", headerKey: "update.feature.future", subtitleKey: "update.feature.futureDescription"),
+        WelcomeSheetFeatureRow(icon: "app.gift.fill", headerKey: "update.feature.icons", subtitleKey: "update.feature.iconsDescription"),
+        WelcomeSheetFeatureRow(icon: "circle.grid.2x2.fill", headerKey: "update.feature.screens", subtitleKey: "update.feature.screensDescription"),
+        WelcomeSheetFeatureRow(icon: "swatchpalette.fill", headerKey: "update.feature.colors", subtitleKey: "update.feature.colorsDescription"),
+        WelcomeSheetFeatureRow(icon: "exclamationmark.octagon.fill", headerKey: "update.feature.messages", subtitleKey: "update.feature.messagesDescription"),
     ]
 
     var body: some View {
@@ -62,13 +62,13 @@ struct UpdateAlert: View {
                         Image(systemName: "star.fill")
                             .font(.system(.callout, design: .rounded))
 //                            .font(.system(size: 16))
-                        Text("Novità")
+                        Text(AppLocalization.key("update.title"))
                             .font(.system(.title2, design: .rounded).weight(.medium))
 //                            .font(.system(size: 22, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(.PrimaryText)
 
-                    Text("Versione \(UIApplication.appVersion ?? "") (\(UIApplication.buildNumber ?? "")) · 18 settembre 2023")
+                    Text(verbatim: AppLocalization.format("update.version", UIApplication.appVersion ?? "", UIApplication.buildNumber ?? "", AppLocalization.string("update.releaseDate")))
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                        .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(.SubtitleText)
@@ -108,12 +108,12 @@ struct UpdateAlert: View {
                                     .offset(y: 2)
 
                                 VStack(alignment: .leading, spacing: 3.5) {
-                                    Text(LocalizedStringKey(row.header))
+                                    Text(AppLocalization.key(row.headerKey))
                                         .font(.system(.body, design: .rounded).weight(.medium))
 //                                        .font(.system(size: 18, weight: .medium, design: .rounded))
                                         .foregroundColor(Color.PrimaryText)
 
-                                    Text(LocalizedStringKey(row.subtitle))
+                                    Text(AppLocalization.key(row.subtitleKey))
                                         .font(.system(.subheadline, design: .rounded).weight(.medium))
 //                                        .font(.system(size: 16, weight: .regular, design: .rounded))
 //                                            .lineSpacing(0.6)
@@ -127,7 +127,7 @@ struct UpdateAlert: View {
                 }
                 .frame(height: 300)
 
-                Text("Un ringraziamento speciale a \(makeAttributedString()) per il contributo")
+                (Text(AppLocalization.key("update.thanksPrefix")) + Text(makeAttributedString()) + Text(AppLocalization.key("update.thanksSuffix")))
                     .font(.system(.footnote, design: .rounded).weight(.medium))
                     .foregroundColor(Color.SubtitleText)
                     .frame(maxWidth: .infinity)

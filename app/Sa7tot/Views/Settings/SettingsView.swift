@@ -40,6 +40,7 @@ struct SettingsView: View {
   @State private var showingNotificationPermissionAlert = false
 
   @EnvironmentObject var appLockVM: AppLockViewModel
+  @EnvironmentObject private var remoteStore: FinancialRemoteStore
   @Namespace var animation
 
   @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
@@ -62,11 +63,11 @@ struct SettingsView: View {
 
     var hapticString: String {
       if hapticType == 0 {
-        return String(localized: "None")
+        return AppLocalization.string("settings.haptics.none")
       } else if hapticType == 1 {
-        return String(localized: "Subtle")
+        return AppLocalization.string("settings.haptics.subtle")
       } else {
-        return String(localized: "Excessive")
+        return AppLocalization.string("settings.haptics.excessive")
       }
     }
 
@@ -106,16 +107,16 @@ struct SettingsView: View {
   private var settingsList: some View {
     ScrollView(showsIndicators: false) {
       VStack(alignment: .leading, spacing: 24) {
-        SettingsCard(title: "PREFERENZE") {
-          SettingsRowLayout(title: "Notifiche", systemImage: "bell.fill", tint: .yellow) {
+        SettingsCard(title: "settings.preferences") {
+          SettingsRowLayout(title: "settings.notifications", systemImage: "bell.fill", tint: .yellow) {
             Toggle("", isOn: notificationBinding)
               .labelsHidden()
               .tint(.green)
           }
           SettingsDivider()
-          SettingsRowLayout(title: "Valuta", systemImage: "eurosign", tint: .green) {
+          SettingsRowLayout(title: "common.currency", systemImage: "eurosign", tint: .green) {
             Menu {
-              Picker("Valuta", selection: $currency) {
+              Picker(AppLocalization.key("common.currency"), selection: $currency) {
                 ForEach(Currency.allCurrencies, id: \.code) { item in
                   Text("\(item.code) — \(item.name)").tag(item.code)
                 }
@@ -123,38 +124,38 @@ struct SettingsView: View {
             } label: {
               SettingsMenuValue(text: currency)
             }
-            .accessibilityLabel("Valuta")
+            .accessibilityLabel(AppLocalization.key("common.currency"))
             .accessibilityValue(currency)
             .tint(.secondary)
           }
           SettingsDivider()
-          SettingsRowLayout(title: "Inizio settimana", systemImage: "calendar", tint: .purple) {
+          SettingsRowLayout(title: "settings.weekStart", systemImage: "calendar", tint: .purple) {
             Menu {
-              Picker("Inizio settimana", selection: $firstWeekday) {
+              Picker(AppLocalization.key("settings.weekStart"), selection: $firstWeekday) {
                 ForEach(Sa7totWeekday.allCases) { weekday in
-                  Text(weekday.italianName).tag(weekday.rawValue)
+                  Text(verbatim: weekday.localizedName).tag(weekday.rawValue)
                 }
               }
             } label: {
-              SettingsMenuValue(text: Sa7totWeekday(rawValue: firstWeekday)?.italianName ?? "Domenica")
+              SettingsMenuValue(text: Sa7totWeekday(rawValue: firstWeekday)?.localizedName ?? AppLocalization.string("weekday.sunday"))
             }
-            .accessibilityLabel("Inizio settimana")
-            .accessibilityValue(Sa7totWeekday(rawValue: firstWeekday)?.italianName ?? "Domenica")
+            .accessibilityLabel(AppLocalization.key("settings.weekStart"))
+            .accessibilityValue(Sa7totWeekday(rawValue: firstWeekday)?.localizedName ?? AppLocalization.string("weekday.sunday"))
             .tint(.secondary)
           }
         }
 
-        SettingsCard(title: "GESTIONE") {
+        SettingsCard(title: "settings.management") {
           if usesNativeNavigation {
-            NativeSettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
+            NativeSettingsNavigationRow(title: "account.title", subtitle: "settings.manageAccounts", systemImage: "building.columns.fill", tint: .blue) {
               if #available(iOS 26.0, *) {
-                nativeNavigationRouter?.pushAccounts(RemoteAccountListView())
+                nativeNavigationRouter?.pushAccounts(RemoteAccountListView().environmentObject(remoteStore))
               } else {
                 nativeNavigationRouter?.pushView(RemoteConfigurationUnavailableView())
               }
             }
           } else {
-            SettingsNavigationRow(title: "Conti", subtitle: "Gestisci i tuoi conti", systemImage: "building.columns.fill", tint: .blue) {
+            SettingsNavigationRow(title: "account.title", subtitle: "settings.manageAccounts", systemImage: "building.columns.fill", tint: .blue) {
               if #available(iOS 26.0, *) {
                 RemoteAccountListView()
               } else {
@@ -164,64 +165,64 @@ struct SettingsView: View {
           }
           SettingsDivider()
           if usesNativeNavigation {
-            NativeSettingsNavigationRow(title: "Budget", subtitle: "Gestisci i tuoi budget", systemImage: "chart.pie.fill", tint: .purple) {
-              nativeNavigationRouter?.pushView(RemoteBudgetView())
+            NativeSettingsNavigationRow(title: "budget.title", subtitle: "settings.manageBudgets", systemImage: "chart.pie.fill", tint: .purple) {
+              nativeNavigationRouter?.pushView(RemoteBudgetView().environmentObject(remoteStore))
             }
           } else {
-            SettingsNavigationRow(title: "Budget", subtitle: "Gestisci i tuoi budget", systemImage: "chart.pie.fill", tint: .purple) {
+            SettingsNavigationRow(title: "budget.title", subtitle: "settings.manageBudgets", systemImage: "chart.pie.fill", tint: .purple) {
               RemoteBudgetView()
             }
           }
         }
 
-        SettingsCard(title: "MONITORAGGIO") {
-          SettingsRowLayout(title: "Monitoraggio entrate", systemImage: "banknote.fill", tint: .green) {
+        SettingsCard(title: "settings.monitoring") {
+          SettingsRowLayout(title: "settings.incomeTracking", systemImage: "banknote.fill", tint: .green) {
             Toggle("", isOn: incomeTrackingBinding)
               .labelsHidden()
               .tint(.green)
           }
         }
 
-        SettingsCard(title: "SICUREZZA") {
-          SettingsRowLayout(title: "Autenticazione", systemImage: "faceid", tint: .blue) {
+        SettingsCard(title: "settings.security") {
+          SettingsRowLayout(title: "settings.authentication", systemImage: "faceid", tint: .blue) {
             Toggle("", isOn: appLockBinding)
               .labelsHidden()
               .tint(.green)
           }
         }
 
-        SettingsCard(title: "ASPETTO") {
-          SettingsRowLayout(title: "Tema", systemImage: "paintbrush.fill", tint: .blue) {
+        SettingsCard(title: "settings.appearance") {
+          SettingsRowLayout(title: "settings.theme", systemImage: "paintbrush.fill", tint: .blue) {
             Menu {
-              Picker("Tema", selection: $colourScheme) {
-                Text("Sistema").tag(0)
-                Text("Chiaro").tag(1)
-                Text("Scuro").tag(2)
+              Picker(AppLocalization.key("settings.theme"), selection: $colourScheme) {
+                Text(AppLocalization.key("settings.system")).tag(0)
+                Text(AppLocalization.key("settings.light")).tag(1)
+                Text(AppLocalization.key("settings.dark")).tag(2)
               }
             } label: {
               SettingsMenuValue(text: themeValue)
             }
-            .accessibilityLabel("Tema")
+            .accessibilityLabel(AppLocalization.key("settings.theme"))
             .accessibilityValue(themeValue)
             .tint(.secondary)
           }
           SettingsDivider()
-          SettingsRowLayout(title: "Mostra centesimi", systemImage: "centsign.circle.fill", tint: .teal) {
+          SettingsRowLayout(title: "settings.showCents", systemImage: "centsign.circle.fill", tint: .teal) {
             Toggle("", isOn: $showCents).labelsHidden().tint(.green)
           }
           SettingsDivider()
-          SettingsRowLayout(title: "Mostra simbolo +/-", systemImage: "plus.forwardslash.minus", tint: .pink) {
+          SettingsRowLayout(title: "settings.showSigns", systemImage: "plus.forwardslash.minus", tint: .pink) {
             Toggle("", isOn: $showExpenseOrIncomeSign).labelsHidden().tint(.green)
           }
           SettingsDivider()
-          SettingsRowLayout(title: "Grafici animati", systemImage: "hare.fill", tint: .mint) {
+          SettingsRowLayout(title: "settings.animatedCharts", systemImage: "hare.fill", tint: .mint) {
             Toggle("", isOn: $animated).labelsHidden().tint(.green)
           }
         }
 
-        SettingsCard(title: "DATI") {
+        SettingsCard(title: "settings.data") {
           Button { showCategoriesSheet = true } label: {
-            SettingsRowLayout(title: "Categorie", systemImage: "rectangle.grid.2x2.fill", tint: .blue) {
+            SettingsRowLayout(title: "category.title", systemImage: "rectangle.grid.2x2.fill", tint: .blue) {
               SettingsChevron()
             }
           }
@@ -233,7 +234,7 @@ struct SettingsView: View {
       .padding(.top, 8)
       .padding(.bottom, 120)
     }
-    .navigationTitle("Impostazioni")
+    .navigationTitle(AppLocalization.key("settings.title"))
     .navigationBarTitleDisplayMode(.large)
     .dynamicTypeSize(...DynamicTypeSize.accessibility5)
     .onChange(of: firstWeekday) { newValue in
@@ -248,11 +249,11 @@ struct SettingsView: View {
       if !(1...7).contains(firstWeekday) { firstWeekday = 1 }
       refreshNotificationPermission()
     }
-    .alert("Notifiche disattivate", isPresented: $showingNotificationPermissionAlert) {
-      Button("Annulla", role: .cancel) {}
-      Button("Apri Impostazioni") { openNotificationSettings() }
+    .alert(AppLocalization.key("settings.notificationsDisabled"), isPresented: $showingNotificationPermissionAlert) {
+      Button(AppLocalization.key("action.cancel"), role: .cancel) {}
+      Button(AppLocalization.key("action.openSettings")) { openNotificationSettings() }
     } message: {
-      Text("Le notifiche sono state disattivate nelle impostazioni di iOS. Abilita le notifiche per ricevere i promemoria.")
+      Text(AppLocalization.key("settings.notificationsDisabledMessage"))
     }
   }
 
@@ -329,17 +330,17 @@ struct SettingsView: View {
   }
   private var themeValue: String {
     switch colourScheme {
-    case 1: return "Chiaro"
-    case 2: return "Scuro"
-    default: return "Sistema"
+    case 1: return AppLocalization.string("settings.light")
+    case 2: return AppLocalization.string("settings.dark")
+    default: return AppLocalization.string("settings.system")
     }
   }
 
   private var hapticValue: String {
     switch hapticType {
-    case 0: return "Nessuno"
-    case 1: return "Leggero"
-    default: return "Intenso"
+    case 0: return AppLocalization.string("settings.haptics.none")
+    case 1: return AppLocalization.string("settings.haptics.subtle")
+    default: return AppLocalization.string("settings.haptics.excessive")
     }
   }
 
@@ -416,7 +417,7 @@ private struct SettingsCard<Content: View>: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text(title)
+      Text(AppLocalization.key(title))
         .font(.subheadline.weight(.semibold))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 4)
@@ -460,12 +461,12 @@ private struct SettingsRowLayout<Trailing: View>: View {
       SettingsNativeIcon(systemImage: systemImage, tint: tint)
 
       VStack(alignment: .leading, spacing: 2) {
-        Text(title)
+        Text(AppLocalization.key(title))
           .font(.body.weight(.medium))
           .foregroundStyle(.primary)
           .fixedSize(horizontal: false, vertical: true)
         if let subtitle {
-          Text(subtitle)
+          Text(AppLocalization.key(subtitle))
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -607,13 +608,13 @@ private struct SettingsNativeLabel: View {
 
   var body: some View {
     Label {
-      Text(title)
+      Text(AppLocalization.key(title))
         .font(.callout)
         .foregroundStyle(.primary)
     } icon: {
       SettingsNativeIcon(systemImage: systemImage, tint: tint)
     }
-    .accessibilityLabel(title)
+    .accessibilityLabel(AppLocalization.key(title))
   }
 }
 
@@ -633,14 +634,14 @@ private struct SettingsNativeRow: View {
   var body: some View {
     HStack(spacing: 12) {
       SettingsNativeIcon(systemImage: systemImage, tint: tint)
-      Text(title)
+      Text(AppLocalization.key(title))
         .font(.callout)
         .foregroundStyle(.primary)
         .lineLimit(2)
         .layoutPriority(1)
       Spacer(minLength: 8)
       if let value {
-        Text(value)
+        Text(verbatim: value)
           .font(.callout)
           .foregroundStyle(.secondary)
           .lineLimit(1)
@@ -650,7 +651,7 @@ private struct SettingsNativeRow: View {
     }
     .frame(minHeight: 44)
     .accessibilityElement(children: .combine)
-    .accessibilityLabel(title)
+    .accessibilityLabel(AppLocalization.key(title))
     .accessibilityValue(value ?? "")
   }
 }

@@ -25,7 +25,7 @@ struct HomeView: View {
                 RemoteConfigurationUnavailableView()
             }
         } else {
-            Text("Questa versione di iOS non è supportata.")
+            Text(AppLocalization.key("unsupported.ios"))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
@@ -61,17 +61,17 @@ struct NativeSearchTabView: UIViewControllerRepresentable {
         let coordinator = context.coordinator
         let tabs: [UITab] = [
             UITab(
-                title: "Movimenti",
+                title: AppLocalization.string("tab.movements"),
                 image: Sa7totSymbolResolver.image("list.bullet.rectangle"),
                 identifier: Sa7totMainTabConfiguration.movements
             ) { _ in coordinator.movementsHost(logView) },
             UITab(
-                title: "Abbonamenti",
+                title: AppLocalization.string("tab.subscriptions"),
                 image: Sa7totSymbolResolver.image("repeat"),
                 identifier: Sa7totMainTabConfiguration.subscriptions
             ) { _ in coordinator.host(subscriptionView) },
             UITab(
-                title: "Impostazioni",
+                title: AppLocalization.string("tab.settings"),
                 image: Sa7totSymbolResolver.image("gearshape.fill"),
                 identifier: Sa7totMainTabConfiguration.settings
             ) { _ in coordinator.settingsHost(settingsView) }

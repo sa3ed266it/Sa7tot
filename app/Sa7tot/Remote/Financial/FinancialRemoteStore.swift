@@ -15,14 +15,14 @@ enum RemoteMovementFilter: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .all: return "Tutti i movimenti"
-        case .type: return "Per tipo"
-        case .day: return "Per giorno"
-        case .week: return "Per settimana"
-        case .month: return "Per mese"
-        case .category: return "Per categoria"
-        case .recurring: return "Ricorrenti"
-        case .upcoming: return "In arrivo"
+        case .all: return AppLocalization.string("filter.all")
+        case .type: return AppLocalization.string("filter.type")
+        case .day: return AppLocalization.string("filter.day")
+        case .week: return AppLocalization.string("filter.week")
+        case .month: return AppLocalization.string("filter.month")
+        case .category: return AppLocalization.string("filter.category")
+        case .recurring: return AppLocalization.string("filter.recurring")
+        case .upcoming: return AppLocalization.string("filter.upcoming")
         }
     }
 }
@@ -561,15 +561,15 @@ final class FinancialRemoteStore: ObservableObject {
     private func userFacingMessage(for error: Error) -> String {
         if let error = error as? APIError {
             switch error {
-            case .unauthorized: return "La sessione è scaduta. Accedi di nuovo."
-            case .forbidden: return "Non hai accesso a questi dati."
-            case .notFound: return "Il contenuto richiesto non è più disponibile."
-            case .validation: return "Controlla i dati inseriti."
-            case .server: return "Il servizio non è disponibile. Riprova."
-            case .transport: return "Impossibile raggiungere il servizio."
-            default: return "Impossibile caricare i dati."
+            case .unauthorized: return AppLocalization.string("error.unauthorized")
+            case .forbidden: return AppLocalization.string("error.forbidden")
+            case .notFound: return AppLocalization.string("error.notFound")
+            case .validation: return AppLocalization.string("error.validation")
+            case .server: return AppLocalization.string("error.server")
+            case .transport: return AppLocalization.string("error.network")
+            default: return AppLocalization.string("error.generic")
             }
         }
-        return "Impossibile caricare i dati."
+        return AppLocalization.string("error.generic")
     }
 }

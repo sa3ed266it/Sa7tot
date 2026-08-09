@@ -18,7 +18,7 @@ struct SubscriptionManagerView: View {
             }
         }
         .background(Color.AppPageBackground)
-        .navigationTitle("Abbonamenti")
+        .navigationTitle(AppLocalization.key("subscription.title"))
         .navigationBarTitleDisplayMode(.large)
         .task {
             do {
@@ -34,25 +34,25 @@ struct SubscriptionManagerView: View {
                 EmptyView()
             }
         }
-        .alert("Impossibile annullare l'abbonamento", isPresented: Binding(
+        .alert(AppLocalization.key("subscription.cancelErrorTitle"), isPresented: Binding(
             get: { remoteActionError != nil },
             set: { if !$0 { remoteActionError = nil } }
         )) {
-            Button("OK", role: .cancel) { remoteActionError = nil }
+            Button(AppLocalization.key("action.ok"), role: .cancel) { remoteActionError = nil }
         } message: {
-            Text(remoteActionError ?? "Riprova.")
+            Text(verbatim: remoteActionError ?? AppLocalization.string("action.retry"))
         }
-        .alert("Annullare l'abbonamento?", isPresented: $showCancelConfirmation) {
-            Button("Annulla abbonamento", role: .destructive) {
+        .alert(AppLocalization.key("subscription.cancelTitle"), isPresented: $showCancelConfirmation) {
+            Button(AppLocalization.key("subscription.cancel"), role: .destructive) {
                 guard let subscription = selectedRemoteSubscription else { return }
                 Task {
                     do { try await remoteStore.cancelSubscription(subscription.id) }
-                    catch { remoteActionError = "Impossibile annullare l'abbonamento. Riprova." }
+                    catch { remoteActionError = AppLocalization.string("subscription.cancelError") }
                 }
             }
-            Button("Indietro", role: .cancel) {}
+            Button(AppLocalization.key("action.cancel"), role: .cancel) {}
         } message: {
-            Text("L'abbonamento non verrà più mostrato nell'elenco principale.")
+            Text(AppLocalization.key("subscription.cancelMessage"))
         }
     }
 
@@ -74,18 +74,18 @@ struct SubscriptionManagerView: View {
     private var emptyState: some View {
         if #available(iOS 17.0, *) {
             ContentUnavailableView(
-                "Nessun abbonamento",
+                AppLocalization.key("subscription.empty"),
                 systemImage: "repeat.circle",
-                description: Text("Aggiungi un abbonamento dal pulsante +.")
+                description: Text(AppLocalization.key("subscription.emptyDescription"))
             )
         } else {
             VStack(spacing: 10) {
                 Image(systemName: "repeat.circle")
                     .font(.system(size: 36))
                     .foregroundStyle(.secondary)
-                Text("Nessun abbonamento")
+                Text(AppLocalization.key("subscription.empty"))
                     .font(.headline)
-                Text("Aggiungi un abbonamento dal pulsante +.")
+                Text(AppLocalization.key("subscription.emptyDescription"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -108,7 +108,7 @@ struct SubscriptionManagerView: View {
                         .lineLimit(1)
                     HStack(spacing: 5) {
                         if subscription.status == .paused {
-                            Text("In pausa")
+                            Text(AppLocalization.key("subscription.paused"))
                         } else {
                             Text(formattedDate(subscription.nextBillingDate))
                         }
@@ -131,43 +131,38 @@ struct SubscriptionManagerView: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button("Modifica") { selectedRemoteSubscription = subscription }
+            Button(AppLocalization.key("action.edit")) { selectedRemoteSubscription = subscription }
             if subscription.status == .paused {
-                Button("Riprendi") { performRemoteAction { try await remoteStore.resumeSubscription(subscription.id) } }
+                Button(AppLocalization.key("action.resume")) { performRemoteAction { try await remoteStore.resumeSubscription(subscription.id) } }
             } else {
-                Button("Metti in pausa") { performRemoteAction { try await remoteStore.pauseSubscription(subscription.id) } }
+                Button(AppLocalization.key("action.pause")) { performRemoteAction { try await remoteStore.pauseSubscription(subscription.id) } }
             }
-            Button("Annulla abbonamento", role: .destructive) {
+            Button(AppLocalization.key("subscription.cancel"), role: .destructive) {
                 selectedRemoteSubscription = subscription
                 showCancelConfirmation = true
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(subscription.displayName)
-        .accessibilityValue("\(remoteCadenceTitle(subscription.cadence)), \(subscription.status == .paused ? "In pausa" : "Attivo")")
+        .accessibilityValue(AppLocalization.format("accessibility.subscription", remoteCadenceTitle(subscription.cadence), AppLocalization.string(subscription.status == .paused ? "subscription.paused" : "subscription.active")))
     }
 
     private func performRemoteAction(_ action: @escaping () async throws -> Void) {
         Task {
             do { try await action() }
-            catch { remoteActionError = "Impossibile aggiornare l'abbonamento. Riprova." }
+            catch { remoteActionError = AppLocalization.string("subscription.updateError") }
         }
     }
 
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "it_IT")
+        formatter.locale = .current
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
     }
 
     private func formattedAmount(_ amount: RemoteMoney) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = amount.currencyCode
-        formatter.minimumFractionDigits = showCents ? amount.exponent : 0
-        formatter.maximumFractionDigits = showCents ? amount.exponent : 0
-        return formatter.string(from: NSNumber(value: Double(amount.minorUnits) / pow(10, Double(amount.exponent)))) ?? "0"
+        return FinancialFormatting.currency(minorUnits: amount.minorUnits, currencyCode: amount.currencyCode, exponent: amount.exponent, showCents: showCents)
     }
 
     private func formattedDate(_ date: RemoteDateOnly) -> String {
@@ -183,9 +178,9 @@ struct SubscriptionManagerView: View {
 
     private func remoteCadenceTitle(_ cadence: RemoteSubscriptionCadence) -> String {
         switch cadence {
-        case .weekly: return "Settimanale"
-        case .monthly: return "Mensile"
-        case .yearly: return "Annuale"
+        case .weekly: return AppLocalization.string("subscription.weekly")
+        case .monthly: return AppLocalization.string("subscription.monthly")
+        case .yearly: return AppLocalization.string("subscription.yearly")
         }
     }
 
@@ -206,7 +201,7 @@ private struct RemoteSubscriptionDetailView: View {
                         SubscriptionLogoView(service: SubscriptionServiceCatalog.service(forID: subscription.serviceID), size: 52)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(subscription.displayName).font(.title3.weight(.semibold))
-                            Text(subscription.status == .paused ? "In pausa" : "Attivo")
+                            Text(AppLocalization.key(subscription.status == .paused ? "subscription.paused" : "subscription.active"))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -214,19 +209,19 @@ private struct RemoteSubscriptionDetailView: View {
                     .padding(.vertical, 8)
                 }
                 Section {
-                    detailRow("Importo", detailAmount)
-                    detailRow("Frequenza", cadenceTitle)
-                    detailRow("Prossimo pagamento", subscription.nextBillingDate.isoString)
+                    detailRow(AppLocalization.string("common.amount"), detailAmount)
+                    detailRow(AppLocalization.string("common.frequency"), cadenceTitle)
+                    detailRow(AppLocalization.string("subscription.nextPayment"), subscription.nextBillingDate.isoString)
                     if let account = store.accounts.first(where: { $0.id == subscription.accountID }) {
-                        detailRow("Conto", account.name)
+                        detailRow(AppLocalization.string("common.account"), account.name)
                     }
                 }
             }
-            .navigationTitle("Abbonamento")
+            .navigationTitle(AppLocalization.key("subscription.detail"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Chiudi") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Modifica") { showEditor = true } }
+                ToolbarItem(placement: .cancellationAction) { Button(AppLocalization.key("action.close")) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button(AppLocalization.key("action.edit")) { showEditor = true } }
             }
             .sheet(isPresented: $showEditor) {
                 RemoteSubscriptionEditorView(subscription: subscription)
@@ -236,9 +231,9 @@ private struct RemoteSubscriptionDetailView: View {
 
     private var cadenceTitle: String {
         switch subscription.cadence {
-        case .weekly: return "Settimanale"
-        case .monthly: return "Mensile"
-        case .yearly: return "Annuale"
+        case .weekly: return AppLocalization.string("subscription.weekly")
+        case .monthly: return AppLocalization.string("subscription.monthly")
+        case .yearly: return AppLocalization.string("subscription.yearly")
         }
     }
 
@@ -246,16 +241,11 @@ private struct RemoteSubscriptionDetailView: View {
         HStack {
             Text(title).foregroundStyle(.secondary)
             Spacer()
-            Text(value).multilineTextAlignment(.trailing)
+            Text(verbatim: value).multilineTextAlignment(.trailing)
         }
     }
 
     private var detailAmount: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = subscription.currencyCode
-        formatter.minimumFractionDigits = subscription.currencyExponent
-        formatter.maximumFractionDigits = subscription.currencyExponent
-        return formatter.string(from: NSNumber(value: Double(subscription.amountMinor) / pow(10, Double(subscription.currencyExponent)))) ?? "0"
+        return FinancialFormatting.currency(minorUnits: subscription.amountMinor, currencyCode: subscription.currencyCode, exponent: subscription.currencyExponent)
     }
 }

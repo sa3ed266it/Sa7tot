@@ -16,16 +16,22 @@ public enum APIError: Error, Equatable, Sendable {
 extension APIError: LocalizedError {
     public var errorDescription: String? {
         switch self {
-        case let .invalidURL(message): return message
-        case .missingTokenProvider: return "An authenticated request requires an access token provider."
-        case let .unauthorized(message): return message ?? "The request is not authorized."
-        case let .forbidden(message): return message ?? "The request is forbidden."
-        case let .notFound(message): return message ?? "The requested resource was not found."
-        case let .validation(message): return message ?? "The request was invalid."
-        case let .server(statusCode, message): return message ?? "The server returned HTTP \(statusCode)."
-        case let .transport(message): return message
-        case .invalidResponse: return "The server returned an invalid response."
-        case let .decoding(message): return message
+        case .invalidURL, .missingTokenProvider:
+            return AppLocalization.string("error.configuration")
+        case .unauthorized:
+            return AppLocalization.string("error.unauthorized")
+        case .forbidden:
+            return AppLocalization.string("error.forbidden")
+        case .notFound:
+            return AppLocalization.string("error.notFound")
+        case .validation:
+            return AppLocalization.string("error.validation")
+        case let .server(statusCode, _):
+            return AppLocalization.format("error.server", statusCode)
+        case .transport:
+            return AppLocalization.string("error.network")
+        case .invalidResponse, .decoding:
+            return AppLocalization.string("error.invalidResponse")
         }
     }
 }

@@ -16,17 +16,19 @@ enum Sa7totWeekday: Int, CaseIterable, Identifiable {
 
     var id: Int { rawValue }
 
-    var italianName: String {
+    var localizedName: String {
         switch self {
-        case .monday: return "Lunedì"
-        case .tuesday: return "Martedì"
-        case .wednesday: return "Mercoledì"
-        case .thursday: return "Giovedì"
-        case .friday: return "Venerdì"
-        case .saturday: return "Sabato"
-        case .sunday: return "Domenica"
+        case .monday: return AppLocalization.string("weekday.monday")
+        case .tuesday: return AppLocalization.string("weekday.tuesday")
+        case .wednesday: return AppLocalization.string("weekday.wednesday")
+        case .thursday: return AppLocalization.string("weekday.thursday")
+        case .friday: return AppLocalization.string("weekday.friday")
+        case .saturday: return AppLocalization.string("weekday.saturday")
+        case .sunday: return AppLocalization.string("weekday.sunday")
         }
     }
+
+    var italianName: String { localizedName }
 
     static var storedSelection: Sa7totWeekday {
         let value = UserDefaults(suiteName: "group.com.saied.sa7tot")?.integer(forKey: "firstWeekday") ?? 1

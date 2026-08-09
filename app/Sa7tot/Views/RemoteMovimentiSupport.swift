@@ -47,7 +47,7 @@ struct CategoryLogIconView: View {
         CategoryIconView(
             descriptor: CategoryIconPresentation.descriptor(for: iconIdentifier),
             role: huge ? .category : .listRow,
-            accessibilityLabel: categoryName ?? "Altro"
+            accessibilityLabel: categoryName ?? AppLocalization.string("subscription.other")
         )
         .opacity(future ? 0.6 : 1)
     }
@@ -90,7 +90,7 @@ struct NoResultsView: View {
                         .font(.system(.largeTitle, design: .rounded))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundColor(Color.SubtitleText)
-                    Text("Nessun movimento trovato.")
+                    Text(AppLocalization.key("movement.empty.title"))
                         .font(.system(.title3, design: .rounded).weight(.medium))
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundColor(Color.SubtitleText)
@@ -105,7 +105,7 @@ struct NoResultsView: View {
                     Image(systemName: "tray.full.fill")
                         .font(.system(size: 38, weight: .regular, design: .rounded))
                         .foregroundColor(Color.SubtitleText)
-                    Text("Nessun movimento trovato.")
+                    Text(AppLocalization.key("movement.empty.title"))
                         .font(.system(size: 21, weight: .medium, design: .rounded))
                         .foregroundColor(Color.SubtitleText)
                     Spacer()

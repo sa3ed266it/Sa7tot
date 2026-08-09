@@ -28,25 +28,6 @@
 		<string>RecentTransactionConfigurationIntent</string>
 		<string>RecentWidgetConfigurationIntent</string>
 	</array>
-	<key>UIApplicationShortcutItems</key>
-	<array>
-		<dict>
-			<key>UIApplicationShortcutItemIconSymbolName</key>
-			<string>magnifyingglass</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>Search Entries</string>
-			<key>UIApplicationShortcutItemType</key>
-			<string>sa7totapp://search</string>
-		</dict>
-		<dict>
-			<key>UIApplicationShortcutItemIconSymbolName</key>
-			<string>plus.app</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>Add Expense</string>
-			<key>UIApplicationShortcutItemType</key>
-			<string>sa7totapp://newExpense</string>
-		</dict>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

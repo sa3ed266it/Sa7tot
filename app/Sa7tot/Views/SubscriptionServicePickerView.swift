@@ -114,13 +114,13 @@ struct SubscriptionServicePickerView: View {
                         customName = ""
                         dismiss()
                     } label: {
-                        serviceRow(title: "Altro", subtitle: "Inserisci un nome personalizzato", service: nil)
+                        serviceRow(title: AppLocalization.string("subscription.other"), subtitle: AppLocalization.string("subscription.customName"), service: nil)
                     }
                     .buttonStyle(.plain)
                 }
             }
 
-            Section("Servizi") {
+            Section(AppLocalization.key("subscription.services")) {
                 ForEach(services) { service in
                     Button {
                         selectedService = service
@@ -130,7 +130,7 @@ struct SubscriptionServicePickerView: View {
                     } label: {
                         serviceRow(
                             title: service.displayName,
-                            subtitle: service.categoryHint?.italianName ?? "Servizio",
+                            subtitle: service.categoryHint?.localizedTitle ?? AppLocalization.string("common.service"),
                             service: service
                         )
                     }
@@ -138,19 +138,19 @@ struct SubscriptionServicePickerView: View {
                 }
             }
         }
-        .navigationTitle("Scegli servizio")
+        .navigationTitle(AppLocalization.key("subscription.chooseService"))
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "Cerca un servizio")
+        .searchable(text: $searchText, prompt: AppLocalization.key("subscription.searchService"))
     }
 
     private func serviceRow(title: String, subtitle: String, service: SubscriptionCatalogService?) -> some View {
         HStack(spacing: 12) {
             SubscriptionLogoView(service: service, size: 40)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(verbatim: title)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                Text(subtitle)
+                Text(verbatim: subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -169,20 +169,20 @@ struct SubscriptionServicePickerView: View {
 }
 
 private extension SubscriptionServiceCategory {
-    var italianName: String {
+    var localizedTitle: String {
         switch self {
-        case .streamingVideo: return "Video"
-        case .musicAudio: return "Musica"
-        case .cloudStorage: return "Archiviazione"
-        case .productivity: return "Produttività"
-        case .ai: return "Intelligenza artificiale"
-        case .gaming: return "Giochi"
-        case .fitnessWellness: return "Benessere"
-        case .newsReading: return "Lettura"
-        case .securityVPN: return "Sicurezza"
-        case .developer: return "Sviluppo"
-        case .deliveryMembership: return "Consegne"
-        case .other: return "Servizio"
+        case .streamingVideo: return AppLocalization.string("subscription.category.video")
+        case .musicAudio: return AppLocalization.string("subscription.category.music")
+        case .cloudStorage: return AppLocalization.string("subscription.category.cloud")
+        case .productivity: return AppLocalization.string("subscription.category.productivity")
+        case .ai: return AppLocalization.string("subscription.category.ai")
+        case .gaming: return AppLocalization.string("subscription.category.gaming")
+        case .fitnessWellness: return AppLocalization.string("subscription.category.fitness")
+        case .newsReading: return AppLocalization.string("subscription.category.reading")
+        case .securityVPN: return AppLocalization.string("subscription.category.security")
+        case .developer: return AppLocalization.string("subscription.category.developer")
+        case .deliveryMembership: return AppLocalization.string("subscription.category.delivery")
+        case .other: return AppLocalization.string("common.service")
         }
     }
 }

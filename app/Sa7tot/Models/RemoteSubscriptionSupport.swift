@@ -16,7 +16,7 @@ enum SubscriptionDisplayIdentity {
     static func name(customName: String?, serviceID: String?) -> String {
         if let customName = normalized(customName) { return customName }
         if let serviceID = normalized(serviceID) { return serviceID }
-        return "Abbonamento"
+        return AppLocalization.string("subscription.detail")
     }
 
     static func normalized(_ value: String?) -> String? {

@@ -17,18 +17,20 @@ enum FilterType: String, CaseIterable {
     case recurring
     case upcoming
 
-    var italianTitle: String {
+    var localizedTitle: String {
         switch self {
-        case .all: return "Tutti i movimenti"
-        case .type: return "Per tipo"
-        case .day: return "Per giorno"
-        case .week: return "Per settimana"
-        case .month: return "Per mese"
-        case .category: return "Per categoria"
-        case .recurring: return "Ricorrenti"
-        case .upcoming: return "In arrivo"
+        case .all: return AppLocalization.string("filter.all")
+        case .type: return AppLocalization.string("filter.type")
+        case .day: return AppLocalization.string("filter.day")
+        case .week: return AppLocalization.string("filter.week")
+        case .month: return AppLocalization.string("filter.month")
+        case .category: return AppLocalization.string("filter.category")
+        case .recurring: return AppLocalization.string("filter.recurring")
+        case .upcoming: return AppLocalization.string("filter.upcoming")
         }
     }
+
+    var italianTitle: String { localizedTitle }
 
     static var imageDictionary: [FilterType: String] = [
         .all: "square.text.square.fill",

@@ -4,5 +4,5 @@ enum Sa7totMainTabConfiguration {
     static let settings = "Settings"
     static let search = "Search"
     static let ordered = [movements, subscriptions, settings]
-    static let trailingAddTitle = "Aggiungi movimento"
+    static var trailingAddTitle: String { AppLocalization.string("action.addMovement") }
 }

@@ -86,8 +86,10 @@
 		AEADEF742AE94DC3006EB614 /* ToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEADEF722AE94DC3006EB614 /* ToolbarButton.swift */; };
 		AEADEF752AE94DC3006EB614 /* Toolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEADEF732AE94DC3006EB614 /* Toolbar.swift */; };
 		AECE7F9E2AED1A6800B57267 /* SuggestedTransactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */; };
-		D63B204A2D8728C300CAFB20 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20462D8728C300CAFB20 /* Localizable.strings */; };
-		D63B204B2D8728C300CAFB20 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = D63B20482D8728C300CAFB20 /* Localizable.stringsdict */; };
+		D63B20592D8728C300CAFB20 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20572D8728C300CAFB20 /* Localizable.xcstrings */; };
+		D63B205A2D8728C300CAFB20 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20582D8728C300CAFB20 /* InfoPlist.xcstrings */; };
+		D63B205C2D8728C300CAFB20 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63B205B2D8728C300CAFB20 /* AppLocalization.swift */; };
+		E70000000000000000000028 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63B205B2D8728C300CAFB20 /* AppLocalization.swift */; };
 		D6A4DE202D61744400F7F751 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = D6A4DE1F2D61744400F7F751 /* SwiftUIIntrospect */; };
 		D6A4DE242D61744400F7F751 /* SwiftUIIntrospect-Static in Frameworks */ = {isa = PBXBuildFile; productRef = D6A4DE232D61744400F7F751 /* SwiftUIIntrospect-Static */; };
 		F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F00300040000000000000001 /* ClashDisplay-Bold.otf */; };
@@ -286,11 +288,9 @@
 		AEADEF722AE94DC3006EB614 /* ToolbarButton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ToolbarButton.swift; sourceTree = "<group>"; };
 		AEADEF732AE94DC3006EB614 /* Toolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Toolbar.swift; sourceTree = "<group>"; };
 		AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedTransactions.swift; sourceTree = "<group>"; };
-		D63B20472D8728C300CAFB20 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Localizations/en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		D63B20492D8728C300CAFB20 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = Localizations/en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		D63B204D2D8728C300CAFB20 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = Localizations/it.lproj/Localizable.strings; sourceTree = "<group>"; };
-		D63B204E2D8728C300CAFB20 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = it; path = Localizations/it.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		D63B20562D8728C300CAFB20 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/MainInterface.strings; sourceTree = "<group>"; };
+		D63B20572D8728C300CAFB20 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		D63B20582D8728C300CAFB20 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		D63B205B2D8728C300CAFB20 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 		F00300040000000000000001 /* ClashDisplay-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "ClashDisplay-Bold.otf"; sourceTree = "<group>"; };
 		F00300050000000000000001 /* FFL-ClashDisplay.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "FFL-ClashDisplay.txt"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -324,8 +324,8 @@
 		5327D27A287C697400F76ADF = {
 			isa = PBXGroup;
 			children = (
-				D63B20462D8728C300CAFB20 /* Localizable.strings */,
-				D63B20482D8728C300CAFB20 /* Localizable.stringsdict */,
+				D63B20572D8728C300CAFB20 /* Localizable.xcstrings */,
+				D63B20582D8728C300CAFB20 /* InfoPlist.xcstrings */,
 				5327D285287C697400F76ADF /* Sa7tot */,
 				53BC2A512A8B21920019E4A8 /* Sa7tot/Tests */,
 				5327D284287C697400F76ADF /* Products */,
@@ -452,6 +452,7 @@
 		5327D296287C69A400F76ADF /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				D63B205B2D8728C300CAFB20 /* AppLocalization.swift */,
 				53A839B928D33840006F227C /* UnlockManager.swift */,
 				53A839BC28D35738006F227C /* SKProduct-LocalizedPrice.swift */,
 				5327D2AF287C6AFB00F76ADF /* Authentication.swift */,
@@ -684,8 +685,6 @@
 				en,
 				it,
 				Base,
-				fr,
-				ru,
 			);
 			mainGroup = 5327D27A287C697400F76ADF;
 			packageReferences = (
@@ -712,8 +711,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				5327D28E287C697C00F76ADF /* Preview Assets.xcassets in Resources */,
-				D63B204A2D8728C300CAFB20 /* Localizable.strings in Resources */,
-				D63B204B2D8728C300CAFB20 /* Localizable.stringsdict in Resources */,
+				D63B20592D8728C300CAFB20 /* Localizable.xcstrings in Resources */,
+				D63B205A2D8728C300CAFB20 /* InfoPlist.xcstrings in Resources */,
 				5327D295287C698900F76ADF /* Assets.xcassets in Resources */,
 				53756F632AC3C25E0065D0C2 /* sample.csv in Resources */,
 				5327D2E0287C6B7D00F76ADF /* DeviceModels.json in Resources */,
@@ -781,6 +780,7 @@
 				D70000000000000000000031 /* RemoteMovimentiSupport.swift in Sources */,
 				D70000000000000000000032 /* BackgroundBlurView.swift in Sources */,
 				D70000000000000000000033 /* CalendarSettingsSupport.swift in Sources */,
+				D63B205C2D8728C300CAFB20 /* AppLocalization.swift in Sources */,
 				B7A000000000000000000001 /* SubscriptionManagerView.swift in Sources */,
 				A7B000000000000000000022 /* SubscriptionServicePickerView.swift in Sources */,
 				B7A000000000000000000003 /* MainTabConfiguration.swift in Sources */,
@@ -878,32 +878,12 @@
 				F70000000000000000000006 /* SupabaseAuthSessionCoordinator.swift in Sources */,
 				F70000000000000000000007 /* SupabaseAuthService.swift in Sources */,
 				F70000000000000000000008 /* AppleAuthorizationCredentialBuilder.swift in Sources */,
+				E70000000000000000000028 /* AppLocalization.swift in Sources */,
 				F7000000000000000000000A /* SupabaseAuthTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		D63B20462D8728C300CAFB20 /* Localizable.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				D63B20472D8728C300CAFB20 /* en */,
-				D63B204D2D8728C300CAFB20 /* it */,
-			);
-			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
-		D63B20482D8728C300CAFB20 /* Localizable.stringsdict */ = {
-			isa = PBXVariantGroup;
-			children = (
-				D63B20492D8728C300CAFB20 /* en */,
-				D63B204E2D8728C300CAFB20 /* it */,
-			);
-			name = Localizable.stringsdict;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		5327D28F287C697C00F76ADF /* Debug */ = {
@@ -1041,8 +1021,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sa7tot/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sa7tot;
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "We need to unlock your data.";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save an image of a transaction for sharing.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1083,8 +1061,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sa7tot/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sa7tot;
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "We need to unlock your data.";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save an image of a transaction for sharing.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
