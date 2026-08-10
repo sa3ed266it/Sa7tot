@@ -43,12 +43,37 @@ enum CategoryIconGroup: String, CaseIterable, Identifiable {
 
 enum CategoryIconCatalog {
     static let all: [CategoryIconOption] = [
+        // Food and groceries
         .init("fork.knife", "Cibo", .food), .init("takeoutbag.and.cup.and.straw.fill", "Asporto", .food), .init("cup.and.saucer.fill", "Caffè", .food), .init("wineglass.fill", "Vino", .food), .init("cart.fill", "Spesa", .food),
-        .init("tram.fill", "Tram", .transport), .init("car.fill", "Auto", .transport), .init("bus.fill", "Autobus", .transport), .init("house.fill", "Casa", .home), .init("lightbulb.fill", "Luce", .home), .init("wifi", "Internet", .home),
+        .init("basket.fill", "Cestino", .food), .init("birthday.cake.fill", "Torta", .food), .init("carrot.fill", "Verdura", .food), .init("fish.fill", "Pesce", .food), .init("popcorn.fill", "Snack", .food),
+
+        // Transport and travel
+        .init("tram.fill", "Tram", .transport), .init("car.fill", "Auto", .transport), .init("bus.fill", "Autobus", .transport), .init("fuelpump.fill", "Carburante", .transport), .init("bicycle", "Bici", .transport),
+        .init("train.side.front.car", "Treno", .transport), .init("scooter", "Scooter", .transport), .init("parkingsign.circle.fill", "Parcheggio", .transport), .init("steeringwheel", "Guida", .transport), .init("airplane", "Aereo", .travel),
+        .init("globe.europe.africa.fill", "Estero", .travel), .init("tent.fill", "Campeggio", .travel), .init("bed.double.fill", "Hotel", .travel), .init("map.fill", "Mappa", .travel), .init("suitcase.fill", "Valigia", .travel),
+
+        // Home and bills
+        .init("house.fill", "Casa", .home), .init("building.2.fill", "Edificio", .home), .init("lightbulb.fill", "Luce", .home), .init("drop.fill", "Acqua", .home), .init("wifi", "Internet", .home),
+        .init("iphone.gen3", "Telefono", .home), .init("tv.fill", "Televisione", .home), .init("washer.fill", "Lavatrice", .home), .init("fan.fill", "Clima", .home), .init("wrench.and.screwdriver.fill", "Manutenzione", .home),
+
+        // Shopping and personal care
         .init("bag.fill", "Borsa", .shopping), .init("tshirt.fill", "Abbigliamento", .shopping), .init("shoe.2.fill", "Scarpe", .shopping), .init("tag.fill", "Etichetta", .shopping), .init("gift.fill", "Regalo", .shopping),
-        .init("cross.case.fill", "Salute", .health), .init("heart.fill", "Benessere", .health), .init("pills.fill", "Farmacia", .health), .init("person.2.fill", "Famiglia", .people), .init("pawprint.fill", "Animali", .people),
-        .init("briefcase.fill", "Lavoro", .work), .init("gamecontroller.fill", "Giochi", .leisure), .init("banknote.fill", "Denaro", .finance), .init("building.columns.fill", "Banca", .finance), .init("arrow.left.arrow.right", "Trasferimento", .finance),
-        .init("airplane", "Viaggio", .travel), .init("arrow.triangle.2.circlepath", "Ricorrenza", .other), .init("calendar", "Calendario", .other), .init("ellipsis.circle.fill", "Altro", .other)
+        .init("storefront.fill", "Negozio", .shopping), .init("basket", "Acquisti", .shopping), .init("eyeglasses", "Ottica", .shopping), .init("scissors", "Parrucchiere", .shopping), .init("sparkles", "Cura", .shopping),
+
+        // Health and family
+        .init("cross.case.fill", "Salute", .health), .init("heart.fill", "Benessere", .health), .init("pills.fill", "Farmacia", .health), .init("stethoscope", "Medico", .health), .init("figure.run", "Fitness", .health),
+        .init("person.2.fill", "Famiglia", .people), .init("person.3.fill", "Gruppo", .people), .init("pawprint.fill", "Animali", .people), .init("dog.fill", "Cane", .people), .init("figure.2.and.child.holdinghands", "Bambini", .people),
+
+        // Work, education and leisure
+        .init("briefcase.fill", "Lavoro", .work), .init("laptopcomputer", "Computer", .work), .init("building.columns.fill", "Ufficio", .work), .init("graduationcap.fill", "Studio", .work), .init("book.fill", "Libri", .work),
+        .init("gamecontroller.fill", "Giochi", .leisure), .init("music.note", "Musica", .leisure), .init("film.fill", "Cinema", .leisure), .init("ticket.fill", "Eventi", .leisure), .init("paintpalette.fill", "Creatività", .leisure), .init("sportscourt.fill", "Sport", .leisure),
+
+        // Money, banking and subscriptions
+        .init("banknote.fill", "Denaro", .finance), .init("building.columns.fill", "Banca", .finance), .init("creditcard.fill", "Carta", .finance), .init("wallet.pass.fill", "Portafoglio", .finance), .init("chart.line.uptrend.xyaxis", "Risparmi", .finance),
+        .init("arrow.left.arrow.right", "Trasferimento", .finance), .init("arrow.triangle.2.circlepath", "Ricorrenza", .finance), .init("calendar.badge.clock", "Abbonamento", .finance), .init("percent", "Sconto", .finance), .init("dollarsign.circle.fill", "Valuta", .finance),
+
+        // Other useful category concepts
+        .init("calendar", "Calendario", .other), .init("clock.fill", "Tempo", .other), .init("bell.fill", "Avviso", .other), .init("lock.fill", "Sicurezza", .other), .init("ellipsis.circle.fill", "Altro", .other)
     ]
     static func options(for kind: CategoryIconKind) -> [CategoryIconOption] { all.filter { $0.supportedKinds.contains(kind) && UIImage(systemName: $0.symbolName) != nil } }
 }

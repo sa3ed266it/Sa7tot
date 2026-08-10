@@ -52,16 +52,6 @@
         }
       }
     },
-    "%@, %@" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, %2$@"
-          }
-        }
-      }
-    },
     "%@, saldo %@" : {
       "localizations" : {
         "en" : {
@@ -260,6 +250,23 @@
         }
       }
     },
+    "account.appearance" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aspetto"
+          }
+        }
+      }
+    },
     "account.archived" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -290,6 +297,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossibile archiviare il conto."
+          }
+        }
+      }
+    },
+    "account.balance" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saldo"
           }
         }
       }
@@ -379,6 +403,40 @@
         }
       }
     },
+    "account.iconPicker" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icon"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icona"
+          }
+        }
+      }
+    },
+    "account.information" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Information"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informazioni"
+          }
+        }
+      }
+    },
     "account.initialBalance" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -409,6 +467,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nuovo conto"
+          }
+        }
+      }
+    },
+    "account.preview" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteprima"
           }
         }
       }
@@ -447,6 +522,57 @@
         }
       }
     },
+    "account.typeBank" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bank"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banca"
+          }
+        }
+      }
+    },
+    "account.typeCard" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carta"
+          }
+        }
+      }
+    },
+    "account.typeCash" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cash"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contanti"
+          }
+        }
+      }
+    },
     "account.typeOther" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -460,6 +586,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Altro"
+          }
+        }
+      }
+    },
+    "account.typeSavings" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Savings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risparmi"
           }
         }
       }
@@ -1348,6 +1491,40 @@
         }
       }
     },
+    "category.emptyExpenses" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No expense categories"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna categoria di spesa"
+          }
+        }
+      }
+    },
+    "category.emptyIncomes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No income categories"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna categoria di entrata"
+          }
+        }
+      }
+    },
     "category.expense" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1361,6 +1538,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spesa"
+          }
+        }
+      }
+    },
+    "category.expenses" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expenses"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spese"
+          }
+        }
+      }
+    },
+    "category.filter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category type"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipo di categoria"
+          }
+        }
+      }
+    },
+    "category.iconPicker" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icon"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icona"
           }
         }
       }
@@ -1382,6 +1610,40 @@
         }
       }
     },
+    "category.incomes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Income"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrate"
+          }
+        }
+      }
+    },
+    "category.namePlaceholder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome categoria"
+          }
+        }
+      }
+    },
     "category.new" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1395,6 +1657,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nuova categoria"
+          }
+        }
+      }
+    },
+    "category.preview" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category name"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome categoria"
           }
         }
       }
@@ -3747,6 +4026,40 @@
         }
       }
     },
+    "toast.account.added" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account added"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conto aggiunto"
+          }
+        }
+      }
+    },
+    "toast.category.added" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category added"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categoria aggiunta"
+          }
+        }
+      }
+    },
     "toast.movement.expenseAdded" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3821,7 +4134,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Date and time"
+            "value" : "Date & time"
           }
         },
         "it" : {

@@ -152,11 +152,13 @@ private struct AppToastCard: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
 
-                Text(toast.amount)
-                    .font(.system(size: 14, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if !toast.amount.isEmpty {
+                    Text(toast.amount)
+                        .font(.system(size: 14, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
         }
         .padding(.horizontal, 15)
@@ -164,6 +166,6 @@ private struct AppToastCard: View {
         .frame(minWidth: 250, idealWidth: 270, maxWidth: 300, minHeight: 58, alignment: .leading)
         .background(.regularMaterial, in: Capsule())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("\(toast.title), \(toast.amount)"))
+        .accessibilityLabel(Text(toast.accessibilityAnnouncement))
     }
 }

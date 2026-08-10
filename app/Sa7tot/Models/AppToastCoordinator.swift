@@ -16,7 +16,7 @@ final class AppToastCoordinator: ObservableObject {
         self.feedbackEnabled = feedbackEnabled
     }
 
-    func show(kind: AppToast.Kind, amount: String) {
+    func show(kind: AppToast.Kind, amount: String = "") {
         dismissalTask?.cancel()
 
         let toast = AppToast(kind: kind, amount: amount)
@@ -33,7 +33,7 @@ final class AppToastCoordinator: ObservableObject {
         if UIAccessibility.isVoiceOverRunning {
             UIAccessibility.post(
                 notification: .announcement,
-                argument: "\(toast.title), \(toast.amount)"
+                argument: toast.accessibilityAnnouncement
             )
         }
 

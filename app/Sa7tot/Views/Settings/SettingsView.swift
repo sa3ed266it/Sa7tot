@@ -74,7 +74,6 @@ struct SettingsView: View {
 
   // popups
 
-  @State private var showCategoriesSheet = false
   @State private var showingSignOutConfirmation = false
 
   var body: some View {
@@ -85,23 +84,6 @@ struct SettingsView: View {
       } else {
         if usesNativeNavigation { settingsList }
         else { NavigationView { settingsList } }
-      }
-    }
-    .sheet(isPresented: $showCategoriesSheet) {
-      if #available(iOS 16.0, *) {
-        NavigationStack {
-          if #available(iOS 26.0, *) {
-            RemoteCategoryListView()
-          } else {
-            RemoteConfigurationUnavailableView()
-          }
-        }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-      } else {
-        NavigationView {
-          RemoteConfigurationUnavailableView()
-        }
       }
     }
   }
@@ -223,12 +205,23 @@ struct SettingsView: View {
         }
 
         SettingsCard(title: "settings.data") {
-          Button { showCategoriesSheet = true } label: {
-            SettingsRowLayout(title: "category.title", systemImage: "rectangle.grid.2x2.fill", tint: .blue) {
-              SettingsChevron()
+          if usesNativeNavigation {
+            NativeSettingsNavigationRow(title: "category.title", subtitle: nil, systemImage: "rectangle.grid.2x2.fill", tint: .blue) {
+              if #available(iOS 26.0, *) {
+                nativeNavigationRouter?.pushView(RemoteCategoryListView().environmentObject(remoteStore))
+              } else {
+                nativeNavigationRouter?.pushView(RemoteConfigurationUnavailableView())
+              }
+            }
+          } else {
+            SettingsNavigationRow(title: "category.title", subtitle: nil, systemImage: "rectangle.grid.2x2.fill", tint: .blue) {
+              if #available(iOS 26.0, *) {
+                RemoteCategoryListView()
+              } else {
+                RemoteConfigurationUnavailableView()
+              }
             }
           }
-          .buttonStyle(.plain)
         }
 
         HStack {

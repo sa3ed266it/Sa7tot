@@ -849,16 +849,19 @@ private struct RemoteMovementRow: View {
 
     @ViewBuilder
     private var icon: some View {
+        iconContent
+            .frame(width: 34, height: 34, alignment: .center)
+    }
+
+    @ViewBuilder
+    private var iconContent: some View {
         if let transaction, transaction.kind == .transfer {
             Image(systemName: "arrow.left.arrow.right")
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.PrimaryText)
-                .frame(width: 34, height: 34)
-                .background(Color.AppSecondarySurface, in: Circle())
         } else if let transaction, let serviceID = transaction.subscription?.serviceID,
                   let service = SubscriptionServiceCatalog.service(forID: serviceID) {
             SubscriptionLogoView(service: service, size: 34)
-                .fixedSize(horizontal: true, vertical: true)
         } else if let transaction {
             CategoryLogIconView(
                 iconIdentifier: transaction.category?.iconIdentifier ?? "sf:tag.fill",
@@ -866,7 +869,6 @@ private struct RemoteMovementRow: View {
                 colour: transaction.category?.color ?? "#FFFFFF",
                 future: false
             )
-            .fixedSize(horizontal: true, vertical: true)
             .overlay(alignment: .bottomTrailing) {
                 if transaction.recurrence != nil {
                     Image(systemName: "arrow.clockwise")
@@ -884,14 +886,10 @@ private struct RemoteMovementRow: View {
                 colour: upcomingCategory?.color ?? "#FFFFFF",
                 future: true
             )
-            .fixedSize(horizontal: true, vertical: true)
         }
     }
 
     private var subtitle: String {
-        if let transfer = transaction?.transfer {
-            return "\(transfer.sourceAccountName) → \(transfer.destinationAccountName)"
-        }
         if let upcoming {
             switch upcoming {
             case let .transaction(item): return remoteDateLabel(item.effectiveDate)
@@ -905,7 +903,7 @@ private struct RemoteMovementRow: View {
         if let upcoming {
             switch upcoming {
             case let .transaction(item): return displayTitle(for: item.transaction)
-            case let .recurrence(item): return item.title ?? item.category?.name ?? AppLocalization.string(item.transactionKind == .income ? "movement.income" : "movement.expense")
+            case let .recurrence(item): return item.category?.name ?? AppLocalization.string(item.transactionKind == .income ? "movement.income" : "movement.expense")
             }
         }
         guard let transaction else { return "" }
@@ -913,13 +911,17 @@ private struct RemoteMovementRow: View {
     }
 
     private func displayTitle(for transaction: RemoteTransactionDTO) -> String {
-        if transaction.kind == .income, transaction.title.caseInsensitiveCompare("income") == .orderedSame {
-            return AppLocalization.string("movement.income")
+        if transaction.kind == .transfer {
+            return AppLocalization.string("movement.transfer")
         }
-        if transaction.kind == .expense, transaction.title.caseInsensitiveCompare("expense") == .orderedSame {
-            return AppLocalization.string("movement.expense")
+        if let serviceID = transaction.subscription?.serviceID,
+           let service = SubscriptionServiceCatalog.service(forID: serviceID) {
+            return service.displayName
         }
-        return transaction.title
+        if let categoryName = transaction.category?.name, !categoryName.isEmpty {
+            return categoryName
+        }
+        return AppLocalization.string(transaction.kind == .income ? "movement.income" : "movement.expense")
     }
 
     private var effectiveAmount: Int64? {
@@ -980,15 +982,11 @@ struct RemoteTransactionDetailView: View {
         NavigationView {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    VStack(spacing: 8) {
-                        if let serviceID = transaction.subscription?.serviceID,
-                           let service = SubscriptionServiceCatalog.service(forID: serviceID) {
-                            SubscriptionLogoView(service: service, size: 48)
-                        }
-
-                        Text(verbatim: transaction.kind == .transfer ? AppLocalization.string("movement.transfer") : displayTitle)
-                            .font(.system(.title2, design: .rounded).weight(.medium))
-                            .foregroundStyle(Color.PrimaryText)
+                    VStack(spacing: 6) {
+                        Text(headerOperationType)
+                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Color.SubtitleText)
+                            .frame(maxWidth: .infinity, alignment: .center)
 
                         HStack(alignment: .lastTextBaseline, spacing: 3) {
                             Text("\(amountPrefix)\(currencySymbol)")
@@ -1001,8 +999,13 @@ struct RemoteTransactionDetailView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.55)
                                 .allowsTightening(true)
+
+                            Text("\(amountPrefix)\(currencySymbol)")
+                                .font(.system(.headline, design: .rounded).weight(.medium))
+                                .hidden()
+                                .accessibilityHidden(true)
                         }
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .center)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(AppLocalization.format("accessibility.amount", "\(amountPrefix)\(currencySymbol)\(amountDigits)"))
                     }
@@ -1011,14 +1014,14 @@ struct RemoteTransactionDetailView: View {
 
                     VStack(spacing: 0) {
                         if let category = transaction.category, transaction.kind != .transfer {
-                            detailRow(label: AppLocalization.string("common.category"), value: category.name)
+                            categoryDetailRow(label: AppLocalization.string("common.category"), category: category)
                         }
                         if transaction.kind != .transfer, let accountName {
-                            detailRow(label: AppLocalization.string("common.account"), value: accountName)
+                            accountDetailRow(label: AppLocalization.string("common.account"), name: accountName, account: account)
                         }
                         if let transfer = transaction.transfer {
-                            detailRow(label: AppLocalization.string("transfer.from"), value: transfer.sourceAccountName)
-                            detailRow(label: AppLocalization.string("transfer.to"), value: transfer.destinationAccountName)
+                            accountDetailRow(label: AppLocalization.string("transfer.from"), name: transfer.sourceAccountName, account: sourceAccount)
+                            accountDetailRow(label: AppLocalization.string("transfer.to"), name: transfer.destinationAccountName, account: destinationAccount)
                         }
                         detailRow(label: AppLocalization.string("common.date"), value: remoteDateLabel(transaction.localDay))
                         detailRow(label: AppLocalization.string("common.time"), value: remoteTimeLabel(transaction.occurredAt))
@@ -1051,6 +1054,19 @@ struct RemoteTransactionDetailView: View {
         .navigationViewStyle(.stack)
     }
 
+    private var headerOperationType: String {
+        if transaction.kind == .transfer {
+            return AppLocalization.string("movement.transfer")
+        }
+        if transaction.subscription != nil {
+            return AppLocalization.string("subscription.detail")
+        }
+        if transaction.kind == .income {
+            return AppLocalization.string("movement.income")
+        }
+        return AppLocalization.string("movement.expense")
+    }
+
     private var amountDigits: String {
         FinancialFormatting.digits(
             minorUnits: displayedAmount ?? 0,
@@ -1078,14 +1094,31 @@ struct RemoteTransactionDetailView: View {
         store.accounts.first(where: { $0.id == transaction.accountID })?.name
     }
 
+    private var account: RemoteAccountDTO? {
+        store.accounts.first(where: { $0.id == transaction.accountID })
+    }
+
+    private var sourceAccount: RemoteAccountDTO? {
+        store.accounts.first(where: { $0.id == transaction.accountID })
+    }
+
+    private var destinationAccount: RemoteAccountDTO? {
+        guard let destinationID = transaction.destinationAccountID else { return nil }
+        return store.accounts.first(where: { $0.id == destinationID })
+    }
+
     private var displayTitle: String {
-        if transaction.kind == .income, transaction.title.caseInsensitiveCompare("income") == .orderedSame {
-            return AppLocalization.string("movement.income")
+        if transaction.kind == .transfer {
+            return AppLocalization.string("movement.transfer")
         }
-        if transaction.kind == .expense, transaction.title.caseInsensitiveCompare("expense") == .orderedSame {
-            return AppLocalization.string("movement.expense")
+        if let serviceID = transaction.subscription?.serviceID,
+           let service = SubscriptionServiceCatalog.service(forID: serviceID) {
+            return service.displayName
         }
-        return transaction.title
+        if let categoryName = transaction.category?.name, !categoryName.isEmpty {
+            return categoryName
+        }
+        return AppLocalization.string(transaction.kind == .income ? "movement.income" : "movement.expense")
     }
 
     private var displayNote: String? {
@@ -1095,6 +1128,59 @@ struct RemoteTransactionDetailView: View {
             return SubscriptionDisplayIdentity.normalized(note) == SubscriptionDisplayIdentity.normalized(serviceID) ? nil : note
         }
         return note
+    }
+
+    private func categoryDetailRow(label: String, category: RemoteCategoryBriefDTO) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(label)
+                .foregroundStyle(Color.SubtitleText)
+
+            Spacer(minLength: 12)
+
+            HStack(spacing: 6) {
+                CategoryIconView(
+                    descriptor: CategoryIconPresentation.descriptor(for: category.iconIdentifier),
+                    role: .listRow,
+                    tint: accountDisplayColor(category.color),
+                    accessibilityLabel: ""
+                )
+                .accessibilityHidden(true)
+
+                Text(category.name)
+                    .foregroundStyle(Color.PrimaryText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+        }
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) { Divider() }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func accountDetailRow(label: String, name: String, account: RemoteAccountDTO?) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(label)
+                .foregroundStyle(Color.SubtitleText)
+
+            Spacer(minLength: 12)
+
+            HStack(spacing: 6) {
+                if let account {
+                    Image(systemName: Sa7totSymbolResolver.resolved(account.iconName, fallback: "building.columns.fill"))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color(hex: account.color))
+                        .accessibilityHidden(true)
+                }
+
+                Text(name)
+                    .foregroundStyle(Color.PrimaryText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+        }
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) { Divider() }
+        .accessibilityElement(children: .combine)
     }
 
     private func detailRow(label: String, value: String) -> some View {
@@ -1166,6 +1252,7 @@ private struct RemoteMovementEditorSurface: View {
     @EnvironmentObject private var store: FinancialRemoteStore
     @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var amountFocused: Bool
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var showCents = true
 
@@ -1185,6 +1272,7 @@ private struct RemoteMovementEditorSurface: View {
     @State private var repeatType = 0
     @State private var repeatCoefficient = 1
     @State private var showNoteSheet = false
+    @State private var showingNewCategory = false
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var subscriptionService: SubscriptionCatalogService?
@@ -1264,8 +1352,10 @@ private struct RemoteMovementEditorSurface: View {
             VStack(alignment: .leading, spacing: 14) {
                 typeSelector
                 amountSection
-                if mode != .subscription && !isTransfer { categoryCarousel }
-                if mode == .subscription { subscriptionContent } else { detailsSection }
+                modeSpecificContent
+                    .id(mode)
+                    .transition(modeContentTransition)
+                    .animation(modeAnimation, value: mode)
             }
             .padding(.horizontal, 17)
             .padding(.top, 12)
@@ -1274,10 +1364,23 @@ private struct RemoteMovementEditorSurface: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button(AppLocalization.key("action.cancel")) { dismiss() } }
+            ToolbarItem(placement: .cancellationAction) {
+                Button(AppLocalization.key("action.cancel")) { dismiss() }
+                    .opacity(isSaving ? 0 : 1)
+                    .disabled(isSaving)
+                    .accessibilityHidden(isSaving)
+            }
             ToolbarItem(placement: .confirmationAction) {
-                Button(AppLocalization.key("action.save"), action: save)
-                    .disabled(isSaving || !canSave)
+                Button(action: save) {
+                    if isSaving {
+                        ProgressView()
+                            .controlSize(.regular)
+                    } else {
+                        Text(AppLocalization.key("action.save"))
+                    }
+                }
+                .frame(minWidth: 44)
+                .disabled(isSaving || !canSave)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -1290,6 +1393,19 @@ private struct RemoteMovementEditorSurface: View {
         }
         .sheet(isPresented: $showNoteSheet, onDismiss: { noteDraft = note }) {
             RemoteTransactionNoteSheet(note: $note, draft: $noteDraft, isPresented: $showNoteSheet)
+        }
+        .sheet(isPresented: $showingNewCategory) {
+            RemoteCategoryEditorView(
+                category: nil,
+                initialIncome: mode == .income,
+                onCreated: { createdCategory in
+                    if createdCategory.income == (mode == .income) {
+                        categoryID = createdCategory.id
+                    }
+                }
+            )
+            .environmentObject(store)
+            .environmentObject(appToastCoordinator)
         }
     }
 
@@ -1310,15 +1426,56 @@ private struct RemoteMovementEditorSurface: View {
                 .frame(maxWidth: .infinity)
                 .accessibilityLabel(AppLocalization.key("accessibility.typeSubscription"))
         } else {
-            Picker(AppLocalization.key("transaction.type"), selection: $mode) {
+            Picker(AppLocalization.key("transaction.type"), selection: modeBinding) {
                 Text(AppLocalization.key("movement.expense")).tag(RemoteTransactionEditorMode.expense)
                 Text(AppLocalization.key("movement.income")).tag(RemoteTransactionEditorMode.income)
                 if !isEditing { Text(AppLocalization.key("movement.subscription")).tag(RemoteTransactionEditorMode.subscription) }
             }
             .pickerStyle(.segmented)
             .accessibilityLabel(AppLocalization.key("transaction.type"))
-            .onChange(of: mode) { _ in categoryID = nil }
         }
+    }
+
+    @ViewBuilder private var modeSpecificContent: some View {
+        if mode == .subscription {
+            subscriptionContent
+        } else {
+            if !isTransfer { categoryCarousel }
+            detailsSection
+        }
+    }
+
+    private var modeBinding: Binding<RemoteTransactionEditorMode> {
+        Binding(
+            get: { mode },
+            set: { newValue in
+                withAnimation(modeAnimation) {
+                    mode = newValue
+                    categoryID = nil
+                }
+            }
+        )
+    }
+
+    private var modeAnimation: Animation {
+        reduceMotion ? .easeInOut(duration: 0.12) : .easeInOut(duration: 0.25)
+    }
+
+    private var modeContentTransition: AnyTransition {
+        if reduceMotion {
+            return .opacity
+        }
+
+        return .asymmetric(
+            insertion: .modifier(
+                active: RemoteModeContentTransitionModifier(opacity: 0, blur: 4, horizontalOffset: 10),
+                identity: RemoteModeContentTransitionModifier(opacity: 1, blur: 0, horizontalOffset: 0)
+            ),
+            removal: .modifier(
+                active: RemoteModeContentTransitionModifier(opacity: 0, blur: 4, horizontalOffset: -10),
+                identity: RemoteModeContentTransitionModifier(opacity: 1, blur: 0, horizontalOffset: 0)
+            )
+        )
     }
 
     private var amountSection: some View {
@@ -1335,6 +1492,7 @@ private struct RemoteMovementEditorSurface: View {
                 .lineLimit(1)
                 .multilineTextAlignment(.center)
                 .submitLabel(.done)
+                .modifier(RemoteAmountChangeAnimation(trigger: amountText, reduceMotion: reduceMotion))
                 .accessibilityLabel(AppLocalization.key("common.amount"))
         }
         .frame(maxWidth: .infinity)
@@ -1346,7 +1504,7 @@ private struct RemoteMovementEditorSurface: View {
     private var categoryCarousel: some View {
         Group {
             if filteredCategories.isEmpty {
-                Button { store.deferredFeatureMessage = AppLocalization.string("category.addFromSettings") } label: {
+                Button { showingNewCategory = true } label: {
                     Label(AppLocalization.key("action.addCategory"), systemImage: "plus.circle.fill")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
@@ -1355,6 +1513,7 @@ private struct RemoteMovementEditorSurface: View {
                         .background(Color.AppSecondarySurface, in: Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(AppLocalization.key("action.addCategory"))
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -1367,6 +1526,7 @@ private struct RemoteMovementEditorSurface: View {
                                         CategoryIconView(
                                             descriptor: CategoryIconPresentation.descriptor(for: category.iconIdentifier),
                                             role: .inline,
+                                            tint: Color(hex: category.color),
                                             accessibilityLabel: category.name
                                         )
                                         Text(category.name)
@@ -1388,6 +1548,17 @@ private struct RemoteMovementEditorSurface: View {
                                 .accessibilityAddTraits(category.id == categoryID ? .isSelected : [])
                                 .id(category.id)
                             }
+
+                            Button { showingNewCategory = true } label: {
+                                Label(AppLocalization.key("action.addCategory"), systemImage: "plus.circle.fill")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                    .frame(minHeight: 44)
+                                    .padding(.horizontal, 14)
+                                    .background(Color.AppSecondarySurface, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(AppLocalization.key("action.addCategory"))
                         }
                         .padding(.horizontal, 2)
                         .padding(.vertical, 2)
@@ -1417,15 +1588,12 @@ private struct RemoteMovementEditorSurface: View {
                 } label: {
                     HStack(spacing: 12) {
                         SubscriptionLogoView(service: subscriptionService, size: 40)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(AppLocalization.key("common.service"))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Text(verbatim: subscriptionIsCustom && !subscriptionCustomName.isEmpty ? subscriptionCustomName : subscriptionService?.displayName ?? AppLocalization.string("subscription.chooseService"))
-                                .foregroundStyle(subscriptionService == nil && !subscriptionIsCustom ? .secondary : .primary)
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 8)
+                        Text(verbatim: subscriptionIsCustom && !subscriptionCustomName.isEmpty ? subscriptionCustomName : subscriptionService?.displayName ?? AppLocalization.string("subscription.chooseService"))
+                            .foregroundStyle(subscriptionService == nil && !subscriptionIsCustom ? .secondary : .primary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .layoutPriority(1)
+                        Spacer(minLength: 4)
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.tertiary)
@@ -1455,7 +1623,7 @@ private struct RemoteMovementEditorSurface: View {
                         .environment(\.locale, .current)
                 }
                 RemoteEditorRow(title: AppLocalization.string("common.account"), systemImage: "building.columns.fill") {
-                    RemoteAccountMenu(accounts: store.activeAccounts, selection: $accountID)
+                    RemoteAccountMenu(accounts: store.activeAccounts, selection: $accountID, singleLine: true)
                 }
                 noteRow
             }
@@ -1466,29 +1634,51 @@ private struct RemoteMovementEditorSurface: View {
         GroupBox {
             VStack(spacing: 10) {
                 if !isTransfer {
-                    RemoteEditorRow(title: AppLocalization.string("transaction.dateTime"), systemImage: "calendar") {
-                        DatePicker(AppLocalization.key("transaction.dateTime"), selection: $occurredAt)
-                            .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .environment(\.locale, .current)
-                    }
+                    dateTimeRow
                 }
                 if isTransfer {
                     RemoteEditorRow(title: AppLocalization.string("transfer.from"), systemImage: "arrow.up.right") {
-                        RemoteAccountMenu(accounts: store.activeAccounts, selection: $sourceID)
+                        RemoteAccountMenu(accounts: store.activeAccounts, selection: $sourceID, singleLine: true)
                     }
                     RemoteEditorRow(title: AppLocalization.string("transfer.to"), systemImage: "arrow.down.left") {
-                        RemoteAccountMenu(accounts: destinationAccounts, selection: $destinationID)
+                        RemoteAccountMenu(accounts: destinationAccounts, selection: $destinationID, singleLine: true)
                     }
                 } else {
                     RemoteEditorRow(title: AppLocalization.string("common.account"), systemImage: "building.columns.fill") {
-                        RemoteAccountMenu(accounts: store.activeAccounts, selection: $accountID)
+                        RemoteAccountMenu(accounts: store.activeAccounts, selection: $accountID, singleLine: true)
                     }
                 }
-                if !isTransfer && mode == .expense { recurrenceRow }
                 noteRow
             }
         }
+    }
+
+    private var dateTimeRow: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar")
+                Text(AppLocalization.string("transaction.dateTime"))
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+                .font(.subheadline)
+                .layoutPriority(1)
+
+            Spacer(minLength: 4)
+
+            HStack(spacing: 4) {
+                DatePicker("", selection: $occurredAt, displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .controlSize(.small)
+                DatePicker("", selection: $occurredAt, displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .controlSize(.small)
+            }
+            .environment(\.locale, .current)
+            .fixedSize(horizontal: true, vertical: false)
+        }
+        .frame(minHeight: 44)
     }
 
     private var recurrenceRow: some View {
@@ -1630,6 +1820,7 @@ private struct RemoteMovementEditorSurface: View {
     }
 
     private func save() {
+        guard !isSaving else { return }
         if mode == .subscription { saveSubscription(); return }
         if isTransfer {
             saveTransfer()
@@ -1854,7 +2045,6 @@ private struct RemoteMovementEditorSurface: View {
 @available(iOS 26.0, *)
 private struct RemoteEditorSheetPresentation: ViewModifier {
     let compact: Bool
-    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         if compact {
@@ -1866,7 +2056,7 @@ private struct RemoteEditorSheetPresentation: ViewModifier {
                 .presentationBackground(AnyShapeStyle(Color.AppPageBackground.opacity(0.14)))
         } else {
             content
-                .presentationDetents([.height(600), .large])
+                .presentationDetents([.height(560), .large])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
                 .presentationBackground(AnyShapeStyle(Color.AppPageBackground.opacity(0.14)))
@@ -1874,10 +2064,51 @@ private struct RemoteEditorSheetPresentation: ViewModifier {
     }
 }
 
+private struct RemoteModeContentTransitionModifier: ViewModifier {
+    let opacity: Double
+    let blur: CGFloat
+    let horizontalOffset: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(opacity)
+            .blur(radius: blur)
+            .offset(x: horizontalOffset)
+    }
+}
+
+@available(iOS 17.0, *)
+private struct RemoteAmountChangeAnimation: ViewModifier {
+    let trigger: String
+    let reduceMotion: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .contentTransition(.opacity)
+            .phaseAnimator([1.0, 0.0, 1.0], trigger: trigger) { content, phase in
+                content
+                    .opacity(reduceMotion ? 1 : 0.35 + (phase * 0.65))
+                    .blur(radius: reduceMotion ? 0 : (1 - phase) * 4)
+                    .offset(y: reduceMotion ? 0 : (1 - phase) * 4)
+            } animation: { _ in
+                reduceMotion
+                    ? .easeOut(duration: 0.12)
+                    : .easeOut(duration: 0.2)
+            }
+    }
+}
+
 @available(iOS 26.0, *)
 private struct RemoteAccountMenu: View {
     let accounts: [RemoteAccountDTO]
     @Binding var selection: UUID?
+    let singleLine: Bool
+
+    init(accounts: [RemoteAccountDTO], selection: Binding<UUID?>, singleLine: Bool = false) {
+        self.accounts = accounts
+        self._selection = selection
+        self.singleLine = singleLine
+    }
 
     private var selectedAccount: RemoteAccountDTO? {
         selection.flatMap { id in accounts.first(where: { $0.id == id }) }
@@ -1891,14 +2122,18 @@ private struct RemoteAccountMenu: View {
                 }
             }
         } label: {
-            Label(
-                selectedAccount?.name ?? AppLocalization.string("action.select"),
-                systemImage: Sa7totSymbolResolver.resolved(selectedAccount?.iconName ?? "building.columns.fill")
-            )
+            HStack(spacing: 8) {
+                Image(systemName: Sa7totSymbolResolver.resolved(selectedAccount?.iconName ?? "building.columns.fill"))
+                    .foregroundStyle(accountDisplayColor(selectedAccount?.color))
+                Text(selectedAccount?.name ?? AppLocalization.string("action.select"))
+                    .lineLimit(singleLine ? 1 : nil)
+                    .truncationMode(.tail)
+            }
             .font(.system(.body, design: .rounded).weight(.semibold))
             .foregroundStyle(Color.PrimaryText)
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
+            .frame(maxWidth: singleLine ? 190 : nil, alignment: .leading)
             .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 11.5, style: .continuous))
         }
         .accessibilityLabel(AppLocalization.format("accessibility.account", selectedAccount?.name ?? AppLocalization.string("action.select")))
@@ -1956,6 +2191,16 @@ private struct RemoteTransactionNoteSheet: View {
     }
 }
 
+private func accountDisplayColor(_ hex: String?) -> Color {
+    guard let hex = hex?.trimmingCharacters(in: .whitespacesAndNewlines),
+          !hex.isEmpty,
+          hex != "#FFFFFF",
+          hex.caseInsensitiveCompare("FFFFFF") != .orderedSame else {
+        return .primary
+    }
+    return Color(hex: hex)
+}
+
 @available(iOS 26.0, *)
 struct RemoteAccountListView: View {
     @EnvironmentObject private var store: FinancialRemoteStore
@@ -1970,12 +2215,11 @@ struct RemoteAccountListView: View {
             } else {
                 ForEach(store.accounts) { account in
                     Button { editingAccount = account } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: account.iconName)
-                                .font(.system(size: 19, weight: .medium))
-                                .foregroundStyle(Color.PrimaryText)
-                                .frame(width: 38, height: 38)
-                                .background(Color(hex: account.color), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                            HStack(spacing: 12) {
+                            Image(systemName: Sa7totSymbolResolver.resolved(account.iconName))
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundStyle(accountDisplayColor(account.color))
+                                .frame(width: 44, height: 44)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(account.name)
                                 Text(verbatim: account.isArchived ? AppLocalization.string("account.archived") : localizedAccountType(account.type))
@@ -2028,10 +2272,96 @@ struct RemoteAccountListView: View {
     }
 }
 
+private struct RemoteAccountIconOption: Identifiable, Hashable {
+    let symbolName: String
+    let titleKey: String
+
+    var id: String { symbolName }
+}
+
+private enum RemoteAccountIconCatalog {
+    static let all: [RemoteAccountIconOption] = [
+        RemoteAccountIconOption(symbolName: "building.columns.fill", titleKey: "account.typeBank"),
+        RemoteAccountIconOption(symbolName: "building.columns", titleKey: "account.typeBank"),
+        RemoteAccountIconOption(symbolName: "banknote.fill", titleKey: "account.typeCash"),
+        RemoteAccountIconOption(symbolName: "eurosign.circle.fill", titleKey: "account.typeCash"),
+        RemoteAccountIconOption(symbolName: "creditcard.fill", titleKey: "account.typeCard"),
+        RemoteAccountIconOption(symbolName: "wallet.bifold.fill", titleKey: "account.typeCash"),
+        RemoteAccountIconOption(symbolName: "chart.line.uptrend.xyaxis", titleKey: "account.typeSavings"),
+        RemoteAccountIconOption(symbolName: "house.fill", titleKey: "account.iconPicker"),
+        RemoteAccountIconOption(symbolName: "briefcase.fill", titleKey: "account.iconPicker"),
+        RemoteAccountIconOption(symbolName: "airplane", titleKey: "account.iconPicker"),
+        RemoteAccountIconOption(symbolName: "ellipsis.circle.fill", titleKey: "account.typeOther")
+    ].filter { UIImage(systemName: $0.symbolName) != nil }
+}
+
+private struct RemoteAccountIconPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selection: String
+
+    private let columns = [GridItem(.adaptive(minimum: 76), spacing: 14)]
+
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 18) {
+                ForEach(RemoteAccountIconCatalog.all) { option in
+                    Button {
+                        selection = option.symbolName
+                        dismiss()
+                    } label: {
+                        Image(systemName: option.symbolName)
+                            .font(.system(size: 23, weight: .semibold))
+                            .frame(width: 50, height: 50)
+                            .foregroundStyle(Color.PrimaryText)
+                            .background(Color.AppSecondarySurface, in: Circle())
+                            .overlay {
+                                Circle()
+                                    .stroke(selection == option.symbolName ? Color.accentColor : .clear, lineWidth: 2)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(AppLocalization.key(option.titleKey))
+                    .accessibilityAddTraits(selection == option.symbolName ? .isSelected : [])
+                }
+            }
+            .padding(20)
+        }
+        .background(Color.AppPageBackground)
+        .navigationTitle(AppLocalization.key("account.iconPicker"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(AppLocalization.key("action.cancel")) { dismiss() }
+            }
+        }
+    }
+}
+
+private enum RemoteAccountTypeOption: String, CaseIterable, Identifiable {
+    case cash
+    case bank
+    case card
+    case savings
+    case other
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .cash: return "account.typeCash"
+        case .bank: return "account.typeBank"
+        case .card: return "account.typeCard"
+        case .savings: return "account.typeSavings"
+        case .other: return "account.typeOther"
+        }
+    }
+}
+
 @available(iOS 26.0, *)
 struct RemoteAccountEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FinancialRemoteStore
+    @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     let account: RemoteAccountDTO?
 
     @State private var name: String
@@ -2042,42 +2372,155 @@ struct RemoteAccountEditorView: View {
     @State private var color: String
     @State private var errorMessage: String?
     @State private var isSaving = false
+    @State private var showingIconPicker = false
 
     init(account: RemoteAccountDTO?) {
         self.account = account
         _name = State(initialValue: account?.name ?? "")
         _type = State(initialValue: account?.type ?? "other")
         _currencyCode = State(initialValue: account?.currencyCode ?? "EUR")
-        _openingBalance = State(initialValue: account.map { decimalString($0.openingBalanceMinor, exponent: $0.currencyExponent) } ?? "0")
-        _iconName = State(initialValue: account?.iconName ?? "building.columns.fill")
+        _openingBalance = State(initialValue: account.map { remoteAccountDecimalString($0.openingBalanceMinor, exponent: $0.currencyExponent) } ?? remoteAccountDecimalString(0, exponent: 2))
+        let storedIcon = account?.iconName ?? "building.columns.fill"
+        _iconName = State(initialValue: RemoteAccountIconCatalog.all.contains(where: { $0.symbolName == storedIcon }) ? storedIcon : "building.columns.fill")
         _color = State(initialValue: account?.color ?? "#5E7CE2")
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField(AppLocalization.key("common.name"), text: $name)
-                TextField(AppLocalization.key("common.type"), text: $type)
-                TextField(AppLocalization.key("common.currency"), text: $currencyCode).textInputAutocapitalization(.characters)
-                TextField(AppLocalization.key("account.initialBalance"), text: $openingBalance).keyboardType(.decimalPad)
-                TextField(AppLocalization.key("account.icon"), text: $iconName)
-                TextField(AppLocalization.key("common.color"), text: $color)
+                Section(AppLocalization.key("account.information")) {
+                    TextField(AppLocalization.key("common.name"), text: $name)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+                    Picker(AppLocalization.key("common.type"), selection: $type) {
+                        ForEach(RemoteAccountTypeOption.allCases) { option in
+                            Text(AppLocalization.key(option.titleKey)).tag(option.rawValue)
+                        }
+                    }
+                }
+
+                Section(AppLocalization.key("account.balance")) {
+                    HStack {
+                        Text(AppLocalization.key("account.initialBalance"))
+                        Spacer(minLength: 12)
+                        Text(remoteCurrencySymbol(for: currencyCode))
+                            .foregroundStyle(.secondary)
+                        TextField("0,00", text: $openingBalance)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(minWidth: 100)
+                            .monospacedDigit()
+                            .accessibilityLabel(AppLocalization.key("account.initialBalance"))
+                    }
+                    Picker(AppLocalization.key("common.currency"), selection: $currencyCode) {
+                        ForEach(Currency.allCurrencies, id: \.code) { currency in
+                            Text("\(currency.code) — \(currency.name)").tag(currency.code)
+                        }
+                    }
+                }
+
+                Section(AppLocalization.key("account.appearance")) {
+                    Button {
+                        showingIconPicker = true
+                    } label: {
+                        HStack {
+                            Text(AppLocalization.key("account.iconPicker"))
+                            Spacer()
+                            Image(systemName: Sa7totSymbolResolver.resolved(iconName))
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Color.PrimaryText)
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(AppLocalization.key("account.iconPicker"))
+
+                    ColorPicker(AppLocalization.key("common.color"), selection: colorBinding, supportsOpacity: false)
+                }
+
+                Section(AppLocalization.key("account.preview")) {
+                    HStack(spacing: 12) {
+                        Image(systemName: Sa7totSymbolResolver.resolved(iconName))
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(selectedColor)
+                            .frame(width: 44, height: 44)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(verbatim: trimmedName.isEmpty ? AppLocalization.string("account.new") : trimmedName)
+                                .font(.headline)
+                            Text(remoteAmount(parsedOpeningBalance ?? 0, currencyCode: currencyCode, exponent: 2))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(AppLocalization.key("account.preview"))
+                }
             }
             .navigationTitle(AppLocalization.key(account == nil ? "account.new" : "account.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button(AppLocalization.key("action.cancel")) { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button(AppLocalization.key("action.save"), action: save).disabled(isSaving || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppLocalization.key("action.cancel")) { dismiss() }
+                        .opacity(isSaving ? 0 : 1)
+                        .disabled(isSaving)
+                        .accessibilityHidden(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: save) {
+                        if isSaving {
+                            ProgressView().controlSize(.regular)
+                        } else {
+                            Text(AppLocalization.key("action.save"))
+                        }
+                    }
+                    .frame(minWidth: 44)
+                    .disabled(isSaving || !isValid)
+                }
             }
             .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                 Button(AppLocalization.key("action.ok"), role: .cancel) {}
             } message: { Text(verbatim: errorMessage ?? AppLocalization.string("account.saveError")) }
         }
+        .sheet(isPresented: $showingIconPicker) {
+            NavigationStack {
+                RemoteAccountIconPickerView(selection: $iconName)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var parsedOpeningBalance: Int64? {
+        parseRemoteAccountMinorUnits(openingBalance, exponent: 2)
+    }
+
+    private var isValid: Bool {
+        !trimmedName.isEmpty && parsedOpeningBalance != nil && Currency.currencyCodes.contains(currencyCode.uppercased())
+    }
+
+    private var selectedColor: Color {
+        Color(hex: color)
+    }
+
+    private var colorBinding: Binding<Color> {
+        Binding(
+            get: { selectedColor },
+            set: { color = $0.toHex() ?? color }
+        )
     }
 
     private func save() {
+        guard !isSaving, isValid, let amount = parsedOpeningBalance else { return }
         let normalizedCurrency = currencyCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let amount = parseMinorUnits(openingBalance, exponent: account?.currencyExponent ?? 2) ?? 0
         guard normalizedCurrency.count == 3 else {
             errorMessage = AppLocalization.string("account.validationError")
             return
@@ -2086,11 +2529,20 @@ struct RemoteAccountEditorView: View {
         Task {
             do {
                 if let account {
-                    try await store.updateAccount(account.id, payload: RemoteAccountUpdatePayload(name: name, type: type, openingBalanceMinor: amount, iconName: iconName, color: color))
+                    try await store.updateAccount(account.id, payload: RemoteAccountUpdatePayload(name: trimmedName, type: type, openingBalanceMinor: amount, iconName: iconName, color: color))
                 } else {
-                    try await store.createAccount(RemoteAccountCreatePayload(name: name, type: type, currencyCode: normalizedCurrency, currencyExponent: 2, openingBalanceMinor: amount, iconName: iconName, color: color))
+                    try await store.createAccount(RemoteAccountCreatePayload(name: trimmedName, type: type, currencyCode: normalizedCurrency, currencyExponent: 2, openingBalanceMinor: amount, iconName: iconName, color: color))
                 }
+                let shouldShowSuccessToast = account == nil
                 dismiss()
+                if shouldShowSuccessToast {
+                    let toastCoordinator = appToastCoordinator
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 350_000_000)
+                        guard !Task.isCancelled else { return }
+                        toastCoordinator.show(kind: .accountAdded)
+                    }
+                }
             } catch {
                 errorMessage = AppLocalization.string("account.saveError")
             }
@@ -2101,39 +2553,92 @@ struct RemoteAccountEditorView: View {
 
 @available(iOS 26.0, *)
 struct RemoteCategoryListView: View {
+    private enum CategoryFilter: Hashable {
+        case expense
+        case income
+
+        var isIncome: Bool {
+            self == .income
+        }
+
+        var emptyStateKey: String {
+            self == .income ? "category.emptyIncomes" : "category.emptyExpenses"
+        }
+    }
+
     @EnvironmentObject private var store: FinancialRemoteStore
+    @State private var selectedFilter: CategoryFilter = .expense
     @State private var showingNewCategory = false
     @State private var editingCategory: RemoteCategoryDTO?
     @State private var errorMessage: String?
 
     var body: some View {
-        List {
-            ForEach(store.categories) { category in
-                Button { editingCategory = category } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: category.iconIdentifier.replacingOccurrences(of: "sf:", with: ""))
-                            .frame(width: 36, height: 36)
-                            .foregroundStyle(Color.PrimaryText)
-                            .background(Color(hex: category.color), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        Text(category.name)
-                        Spacer()
-                        Text(AppLocalization.key(category.income ? "category.income" : "category.expense"))
-                            .font(.caption)
+        VStack(spacing: 0) {
+            Picker(AppLocalization.key("category.filter"), selection: $selectedFilter) {
+                Text(AppLocalization.key("category.expenses")).tag(CategoryFilter.expense)
+                Text(AppLocalization.key("category.incomes")).tag(CategoryFilter.income)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            List {
+                Section {
+                    if filteredCategories.isEmpty {
+                        Text(AppLocalization.key(selectedFilter.emptyStateKey))
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+                            .multilineTextAlignment(.center)
+                            .listRowSeparator(.hidden)
+                    } else {
+                        ForEach(filteredCategories) { category in
+                            Button { editingCategory = category } label: {
+                                HStack(spacing: 12) {
+                                    CategoryIconView(
+                                        descriptor: CategoryIconPresentation.descriptor(for: category.iconIdentifier),
+                                        role: .category,
+                                        tint: Color(hex: category.color),
+                                        accessibilityLabel: category.name
+                                    )
+                                    .frame(width: 44, height: 44)
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(category.name)
+                                            .font(.body.weight(.medium))
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                        Text(AppLocalization.key(category.income ? "category.income" : "category.expense"))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer(minLength: 8)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(.vertical, 5)
+                            }
+                            .buttonStyle(.plain)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    Task {
+                                        do { try await store.deleteCategory(category.id) }
+                                        catch { errorMessage = AppLocalization.string("category.deleteError") }
+                                    }
+                                } label: {
+                                    Label(AppLocalization.key("action.delete"), systemImage: "trash")
+                                }
+                            }
+                        }
                     }
                 }
-                .buttonStyle(.plain)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        Task {
-                            do { try await store.deleteCategory(category.id) }
-                            catch { errorMessage = AppLocalization.string("category.deleteError") }
-                        }
-                    } label: { Label(AppLocalization.key("action.delete"), systemImage: "trash") }
-                }
             }
+            .listStyle(.insetGrouped)
         }
-        .listStyle(.insetGrouped)
         .navigationTitle(AppLocalization.key("category.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -2142,10 +2647,31 @@ struct RemoteCategoryListView: View {
                     .accessibilityLabel(AppLocalization.key("category.new"))
             }
         }
-        .sheet(isPresented: $showingNewCategory) { RemoteCategoryEditorView(category: nil).environmentObject(store) }
+        .sheet(isPresented: $showingNewCategory) {
+            RemoteCategoryEditorView(category: nil, initialIncome: selectedFilter.isIncome)
+                .environmentObject(store)
+        }
         .sheet(item: $editingCategory) { category in RemoteCategoryEditorView(category: category).environmentObject(store) }
         .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) { Button(AppLocalization.key("action.ok"), role: .cancel) {} } message: { Text(verbatim: errorMessage ?? AppLocalization.string("category.editError")) }
         .task { await store.bootstrapIfNeeded() }
+        .overlay {
+            GeometryReader { proxy in
+                AppToastView()
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, max(proxy.safeAreaInsets.top - proxy.frame(in: .global).minY, 0) + 7)
+                    .padding(.horizontal, 16)
+                    .allowsHitTesting(false)
+                    .zIndex(1000)
+            }
+        }
+    }
+
+    private func categoryTileColor(for category: RemoteCategoryDTO) -> Color {
+        Color(hex: category.color)
+    }
+
+    private var filteredCategories: [RemoteCategoryDTO] {
+        store.categories.filter { $0.income == selectedFilter.isIncome }
     }
 }
 
@@ -2153,54 +2679,255 @@ struct RemoteCategoryListView: View {
 struct RemoteCategoryEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FinancialRemoteStore
+    @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     let category: RemoteCategoryDTO?
+    var onCreated: ((RemoteCategoryDTO) -> Void)? = nil
     @State private var name: String
     @State private var income: Bool
-    @State private var iconIdentifier: String
+    @State private var selectedSymbol: String
     @State private var color: String
     @State private var errorMessage: String?
+    @State private var isSaving = false
+    @FocusState private var nameFocused: Bool
 
-    init(category: RemoteCategoryDTO?) {
+    private let palette = [
+        "#279AF4", "#EC7A58", "#A6678A", "#C56AF7", "#6E7BF1", "#F3BF56",
+        "#ED80A2", "#F6D24A", "#E34D63", "#61C7FA", "#84B4EB", "#5FAF9F"
+    ]
+
+    init(category: RemoteCategoryDTO?, initialIncome: Bool? = nil) {
+        self.init(category: category, initialIncome: initialIncome, onCreated: nil)
+    }
+
+    init(category: RemoteCategoryDTO?, initialIncome: Bool?, onCreated: ((RemoteCategoryDTO) -> Void)?) {
         self.category = category
+        self.onCreated = onCreated
         _name = State(initialValue: category?.name ?? "")
-        _income = State(initialValue: category?.income ?? false)
-        _iconIdentifier = State(initialValue: category?.iconIdentifier ?? "sf:tag.fill")
-        _color = State(initialValue: category?.color ?? "#FFFFFF")
+        _income = State(initialValue: category?.income ?? initialIncome ?? false)
+        let descriptor = CategoryIconPresentation.descriptor(for: category?.iconIdentifier)
+        _selectedSymbol = State(initialValue: {
+            if case .sfSymbol(let symbol) = descriptor { return symbol }
+            return "tag.fill"
+        }())
+        _color = State(initialValue: category?.color ?? "#279AF4")
     }
 
     var body: some View {
         NavigationStack {
-            Form {
-                TextField(AppLocalization.key("common.name"), text: $name)
-                Picker(AppLocalization.key("common.type"), selection: $income) {
-                    Text(AppLocalization.key("category.expense")).tag(false)
-                    Text(AppLocalization.key("category.income")).tag(true)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    categoryPreview
+                    typePicker
+                    nameField
+                    iconPicker
+                    colorPicker
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(Color.AlertRed)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-                TextField(AppLocalization.key("account.icon"), text: $iconIdentifier)
-                TextField(AppLocalization.key("common.color"), text: $color)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }
+            .background(Color.AppPageBackground)
             .navigationTitle(AppLocalization.key(category == nil ? "category.new" : "category.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button(AppLocalization.key("action.cancel")) { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button(AppLocalization.key("action.save"), action: save).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppLocalization.key("action.cancel")) { dismiss() }
+                        .opacity(isSaving ? 0 : 1)
+                        .disabled(isSaving)
+                        .accessibilityHidden(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: save) {
+                        if isSaving {
+                            ProgressView()
+                                .controlSize(.regular)
+                        } else {
+                            Text(AppLocalization.key("action.save"))
+                        }
+                    }
+                    .frame(minWidth: 44)
+                    .disabled(isSaving || trimmedName.isEmpty)
+                }
             }
             .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) { Button(AppLocalization.key("action.ok"), role: .cancel) {} } message: { Text(verbatim: errorMessage ?? AppLocalization.string("category.saveError")) }
         }
     }
 
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var categoryPreview: some View {
+        HStack(spacing: 14) {
+            CategoryIconView(descriptor: .sfSymbol(selectedSymbol), role: .category, tint: selectedColor)
+                .font(.system(size: 28, weight: .semibold))
+                .frame(width: 44, height: 44)
+
+            Text(trimmedName.isEmpty ? AppLocalization.string("category.preview") : trimmedName)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(trimmedName.isEmpty ? Color.SubtitleText : Color.PrimaryText)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .accessibilityHidden(true)
+    }
+
+    private var typePicker: some View {
+        Picker(AppLocalization.key("common.type"), selection: $income) {
+            Text(AppLocalization.key("category.expense")).tag(false)
+            Text(AppLocalization.key("category.income")).tag(true)
+        }
+        .pickerStyle(.segmented)
+        .accessibilityLabel(AppLocalization.key("common.type"))
+    }
+
+    private var nameField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(AppLocalization.key("common.name"))
+                .font(.headline)
+            TextField(AppLocalization.key("category.namePlaceholder"), text: $name)
+                .textInputAutocapitalization(.sentences)
+                .focused($nameFocused)
+                .submitLabel(.done)
+                .padding(.horizontal, 14)
+                .frame(height: 48)
+                .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+
+    private var iconPicker: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(AppLocalization.key("category.iconPicker"))
+                .font(.headline)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(iconColumns.indices, id: \.self) { index in
+                        VStack(spacing: 12) {
+                            ForEach(iconColumns[index]) { option in
+                                iconButton(for: option)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(height: 3 * 44 + 2 * 12)
+        }
+    }
+
+    private var iconOptions: [CategoryIconOption] {
+        CategoryIconCatalog.options(for: income ? .income : .expense)
+    }
+
+    private var iconColumns: [[CategoryIconOption]] {
+        stride(from: 0, to: iconOptions.count, by: 3).map { start in
+            Array(iconOptions.dropFirst(start).prefix(3))
+        }
+    }
+
+    private func iconButton(for option: CategoryIconOption) -> some View {
+        Button {
+            selectedSymbol = option.symbolName
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            CategoryIconView(
+                descriptor: .sfSymbol(option.symbolName),
+                role: .category,
+                tint: .primary,
+                accessibilityLabel: option.title
+            )
+            .frame(width: 44, height: 44)
+            .background(selectedSymbol == option.symbolName ? Color.AppSecondarySurface : .clear, in: Circle())
+            .overlay {
+                if selectedSymbol == option.symbolName {
+                    Circle().stroke(Color.accentColor.opacity(0.65), lineWidth: 1.5)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selectedSymbol == option.symbolName ? .isSelected : [])
+    }
+
+    private var colorPicker: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(AppLocalization.key("common.color"))
+                    .font(.headline)
+                Spacer()
+                ColorPicker(AppLocalization.key("common.color"), selection: colorBinding, supportsOpacity: false)
+                    .labelsHidden()
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 40, maximum: 48), spacing: 10)], spacing: 10) {
+                ForEach(palette, id: \.self) { value in
+                    Button {
+                        color = value
+                    } label: {
+                        Circle()
+                            .fill(Color(hex: value))
+                            .frame(width: 40, height: 40)
+                            .overlay {
+                                if color.caseInsensitiveCompare(value) == .orderedSame {
+                                    Circle().stroke(.primary, lineWidth: 2)
+                                    Image(systemName: "checkmark")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(.primary)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(AppLocalization.key("common.color"))
+                    .accessibilityAddTraits(color.caseInsensitiveCompare(value) == .orderedSame ? .isSelected : [])
+                }
+            }
+        }
+    }
+
+    private var selectedColor: Color {
+        Color(hex: color)
+    }
+
+    private var colorBinding: Binding<Color> {
+        Binding(
+            get: { selectedColor },
+            set: { color = $0.toHex() ?? color }
+        )
+    }
+
     private func save() {
+        guard !isSaving, !trimmedName.isEmpty else { return }
+        isSaving = true
         Task {
             do {
                 if let category {
-                    try await store.updateCategory(category.id, payload: RemoteCategoryUpdatePayload(name: name, income: income, iconIdentifier: iconIdentifier, color: color))
+                    try await store.updateCategory(category.id, payload: RemoteCategoryUpdatePayload(name: trimmedName, income: income, iconIdentifier: "sf:\(selectedSymbol)", color: color))
                 } else {
-                    try await store.createCategory(RemoteCategoryCreatePayload(name: name, income: income, iconIdentifier: iconIdentifier, color: color))
+                    let created = try await store.createCategory(RemoteCategoryCreatePayload(name: trimmedName, income: income, iconIdentifier: "sf:\(selectedSymbol)", color: color))
+                    onCreated?(created)
                 }
+                let shouldShowSuccessToast = category == nil
                 dismiss()
+                if shouldShowSuccessToast {
+                    let toastCoordinator = appToastCoordinator
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 350_000_000)
+                        guard !Task.isCancelled else { return }
+                        toastCoordinator.show(kind: .categoryAdded)
+                    }
+                }
             } catch {
                 errorMessage = AppLocalization.string("category.saveError")
             }
+            isSaving = false
         }
     }
 }
@@ -2208,6 +2935,33 @@ struct RemoteCategoryEditorView: View {
 private func decimalString(_ minor: Int64, exponent: Int) -> String {
     let number = NSDecimalNumber(mantissa: UInt64(abs(minor)), exponent: Int16(-exponent), isNegative: false)
     return number.stringValue
+}
+
+private func remoteAccountDecimalString(_ minor: Int64, exponent: Int) -> String {
+    let formatter = NumberFormatter()
+    formatter.locale = .current
+    formatter.numberStyle = .decimal
+    formatter.minimumFractionDigits = exponent
+    formatter.maximumFractionDigits = exponent
+    let divisor = Decimal(Int64(pow(10.0, Double(exponent))))
+    let value = Decimal(minor) / divisor
+    return formatter.string(for: NSDecimalNumber(decimal: value)) ?? "0"
+}
+
+private func parseRemoteAccountMinorUnits(_ text: String, exponent: Int) -> Int64? {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+
+    var normalized = trimmed.replacingOccurrences(of: " ", with: "")
+    if normalized.contains(",") {
+        normalized = normalized.replacingOccurrences(of: ".", with: "")
+        normalized = normalized.replacingOccurrences(of: ",", with: ".")
+    }
+    guard let decimal = Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX")) else { return nil }
+
+    let multiplier = NSDecimalNumber(value: Int64(pow(10.0, Double(exponent))))
+    let scaled = NSDecimalNumber(decimal: decimal).multiplying(by: multiplier)
+    return scaled.rounding(accordingToBehavior: nil).int64Value
 }
 
 private func parseMinorUnits(_ text: String, exponent: Int) -> Int64? {

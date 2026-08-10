@@ -277,14 +277,17 @@ final class FinancialRemoteStore: ObservableObject {
         if let selectedAccountID { await fetchFirstPage(accountID: selectedAccountID) } else { clearMovements() }
     }
 
-    func createCategory(_ payload: RemoteCategoryCreatePayload) async throws {
-        guard let categoriesRepository else { return }
-        categories.append(try await categoriesRepository.create(payload))
+    @discardableResult
+    func createCategory(_ payload: RemoteCategoryCreatePayload) async throws -> RemoteCategoryDTO {
+        guard let categoriesRepository else { throw APIError.unauthorized(nil) }
+        let created = try await categoriesRepository.create(payload)
+        categories.append(created)
         categories.sort {
             if $0.income != $1.income { return !$0.income }
             if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
             return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
+        return created
     }
 
     func updateCategory(_ categoryID: UUID, payload: RemoteCategoryUpdatePayload) async throws {

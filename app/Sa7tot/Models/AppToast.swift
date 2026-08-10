@@ -4,6 +4,8 @@ struct AppToast: Equatable, Identifiable {
     enum Kind: Equatable {
         case expenseAdded
         case incomeAdded
+        case categoryAdded
+        case accountAdded
 
         var titleKey: String {
             switch self {
@@ -11,6 +13,10 @@ struct AppToast: Equatable, Identifiable {
                 return "toast.movement.expenseAdded"
             case .incomeAdded:
                 return "toast.movement.incomeAdded"
+            case .categoryAdded:
+                return "toast.category.added"
+            case .accountAdded:
+                return "toast.account.added"
             }
         }
     }
@@ -25,5 +31,9 @@ struct AppToast: Equatable, Identifiable {
         self.kind = kind
         self.title = AppLocalization.string(kind.titleKey)
         self.amount = amount
+    }
+
+    var accessibilityAnnouncement: String {
+        amount.isEmpty ? title : "\(title), \(amount)"
     }
 }

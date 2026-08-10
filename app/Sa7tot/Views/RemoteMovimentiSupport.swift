@@ -43,10 +43,19 @@ struct CategoryLogIconView: View {
     let future: Bool
     let huge: Bool
 
+    private var iconTint: Color {
+        let trimmed = colour.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == "#FFFFFF" || trimmed.caseInsensitiveCompare("FFFFFF") == .orderedSame {
+            return .primary
+        }
+        return Color(hex: trimmed)
+    }
+
     var body: some View {
         CategoryIconView(
             descriptor: CategoryIconPresentation.descriptor(for: iconIdentifier),
             role: huge ? .category : .listRow,
+            tint: iconTint,
             accessibilityLabel: categoryName ?? AppLocalization.string("subscription.other")
         )
         .opacity(future ? 0.6 : 1)
