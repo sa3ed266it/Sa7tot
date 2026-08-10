@@ -33,4 +33,4 @@ Supabase sessions are stored in Keychain. Expired or near-expiry access tokens a
 
 The current API policy is to obtain a fresh token before each authenticated request and surface a FastAPI `401` without retrying it. This avoids an implicit retry loop; a later API-layer retry can be added as a separate, explicit policy if needed.
 
-No production financial screen is switched to remote data in this phase. Core Data, CloudKit, widgets, and Shortcuts remain unchanged.
+Authentication is handled through Sign in with Apple and Supabase Auth. The iOS app uses Supabase directly only for authentication and session management; application and financial data are accessed through the FastAPI backend backed by Supabase PostgreSQL. The app no longer relies on local Core Data or CloudKit for financial storage.

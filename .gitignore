@@ -12,8 +12,15 @@ app/Sa7tot/Assets.xcassets/SubscriptionLogos/subscription-app-icon-*.imageset/
 ## MacOS
 .DS_Store
 
+## Local secrets and generated build/test output
+.env
+**/__pycache__/
+.pytest_cache/
+*.xcresult
+DerivedData/
+.build/
+
 ## Local backend environment
 backend/.env
 backend/.venv/
-backend/**/__pycache__/
 backend/*.egg-info/

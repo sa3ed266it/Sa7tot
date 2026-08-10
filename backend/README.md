@@ -1,10 +1,12 @@
 # Sa7tot Backend Foundation V1.1
 
-This directory contains the clean-slate remote backend for Sa7tot. It is
-independent from the current iOS Core Data/CloudKit implementation.
+This directory contains the remote backend for Sa7tot. The iOS app accesses
+application and financial data through authenticated FastAPI APIs, with
+Supabase PostgreSQL behind the backend. Direct Supabase use in iOS is limited
+to authentication and session handling.
 
 ```text
-SwiftUI (future phase) -> HTTPS/JSON -> FastAPI -> SQLAlchemy async -> PostgreSQL/Supabase
+SwiftUI network client/repositories -> HTTPS/JSON -> FastAPI -> SQLAlchemy async -> PostgreSQL/Supabase
 ```
 
 ## Scope
@@ -14,7 +16,7 @@ Implemented:
 - FastAPI `/health` endpoint and versioned `/v1` routes;
 - PostgreSQL-only SQLAlchemy 2.x async access;
 - Pydantic DTOs and PostgreSQL constraints/indexes;
-- profiles, accounts, categories, transactions, subscriptions, and occurrences;
+- profiles, accounts, categories, transactions, budgets, subscriptions, recurrence rules, and occurrences;
 - integer minor-unit money values;
 - explicit authenticated-user ownership checks;
 - account-relative balances and transfers, including `creditCard` behavior;
@@ -22,11 +24,9 @@ Implemented:
 - subscription scheduling and idempotent materialization;
 - Alembic migration from an empty PostgreSQL database.
 
-Deferred intentionally:
+Not included in this backend:
 
-- iOS remote migration, Core Data/CloudKit removal, and old-data migration;
-- Budget and legacy recurring backends;
-- Widgets, Shortcuts, App Intents, and Apple login UI;
+- historical local-data migration;
 - a production scheduler such as `pg_cron`.
 
 ## Minimum local/staging configuration

@@ -21,13 +21,6 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSUserActivityTypes</key>
-	<array>
-		<string>BudgetWidgetConfigurationIntent</string>
-		<string>InsightsWidgetConfigurationIntent</string>
-		<string>RecentTransactionConfigurationIntent</string>
-		<string>RecentWidgetConfigurationIntent</string>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

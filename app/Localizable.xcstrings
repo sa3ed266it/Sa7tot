@@ -1,9 +1,6 @@
 {
   "sourceLanguage" : "it",
   "strings" : {
-    "" : {
-
-    },
     "-%@" : {
       "localizations" : {
         "en" : {
@@ -2818,7 +2815,20 @@
       }
     },
     "Sa7tot" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sa7tot"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sa7tot"
+          }
+        }
+      }
     },
     "Saldo nascosto" : {
       "localizations" : {

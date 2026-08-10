@@ -1,15 +1,6 @@
 {
-  "originHash" : "bfe8e7711973fa8297c162fd94ad56ae54a835dbeb6466e9a5525f6d7deb8c14",
+  "originHash" : "a0d774955737d097e05bebc5f339cc1bcdb9b57d8a3aa4bb278bf816780980ef",
   "pins" : [
-    {
-      "identity" : "alamofire",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Alamofire/Alamofire",
-      "state" : {
-        "revision" : "b2fa556e4e48cbf06cf8c63def138c98f4b811fa",
-        "version" : "5.8.0"
-      }
-    },
     {
       "identity" : "confettiswiftui",
       "kind" : "remoteSourceControl",
@@ -29,39 +20,12 @@
       }
     },
     {
-      "identity" : "isscrolling",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/fatbobman/IsScrolling.git",
-      "state" : {
-        "revision" : "7def8d8f789a326b6f725a76cee8ec3fa69511df",
-        "version" : "1.1.2"
-      }
-    },
-    {
       "identity" : "lottie-ios",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/airbnb/lottie-ios.git",
       "state" : {
         "revision" : "f4db77d7feacba0c2360b84a40c38a6ce8ff399d",
         "version" : "4.6.1"
-      }
-    },
-    {
-      "identity" : "popovers",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/aheze/Popovers",
-      "state" : {
-        "revision" : "de44c4dd7271ec6413fe350f7efadb14e5e18dce",
-        "version" : "1.3.2"
-      }
-    },
-    {
-      "identity" : "swiftui-introspect",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/siteline/SwiftUI-Introspect.git",
-      "state" : {
-        "revision" : "807f73ce09a9b9723f12385e592b4e0aaebd3336",
-        "version" : "1.3.0"
       }
     }
   ],
