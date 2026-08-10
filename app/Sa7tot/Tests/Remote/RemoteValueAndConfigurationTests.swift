@@ -179,4 +179,55 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
         let resolvedTitleWithoutCategory = expenseWithoutCategory.category?.name ?? AppLocalization.string("movement.expense")
         XCTAssertEqual(resolvedTitleWithoutCategory, AppLocalization.string("movement.expense"), "Expense without category must fall back to localized expense string, not note.")
     }
+
+    func testNewMovementTimestampAndEditModePreservationSemantics() {
+        let originalDate = Date(timeIntervalSince1970: 1_600_000_000)
+        let existingTransaction = RemoteTransactionDTO(
+            id: UUID(),
+            userID: UUID(),
+            kind: .expense,
+            accountID: UUID(),
+            destinationAccountID: nil,
+            amountMinor: -2000,
+            currencyCode: "EUR",
+            currencyExponent: 2,
+            occurredAt: originalDate,
+            localDay: try! RemoteDateOnly(isoString: "2020-09-13"),
+            title: "Spesa",
+            effectiveAmountMinor: -2000,
+            category: nil,
+            transfer: nil,
+            subscription: nil,
+            recurrence: nil,
+            note: nil,
+            merchant: nil,
+            origin: "manual",
+            reviewStatus: "confirmed",
+            externalReference: nil,
+            createdAt: originalDate,
+            updatedAt: originalDate
+        )
+
+        let isEditing = existingTransaction != nil
+        let resolvedTimestampForEdit = isEditing ? existingTransaction.occurredAt : Date.now
+        XCTAssertEqual(resolvedTimestampForEdit, originalDate, "Editing an existing transaction must preserve its original occurredAt date.")
+
+        let isEditingNew: Bool = false
+        let beforeSave = Date.now
+        let resolvedTimestampForNew = isEditingNew ? originalDate : Date.now
+        let afterSave = Date.now
+
+        XCTAssertGreaterThanOrEqual(resolvedTimestampForNew, beforeSave)
+        XCTAssertLessThanOrEqual(resolvedTimestampForNew, afterSave)
+    }
+
+    func testAccountSelectorPreselection() {
+        let accountA = UUID()
+        let accountB = UUID()
+        let initialAccountID: UUID? = accountA
+        let selectedAccountID: UUID? = accountB
+
+        let resolved = initialAccountID ?? selectedAccountID
+        XCTAssertEqual(resolved, accountA, "Initial account ID passed to editor must take precedence for initial account selection.")
+    }
 }

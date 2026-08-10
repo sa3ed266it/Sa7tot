@@ -27,6 +27,13 @@ enum RemoteMovementFilter: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+enum RemoteBootstrapStatus: Equatable {
+    case idle
+    case loading
+    case ready
+    case failed
+}
+
 @MainActor
 final class FinancialRemoteStore: ObservableObject {
     let isRemoteOnly: Bool
@@ -57,6 +64,7 @@ final class FinancialRemoteStore: ObservableObject {
     @Published var errorMessage: String?
     @Published var deferredFeatureMessage: String?
     @Published private(set) var subscriptionErrorMessage: String?
+    @Published private(set) var bootstrapStatus: RemoteBootstrapStatus = .idle
 
     private let bootstrapRepository: RemoteBootstrapRepository?
     private let accountsRepository: RemoteAccountsRepository?
@@ -68,7 +76,8 @@ final class FinancialRemoteStore: ObservableObject {
     private let upcomingRepository: RemoteUpcomingRepository?
     private let budgetRepository: RemoteBudgetRepository?
     private var didBootstrap = false
-    private var bootstrapTask: Task<Void, Never>?
+    private var bootstrapTask: Task<Bool, Never>?
+    private var secondaryBootstrapTask: Task<Void, Never>?
     private var movementTask: Task<Void, Never>?
     private var loadedMovementIDs = Set<UUID>()
     private var loadGeneration = 0
@@ -114,49 +123,75 @@ final class FinancialRemoteStore: ObservableObject {
     var selectedCurrencyCode: String { selectedSnapshot?.currencyCode ?? selectedAccount?.currencyCode ?? profile?.defaultCurrencyCode ?? "EUR" }
     var selectedCurrencyExponent: Int { selectedSnapshot?.currencyExponent ?? selectedAccount?.currencyExponent ?? 2 }
 
-    func bootstrapIfNeeded() async {
-        guard isRemoteOnly, !didBootstrap else { return }
+    @discardableResult
+    func bootstrapIfNeeded() async -> Bool {
+        guard isRemoteOnly else {
+            bootstrapStatus = .failed
+            return false
+        }
+        guard !didBootstrap else { return bootstrapStatus == .ready }
         if let bootstrapTask {
-            await bootstrapTask.value
-            return
+            return await bootstrapTask.value
         }
 
-        let task = Task { [weak self] in
-            guard let self else { return }
-            await self.bootstrap()
+        let task: Task<Bool, Never> = Task { [weak self] in
+            guard let self else { return false }
+            return await self.bootstrap()
         }
         bootstrapTask = task
-        await task.value
+        let result = await task.value
         bootstrapTask = nil
+        return result
     }
 
-    func bootstrap() async {
-        guard let bootstrapRepository else { return }
+    @discardableResult
+    func bootstrap() async -> Bool {
+        guard let bootstrapRepository else {
+            bootstrapStatus = .failed
+            return false
+        }
         movementTask?.cancel()
+        secondaryBootstrapTask?.cancel()
+        secondaryBootstrapTask = nil
+        bootstrapStatus = .loading
         isLoading = true
         errorMessage = nil
+        selectedSnapshot = nil
+        clearMovementPageOnly()
         do {
             let response = try await bootstrapRepository.load()
             try Task.checkCancellation()
             profile = response.profile
             accounts = response.accounts
             categories = response.categories
-            didBootstrap = true
             normalizeSelectedAccount()
-            _ = try await recurrencesRepository?.materialize()
-            recurrenceRules = try await recurrencesRepository?.list() ?? []
-            _ = try await subscriptionsRepository?.materialize()
-            subscriptions = try await subscriptionsRepository?.list() ?? []
             if let selectedAccountID {
                 await fetchFirstPage(accountID: selectedAccountID)
             } else {
                 clearMovements()
             }
+
+            guard errorMessage == nil else {
+                bootstrapStatus = .failed
+                isLoading = false
+                return false
+            }
+
+            didBootstrap = true
+            bootstrapStatus = .ready
+            isLoading = false
+            startSecondaryBootstrap()
+            return true
         } catch is CancellationError {
+            bootstrapStatus = .idle
+            isLoading = false
+            return false
         } catch {
             errorMessage = userFacingMessage(for: error)
+            bootstrapStatus = .failed
+            isLoading = false
+            return false
         }
-        isLoading = false
     }
 
     func loadBudget() async {
@@ -427,7 +462,12 @@ final class FinancialRemoteStore: ObservableObject {
     func resetRemoteState() {
         movementTask?.cancel()
         movementTask = nil
+        bootstrapTask?.cancel()
+        bootstrapTask = nil
+        secondaryBootstrapTask?.cancel()
+        secondaryBootstrapTask = nil
         didBootstrap = false
+        bootstrapStatus = .idle
         profile = nil
         accounts = []
         categories = []
@@ -441,6 +481,22 @@ final class FinancialRemoteStore: ObservableObject {
         clearMovements()
         subscriptionErrorMessage = nil
         errorMessage = nil
+    }
+
+    private func startSecondaryBootstrap() {
+        secondaryBootstrapTask?.cancel()
+        secondaryBootstrapTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await self.recurrencesRepository?.materialize()
+                self.recurrenceRules = try await self.recurrencesRepository?.list() ?? []
+                _ = try await self.subscriptionsRepository?.materialize()
+                self.subscriptions = try await self.subscriptionsRepository?.list() ?? []
+            } catch is CancellationError {
+            } catch {
+                // Secondary tab data must not prevent the essential Movimenti UI from opening.
+            }
+        }
     }
 
     private func fetchFirstPage(accountID: UUID, generation: Int? = nil) async {

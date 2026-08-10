@@ -184,3 +184,72 @@ async def test_start_date_semantics_materialize_today_without_historical_backfil
     )
     assert old_response.status_code == 201, old_response.text
     assert date.fromisoformat(old_response.json()["next_billing_date"]) > today
+
+
+@pytest.mark.asyncio
+async def test_materialized_subscription_without_note_has_null_note_and_preserves_metadata(
+    client: AsyncClient, session: AsyncSession
+):
+    account = await create_account(client)
+    today = datetime.now(UTC).astimezone(ZoneInfo("Europe/Rome")).date()
+    response = await client.post(
+        "/v1/subscriptions",
+        json={
+            "account_id": account["id"],
+            "service_id": "amazon-prime",
+            "amount_minor": 499,
+            "currency_code": "EUR",
+            "currency_exponent": 2,
+            "cadence": "monthly",
+            "billing_anchor": today.isoformat(),
+        },
+    )
+    assert response.status_code == 201, response.text
+    subscription_id = UUID(response.json()["id"])
+
+    materialization = await materialize_due_subscriptions(session, TEST_USER_ID)
+    assert materialization.generated_count == 1
+
+    transaction = await session.scalar(
+        select(Transaction).where(Transaction.subscription_id == subscription_id)
+    )
+    assert transaction is not None
+    assert transaction.note is None
+    assert transaction.origin == "subscription"
+    assert transaction.subscription_service_id == "amazon-prime"
+    assert transaction.subscription_display_name == "Amazon Prime"
+
+
+@pytest.mark.asyncio
+async def test_materialized_subscription_with_user_note_retains_note(
+    client: AsyncClient, session: AsyncSession
+):
+    account = await create_account(client)
+    today = datetime.now(UTC).astimezone(ZoneInfo("Europe/Rome")).date()
+    response = await client.post(
+        "/v1/subscriptions",
+        json={
+            "account_id": account["id"],
+            "service_id": "amazon-prime",
+            "amount_minor": 499,
+            "currency_code": "EUR",
+            "currency_exponent": 2,
+            "cadence": "monthly",
+            "billing_anchor": today.isoformat(),
+            "note": "Family shared plan",
+        },
+    )
+    assert response.status_code == 201, response.text
+    subscription_id = UUID(response.json()["id"])
+
+    materialization = await materialize_due_subscriptions(session, TEST_USER_ID)
+    assert materialization.generated_count == 1
+
+    transaction = await session.scalar(
+        select(Transaction).where(Transaction.subscription_id == subscription_id)
+    )
+    assert transaction is not None
+    assert transaction.note == "Family shared plan"
+    assert transaction.subscription_service_id == "amazon-prime"
+    assert transaction.subscription_display_name == "Amazon Prime"
+

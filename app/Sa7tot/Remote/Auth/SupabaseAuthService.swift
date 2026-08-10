@@ -57,13 +57,17 @@ public final class SupabaseAuthService: ObservableObject {
         state = .restoring
         do {
             if let session = try await coordinator.restore() {
+                guard !Task.isCancelled else { return }
                 state = .signedIn(session)
             } else {
+                guard !Task.isCancelled else { return }
                 state = .signedOut
             }
         } catch let error as SupabaseAuthError {
+            guard !Task.isCancelled else { return }
             state = .error(Self.presentationError(for: error))
         } catch {
+            guard !Task.isCancelled else { return }
             state = .error(.unknown)
         }
     }

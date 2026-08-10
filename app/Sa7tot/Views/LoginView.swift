@@ -1,7 +1,5 @@
 import AuthenticationServices
 import SwiftUI
-import UIKit
-import Lottie
 
 struct LoginView: View {
     @EnvironmentObject private var authService: SupabaseAuthService
@@ -10,6 +8,17 @@ struct LoginView: View {
 
     @State private var rawNonce: String?
     @State private var didAppear = false
+    @State private var taglineIndex = 0
+    @State private var revealedWordCount = 0
+
+    private let taglineKeys = [
+        "auth.login.tagline",
+        "auth.login.tagline.control",
+        "auth.login.tagline.clarity",
+        "auth.login.tagline.movements",
+        "auth.login.tagline.focus",
+        "auth.login.tagline.yours"
+    ]
 
     let error: SupabaseAuthPresentationError?
     let isAuthenticating: Bool
@@ -26,25 +35,41 @@ struct LoginView: View {
         GeometryReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
-                    Spacer(minLength: max(28, proxy.size.height * 0.10))
+                    Spacer(minLength: max(20, proxy.size.height * 0.06))
 
-                    WalletAnimationView(reduceMotion: accessibilityReduceMotion)
-                        .frame(width: 168, height: 168)
+                    Image("Sa7totLogo")
+                        .resizable()
+                        .renderingMode(.original)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 124, height: 83)
                         .accessibilityHidden(true)
 
                     Text("Sa7tot")
                         .font(.system(.largeTitle, design: .rounded).weight(.semibold))
                         .foregroundStyle(Color.PrimaryText)
                         .accessibilityAddTraits(.isHeader)
-                        .padding(.top, 6)
+                        .padding(.top, 4)
 
-                    Text(AppLocalization.key("auth.login.tagline"))
-                        .font(.body)
-                        .foregroundStyle(Color.SubtitleText)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 10)
+                    HStack(spacing: 4) {
+                        ForEach(Array(currentTaglineWords.enumerated()), id: \.offset) { index, word in
+                            Text(word)
+                                .font(.body)
+                                .foregroundStyle(Color.SubtitleText)
+                                .opacity(index < revealedWordCount ? 1 : 0)
+                                .blur(
+                                    radius: accessibilityReduceMotion || index < revealedWordCount ? 0 : 6
+                                )
+                                .offset(
+                                    y: accessibilityReduceMotion || index < revealedWordCount ? 0 : 3
+                                )
+                                .animation(taglineWordAnimation, value: revealedWordCount)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 24)
+                    .padding(.top, 6)
 
-                    Spacer(minLength: max(40, proxy.size.height * 0.12))
+                    Spacer(minLength: max(28, proxy.size.height * 0.08))
 
                     if let error {
                         Text(error.message)
@@ -61,23 +86,19 @@ struct LoginView: View {
                             .tint(Color.PrimaryText)
                             .frame(height: 50)
                             .accessibilityLabel(AppLocalization.key("auth.login.signIn"))
+                            .padding(.bottom, max(20, proxy.safeAreaInsets.bottom))
                     } else if error != .configuration {
                         SignInWithAppleButton(.signIn, onRequest: configure, onCompletion: complete)
                             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                             .frame(height: 50)
+                            .clipShape(Capsule())
+                            .padding(.bottom, max(20, proxy.safeAreaInsets.bottom))
                     }
-
-                    Text(AppLocalization.key("auth.login.privacy"))
-                        .font(.footnote)
-                        .foregroundStyle(Color.SubtitleText)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 16)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, max(20, proxy.safeAreaInsets.bottom))
                 }
                 .frame(minHeight: max(proxy.size.height, 560))
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 28)
+                .offset(y: -24)
             }
         }
         .background(Color.AppPageBackground.ignoresSafeArea())
@@ -92,6 +113,55 @@ struct LoginView: View {
             }
             didAppear = true
         }
+        .task {
+            guard taglineKeys.count > 1 else { return }
+
+            while !Task.isCancelled {
+                let wordCount = currentTaglineWords.count
+                guard wordCount > 0 else { return }
+
+                for wordIndex in 1...wordCount {
+                    if wordIndex > 1 {
+                        try? await Task.sleep(nanoseconds: 360_000_000)
+                        guard !Task.isCancelled else { return }
+                    }
+
+                    withAnimation(taglineWordAnimation) {
+                        revealedWordCount = wordIndex
+                    }
+                }
+
+                try? await Task.sleep(nanoseconds: 1_900_000_000)
+                guard !Task.isCancelled else { return }
+
+                withAnimation(taglineExitAnimation) {
+                    revealedWordCount = 0
+                }
+
+                try? await Task.sleep(nanoseconds: 280_000_000)
+                guard !Task.isCancelled else { return }
+
+                taglineIndex = (taglineIndex + 1) % taglineKeys.count
+            }
+        }
+    }
+
+    private var currentTaglineWords: [String] {
+        AppLocalization.string(taglineKeys[taglineIndex])
+            .split(whereSeparator: { $0.isWhitespace })
+            .map(String.init)
+    }
+
+    private var taglineWordAnimation: Animation {
+        accessibilityReduceMotion
+            ? .easeOut(duration: 0.16)
+            : .easeOut(duration: 0.28)
+    }
+
+    private var taglineExitAnimation: Animation {
+        accessibilityReduceMotion
+            ? .easeOut(duration: 0.16)
+            : .easeInOut(duration: 0.28)
     }
 
     private func configure(_ request: ASAuthorizationAppleIDRequest) {
@@ -132,29 +202,5 @@ struct LoginView: View {
                 authService.handle(error: .invalidAppleCredential)
             }
         }
-    }
-}
-
-private struct WalletAnimationView: UIViewRepresentable {
-    let reduceMotion: Bool
-
-    func makeUIView(context: Context) -> LottieAnimationView {
-        let animationView = LottieAnimationView(name: "Wallet", bundle: .main)
-        animationView.contentMode = .scaleAspectFit
-        animationView.loopMode = .playOnce
-
-        if reduceMotion {
-            animationView.currentProgress = 1
-        } else {
-            animationView.play(fromProgress: 0, toProgress: 1, loopMode: .playOnce)
-        }
-
-        return animationView
-    }
-
-    func updateUIView(_ animationView: LottieAnimationView, context: Context) {
-        guard reduceMotion else { return }
-        animationView.stop()
-        animationView.currentProgress = 1
     }
 }

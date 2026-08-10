@@ -301,9 +301,11 @@ struct RemoteMovimentiView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onPreferenceChange(RemoteBalanceHeaderMetricsKey.self) { metrics in
-                expandedBalanceHeaderHeight = metrics.height
-                let collapseDistance = max(1, metrics.height - compactBalanceHeaderHeight)
-                balanceCollapseProgress = min(max(-metrics.minY / collapseDistance, 0), 1)
+                if let minY = metrics.minY {
+                    expandedBalanceHeaderHeight = metrics.height
+                    let collapseDistance = max(1, metrics.height - compactBalanceHeaderHeight)
+                    balanceCollapseProgress = min(max(-minY / collapseDistance, 0), 1)
+                }
             }
         }
         .refreshable { await store.refresh() }
@@ -351,6 +353,7 @@ struct RemoteMovimentiView: View {
                         isDeleteAlertPresented = true
                     }
                     .padding(.horizontal, 10)
+                    .modifier(MovementRecedingScrollEffect())
                     .onAppear { store.loadNextPageIfNeeded(after: transaction.id) }
                 }
             }
@@ -383,6 +386,7 @@ struct RemoteMovimentiView: View {
                 ForEach(store.upcomingItems) { item in
                     RemoteMovementRow(upcoming: item, showCents: showCents)
                         .padding(.horizontal, 10)
+                        .modifier(MovementRecedingScrollEffect())
                 }
             }
             .padding(.bottom, 18)
@@ -756,8 +760,6 @@ private struct RemoteAccountHeader: View {
                 }
                 .padding(.top, 8)
                 .opacity(1 - handoff)
-                .frame(height: 31 * (1 - handoff))
-                .clipped()
                 .blur(radius: hideBalances ? remoteSubheaderBlurRadius : 0)
                 .opacity(hideBalances ? 0.72 : 1)
                 .animation(remotePrivacyTransition, value: hideBalances)
@@ -859,9 +861,11 @@ private struct RemoteMovementRow: View {
             Image(systemName: "arrow.left.arrow.right")
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.PrimaryText)
-        } else if let transaction, let serviceID = transaction.subscription?.serviceID,
-                  let service = SubscriptionServiceCatalog.service(forID: serviceID) {
-            SubscriptionLogoView(service: service, size: 34)
+        } else if let transaction, let subscription = transaction.subscription {
+            SubscriptionLogoView(
+                service: SubscriptionServiceCatalog.service(forID: subscription.serviceID),
+                size: 34
+            )
         } else if let transaction {
             CategoryLogIconView(
                 iconIdentifier: transaction.category?.iconIdentifier ?? "sf:tag.fill",
@@ -914,9 +918,8 @@ private struct RemoteMovementRow: View {
         if transaction.kind == .transfer {
             return AppLocalization.string("movement.transfer")
         }
-        if let serviceID = transaction.subscription?.serviceID,
-           let service = SubscriptionServiceCatalog.service(forID: serviceID) {
-            return service.displayName
+        if transaction.subscription != nil {
+            return AppLocalization.string("subscription.detail")
         }
         if let categoryName = transaction.category?.name, !categoryName.isEmpty {
             return categoryName
@@ -983,6 +986,22 @@ struct RemoteTransactionDetailView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     VStack(spacing: 6) {
+                        if let subscription = transaction.subscription {
+                            SubscriptionLogoView(
+                                service: SubscriptionServiceCatalog.service(forID: subscription.serviceID),
+                                size: 56
+                            )
+                            .padding(.bottom, 2)
+
+                            Text(SubscriptionDisplayIdentity.serviceName(for: subscription))
+                                .font(.system(.title3, design: .rounded).weight(.semibold))
+                                .foregroundStyle(Color.PrimaryText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                                .allowsTightening(true)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+
                         Text(headerOperationType)
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
                             .foregroundStyle(Color.SubtitleText)
@@ -1123,9 +1142,10 @@ struct RemoteTransactionDetailView: View {
 
     private var displayNote: String? {
         guard let note = transaction.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty else { return nil }
-        guard transaction.subscription == nil else {
-            let serviceID = transaction.subscription?.serviceID ?? ""
-            return SubscriptionDisplayIdentity.normalized(note) == SubscriptionDisplayIdentity.normalized(serviceID) ? nil : note
+        if let subscription = transaction.subscription {
+            if SubscriptionDisplayIdentity.isAutoGeneratedServiceNote(note, subscription: subscription) {
+                return nil
+            }
         }
         return note
     }
@@ -1292,7 +1312,7 @@ private struct RemoteMovementEditorSurface: View {
         case let .subscription(value): transaction = nil; subscription = value
         }
         _mode = State(initialValue: subscription != nil ? .subscription : (transaction?.kind == .income ? .income : .expense))
-        _accountID = State(initialValue: subscription?.accountID ?? transaction?.accountID ?? initialAccountID)
+        _accountID = State(initialValue: (transaction != nil || subscription != nil) ? (subscription?.accountID ?? transaction?.accountID) : nil)
         _sourceID = State(initialValue: transaction?.transfer?.sourceAccountID ?? initialAccountID)
         _destinationID = State(initialValue: transaction?.transfer?.destinationAccountID)
         _categoryID = State(initialValue: transaction?.category?.id)
@@ -1441,6 +1461,7 @@ private struct RemoteMovementEditorSurface: View {
             subscriptionContent
         } else {
             if !isTransfer { categoryCarousel }
+            if !isTransfer { accountCarousel }
             detailsSection
         }
     }
@@ -1576,80 +1597,140 @@ private struct RemoteMovementEditorSurface: View {
         }
     }
 
-    private var subscriptionContent: some View {
-        GroupBox {
-            VStack(spacing: 10) {
-                NavigationLink {
-                    SubscriptionServicePickerView(
-                        selectedService: $subscriptionService,
-                        isCustom: $subscriptionIsCustom,
-                        customName: $subscriptionCustomName
-                    )
-                } label: {
-                    HStack(spacing: 12) {
-                        SubscriptionLogoView(service: subscriptionService, size: 40)
-                        Text(verbatim: subscriptionIsCustom && !subscriptionCustomName.isEmpty ? subscriptionCustomName : subscriptionService?.displayName ?? AppLocalization.string("subscription.chooseService"))
-                            .foregroundStyle(subscriptionService == nil && !subscriptionIsCustom ? .secondary : .primary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .layoutPriority(1)
-                        Spacer(minLength: 4)
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .frame(minHeight: 48)
-                }
-                .buttonStyle(.plain)
+    private var accountCarousel: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(AppLocalization.string("common.account"))
+                .font(.system(.subheadline, design: .rounded).weight(.medium))
+                .foregroundStyle(Color.SubtitleText)
+                .padding(.horizontal, 2)
 
-                if subscriptionIsCustom {
-                    TextField(AppLocalization.key("subscription.customName"), text: $subscriptionCustomName)
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                RemoteEditorRow(title: AppLocalization.string("common.frequency"), systemImage: "repeat") {
-                    Picker(AppLocalization.key("common.frequency"), selection: $subscriptionCadence) {
-                        Text(AppLocalization.key("subscription.weekly")).tag(SubscriptionCadence.weekly)
-                        Text(AppLocalization.key("subscription.monthly")).tag(SubscriptionCadence.monthly)
-                        Text(AppLocalization.key("subscription.yearly")).tag(SubscriptionCadence.yearly)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 10) {
+                        ForEach(store.activeAccounts) { account in
+                            Button {
+                                if isTransfer {
+                                    sourceID = account.id
+                                } else {
+                                    accountID = account.id
+                                }
+                            } label: {
+                                HStack(spacing: 7) {
+                                    Image(systemName: Sa7totSymbolResolver.resolved(account.iconName))
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(accountDisplayColor(account.color))
+                                    Text(account.name)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                    if account.id == (isTransfer ? sourceID : accountID) {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.weight(.bold))
+                                    }
+                                }
+                                .font(.body.weight(account.id == (isTransfer ? sourceID : accountID) ? .semibold : .regular))
+                                .frame(minHeight: 44)
+                                .padding(.horizontal, 13)
+                                .background(Color.AppSecondarySurface, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(account.name)
+                            .accessibilityAddTraits(account.id == (isTransfer ? sourceID : accountID) ? .isSelected : [])
+                            .id(account.id)
+                        }
                     }
-                    .labelsHidden()
-                    .tint(.secondary)
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 2)
                 }
-                RemoteEditorRow(title: AppLocalization.string("subscription.startDate"), systemImage: "calendar") {
-                    DatePicker(AppLocalization.key("subscription.startDate"), selection: $subscriptionStartDate, displayedComponents: .date)
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
-                        .environment(\.locale, .current)
+                .frame(minHeight: 52)
+                .onAppear {
+                    if let selectedID = (isTransfer ? sourceID : accountID) {
+                        proxy.scrollTo(selectedID, anchor: .center)
+                    }
                 }
-                RemoteEditorRow(title: AppLocalization.string("common.account"), systemImage: "building.columns.fill") {
-                    RemoteAccountMenu(accounts: store.activeAccounts, selection: $accountID, singleLine: true)
+                .onChange(of: isTransfer ? sourceID : accountID) { value in
+                    guard let value else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo(value, anchor: .center) }
                 }
-                noteRow
             }
         }
     }
 
-    private var detailsSection: some View {
-        GroupBox {
-            VStack(spacing: 10) {
-                if !isTransfer {
-                    dateTimeRow
+    private var subscriptionContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            GroupBox {
+                VStack(spacing: 10) {
+                    NavigationLink {
+                        SubscriptionServicePickerView(
+                            selectedService: $subscriptionService,
+                            isCustom: $subscriptionIsCustom,
+                            customName: $subscriptionCustomName
+                        )
+                    } label: {
+                        HStack(spacing: 12) {
+                            SubscriptionLogoView(service: subscriptionService, size: 40)
+                            Text(verbatim: subscriptionIsCustom && !subscriptionCustomName.isEmpty ? subscriptionCustomName : subscriptionService?.displayName ?? AppLocalization.string("subscription.chooseService"))
+                                .foregroundStyle(subscriptionService == nil && !subscriptionIsCustom ? .secondary : .primary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .layoutPriority(1)
+                            Spacer(minLength: 4)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .frame(minHeight: 48)
+                    }
+                    .buttonStyle(.plain)
+
+                    if subscriptionIsCustom {
+                        TextField(AppLocalization.key("subscription.customName"), text: $subscriptionCustomName)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    RemoteEditorRow(title: AppLocalization.string("common.frequency"), systemImage: "repeat") {
+                        Picker(AppLocalization.key("common.frequency"), selection: $subscriptionCadence) {
+                            Text(AppLocalization.key("subscription.weekly")).tag(SubscriptionCadence.weekly)
+                            Text(AppLocalization.key("subscription.monthly")).tag(SubscriptionCadence.monthly)
+                            Text(AppLocalization.key("subscription.yearly")).tag(SubscriptionCadence.yearly)
+                        }
+                        .labelsHidden()
+                        .tint(.secondary)
+                    }
+                    RemoteEditorRow(title: AppLocalization.string("subscription.startDate"), systemImage: "calendar") {
+                        DatePicker(AppLocalization.key("subscription.startDate"), selection: $subscriptionStartDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .environment(\.locale, .current)
+                    }
                 }
-                if isTransfer {
-                    RemoteEditorRow(title: AppLocalization.string("transfer.from"), systemImage: "arrow.up.right") {
-                        RemoteAccountMenu(accounts: store.activeAccounts, selection: $sourceID, singleLine: true)
-                    }
-                    RemoteEditorRow(title: AppLocalization.string("transfer.to"), systemImage: "arrow.down.left") {
-                        RemoteAccountMenu(accounts: destinationAccounts, selection: $destinationID, singleLine: true)
-                    }
-                } else {
-                    RemoteEditorRow(title: AppLocalization.string("common.account"), systemImage: "building.columns.fill") {
-                        RemoteAccountMenu(accounts: store.activeAccounts, selection: $accountID, singleLine: true)
-                    }
-                }
-                noteRow
             }
+
+            accountCarousel
+            compactNoteRow
+        }
+    }
+
+    private var detailsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if (isEditing && !isTransfer) || isTransfer {
+                GroupBox {
+                    VStack(spacing: 10) {
+                        if isEditing && !isTransfer {
+                            dateTimeRow
+                        }
+                        if isTransfer {
+                            RemoteEditorRow(title: AppLocalization.string("transfer.from"), systemImage: "arrow.up.right") {
+                                RemoteAccountMenu(accounts: store.activeAccounts, selection: $sourceID, singleLine: true)
+                            }
+                            RemoteEditorRow(title: AppLocalization.string("transfer.to"), systemImage: "arrow.down.left") {
+                                RemoteAccountMenu(accounts: destinationAccounts, selection: $destinationID, singleLine: true)
+                            }
+                        }
+                    }
+                }
+            }
+            compactNoteRow
         }
     }
 
@@ -1705,25 +1786,33 @@ private struct RemoteMovementEditorSurface: View {
         }
     }
 
-    private var noteRow: some View {
-        RemoteEditorRow(title: AppLocalization.string("common.note"), systemImage: "note.text") {
-            HStack(spacing: 8) {
-                if !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(note)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                Button(AppLocalization.key(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "action.add" : "action.edit")) {
-                    noteDraft = note
-                    showNoteSheet = true
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .accessibilityLabel(AppLocalization.key(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "note.add" : "note.edit"))
+    private var compactNoteRow: some View {
+        HStack(spacing: 10) {
+            Label(AppLocalization.string("common.note"), systemImage: "note.text")
+                .font(.body)
+                .foregroundStyle(.primary)
+
+            Spacer(minLength: 8)
+
+            if !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(note)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            .frame(minHeight: 44)
+            Button(AppLocalization.key(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "action.add" : "action.edit")) {
+                noteDraft = note
+                showNoteSheet = true
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .accessibilityLabel(AppLocalization.key(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "note.add" : "note.edit"))
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(minHeight: 52)
+        .background(Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func recurrenceChoice(_ title: String, type: Int, coefficient: Int) -> some View {
@@ -1796,7 +1885,7 @@ private struct RemoteMovementEditorSurface: View {
             sourceID = sourceID ?? store.selectedAccountID ?? store.activeAccounts.first?.id
             if destinationID == sourceID { destinationID = nil }
             destinationID = destinationID ?? destinationAccounts.first?.id
-        } else {
+        } else if isEditing {
             accountID = accountID ?? store.selectedAccountID ?? store.activeAccounts.first?.id
         }
     }
@@ -1936,7 +2025,7 @@ private struct RemoteMovementEditorSurface: View {
                         amountMinor: amountMinor,
                         currencyCode: account.currencyCode,
                         currencyExponent: account.currencyExponent,
-                        occurredAt: occurredAt,
+                        occurredAt: isEditing ? occurredAt : Date.now,
                         categoryID: categoryID,
                         note: note.isEmpty ? nil : note,
                         merchant: merchant.isEmpty ? nil : merchant
@@ -1992,7 +2081,7 @@ private struct RemoteMovementEditorSurface: View {
                 cadenceInterval: repeatCoefficient
             ))
         } else {
-            guard let anchorDate = Self.remoteDateOnly(from: occurredAt) else { return }
+            guard let anchorDate = Self.remoteDateOnly(from: isEditing ? occurredAt : Date.now) else { return }
             _ = try await store.createRecurrence(RemoteRecurrenceCreatePayload(
                 accountID: accountID,
                 categoryID: categoryID,
@@ -2985,15 +3074,19 @@ private func localizedAccountType(_ type: String) -> String {
 }
 
 private struct RemoteBalanceHeaderMetrics: Equatable {
-    let minY: CGFloat
+    let minY: CGFloat?
     let height: CGFloat
 }
 
 private struct RemoteBalanceHeaderMetricsKey: PreferenceKey {
-    static var defaultValue = RemoteBalanceHeaderMetrics(minY: 0, height: 175)
+    static var defaultValue = RemoteBalanceHeaderMetrics(minY: nil, height: 175)
 
     static func reduce(value: inout RemoteBalanceHeaderMetrics, nextValue: () -> RemoteBalanceHeaderMetrics) {
-        value = nextValue()
+        if let next = nextValue().minY {
+            value = RemoteBalanceHeaderMetrics(minY: next, height: nextValue().height)
+        } else if value.minY == nil {
+            value = nextValue()
+        }
     }
 }
 
@@ -3032,5 +3125,36 @@ private struct RemoteEditorRow<Content: View>: View {
             content
         }
         .frame(minHeight: 44)
+    }
+}
+
+private struct MovementRecedingScrollEffect: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else if #available(iOS 17.0, *) {
+            content.visualEffect { content, geometryProxy in
+                let frame = geometryProxy.frame(in: .named("RemoteHomeScroll"))
+                let topEdge = frame.minY
+                let startThreshold: CGFloat = 140
+                let endThreshold: CGFloat = 30
+
+                let progress = topEdge < startThreshold ? min(max((startThreshold - topEdge) / (startThreshold - endThreshold), 0), 1) : 0
+                let scale = 1.0 - (0.06 * progress)
+                let opacity = 1.0 - (0.65 * progress)
+                let blur = 1.5 * progress
+                let yOffset = 4.0 * progress
+
+                return content
+                    .scaleEffect(scale, anchor: .top)
+                    .opacity(opacity)
+                    .blur(radius: blur)
+                    .offset(y: yOffset)
+            }
+        } else {
+            content
+        }
     }
 }

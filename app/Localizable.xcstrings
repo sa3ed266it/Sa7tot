@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "it",
   "strings" : {
+    "" : {
+
+    },
     "-%@" : {
       "localizations" : {
         "en" : {
@@ -1008,6 +1011,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le tue finanze, semplicemente."
+          }
+        }
+      }
+    },
+    "auth.login.tagline.clarity" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear spending, zero chaos."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spese chiare, zero caos."
+          }
+        }
+      }
+    },
+    "auth.login.tagline.control" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything under control."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto sotto controllo."
+          }
+        }
+      }
+    },
+    "auth.login.tagline.focus" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less confusion, more control."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meno confusione, più controllo."
+          }
+        }
+      }
+    },
+    "auth.login.tagline.movements" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your movements, at a glance."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi movimenti, in un attimo."
+          }
+        }
+      }
+    },
+    "auth.login.tagline.yours" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Small, simple, yours."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piccolo, semplice, tuo."
           }
         }
       }

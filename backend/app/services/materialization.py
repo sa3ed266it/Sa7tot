@@ -101,7 +101,7 @@ async def materialize_due_subscriptions(
                 occurred_at=now,
                 local_day=scheduled_date,
                 category_id=subscription.category_id,
-                note=subscription.note or display_subscription_name(subscription.service_id, subscription.custom_name),
+                note=subscription.note,
                 origin="subscription",
                 review_status="confirmed",
                 subscription_id=subscription.id,

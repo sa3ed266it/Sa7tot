@@ -16,10 +16,6 @@
 		5327D2BA287C6AFB00F76ADF /* ViewExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B3287C6AFB00F76ADF /* ViewExtension.swift */; };
 		5327D2BB287C6AFB00F76ADF /* StringExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B4287C6AFB00F76ADF /* StringExtension.swift */; };
 		5327D2BC287C6AFB00F76ADF /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2B5287C6AFB00F76ADF /* Color.swift */; };
-		D70000000000000000000030 /* NotificationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000030 /* NotificationSupport.swift */; };
-		D70000000000000000000031 /* RemoteMovimentiSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000031 /* RemoteMovimentiSupport.swift */; };
-		D70000000000000000000032 /* BackgroundBlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000032 /* BackgroundBlurView.swift */; };
-		D70000000000000000000033 /* CalendarSettingsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000033 /* CalendarSettingsSupport.swift */; };
 		5327D2C4287C6B2500F76ADF /* TimeFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2BE287C6B2500F76ADF /* TimeFrame.swift */; };
 		5327D2C6287C6B2500F76ADF /* BudgetTimeFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2C0287C6B2500F76ADF /* BudgetTimeFrame.swift */; };
 		5327D2C7287C6B2500F76ADF /* FilterType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2C1287C6B2500F76ADF /* FilterType.swift */; };
@@ -28,7 +24,6 @@
 		5327D2D8287C6B5F00F76ADF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2CF287C6B5E00F76ADF /* SettingsView.swift */; };
 		5327D2D9287C6B5F00F76ADF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5327D2D0287C6B5E00F76ADF /* HomeView.swift */; };
 		5327D2E0287C6B7D00F76ADF /* DeviceModels.json in Resources */ = {isa = PBXBuildFile; fileRef = 5327D2DF287C6B7C00F76ADF /* DeviceModels.json */; };
-		533182D328A0D61D00DEBFA3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5327D294287C698900F76ADF /* Assets.xcassets */; };
 		533D1C3C2AE7BB6900894764 /* DynamicType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 533D1C3B2AE7BB6900894764 /* DynamicType.swift */; };
 		534973D628CB5A75000201F9 /* URLExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 534973D528CB5A75000201F9 /* URLExtension.swift */; };
 		536715ED28E1E9A3008461F2 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 536715EC28E1E9A3008461F2 /* StoreKit.framework */; };
@@ -47,12 +42,15 @@
 		53D0298028C5BC0300443F2B /* Currency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D0297F28C5BC0300443F2B /* Currency.swift */; };
 		53D40B652AB1B2DB001D3866 /* UpdateSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D40B642AB1B2DB001D3866 /* UpdateSheet.swift */; };
 		7A7E1A042026080300000001 /* CategoryIconPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7E1A032026080300000001 /* CategoryIconPresentation.swift */; };
-		D70000000000000000000029 /* CategoryIconDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000029 /* CategoryIconDescriptor.swift */; };
-		E70000000000000000000027 /* CategoryIconDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000029 /* CategoryIconDescriptor.swift */; };
-		7A7E1A072026080300000001 /* NativeTransactionContextMenuRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7E1A062026080300000001 /* NativeTransactionContextMenuRow.swift */; };
 		8C6E7A1B2A00000100000001 /* BudgetAmountSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E7A1A2A00000100000001 /* BudgetAmountSupport.swift */; };
 		8C6E7A1C2A00000100000001 /* BudgetAmountSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6E7A1A2A00000100000001 /* BudgetAmountSupport.swift */; };
 		904C774A3025CAEB004209AE /* CategoryIconPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7E1A032026080300000001 /* CategoryIconPresentation.swift */; };
+		90B902323029995A00DD1A1B /* AppToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000100000000000000001 /* AppToast.swift */; };
+		90B902333029995A00DD1A1B /* AppToastCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000001 /* AppToastCoordinator.swift */; };
+		A10000010000000000000001 /* AppToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000100000000000000001 /* AppToast.swift */; };
+		A10000020000000000000001 /* AppToastCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000001 /* AppToastCoordinator.swift */; };
+		A10000030000000000000001 /* AppToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000120000000000000001 /* AppToastView.swift */; };
+		A10000040000000000000001 /* AppToastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000130000000000000001 /* AppToastTests.swift */; };
 		A7B000000000000000000007 /* SubscriptionServiceCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000008 /* SubscriptionServiceCatalog.swift */; };
 		A7B000000000000000000009 /* SubscriptionLogoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000010 /* SubscriptionLogoProvider.swift */; };
 		A7B000000000000000000011 /* SubscriptionServiceCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000008 /* SubscriptionServiceCatalog.swift */; };
@@ -60,26 +58,13 @@
 		A7B000000000000000000013 /* SubscriptionCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000014 /* SubscriptionCatalogTests.swift */; };
 		A7B000000000000000000018 /* SubscriptionLogoMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000015 /* SubscriptionLogoMetadata.swift */; };
 		A7B000000000000000000019 /* SubscriptionLogoMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000015 /* SubscriptionLogoMetadata.swift */; };
-		A7B000000000000000000020 /* SubscriptionCreationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000021 /* SubscriptionCreationSupport.swift */; };
 		A7B000000000000000000022 /* SubscriptionServicePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000023 /* SubscriptionServicePickerView.swift */; };
 		B7A000000000000000000001 /* SubscriptionManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A000000000000000000002 /* SubscriptionManagerView.swift */; };
 		B7A000000000000000000003 /* MainTabConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A000000000000000000004 /* MainTabConfiguration.swift */; };
 		B7A000000000000000000005 /* MainTabConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A000000000000000000004 /* MainTabConfiguration.swift */; };
-		A7B000000000000000000024 /* SubscriptionCreationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7B000000000000000000021 /* SubscriptionCreationSupport.swift */; };
-		AECE7F9E2AED1A6800B57267 /* SuggestedTransactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */; };
 		D63B20592D8728C300CAFB20 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20572D8728C300CAFB20 /* Localizable.xcstrings */; };
 		D63B205A2D8728C300CAFB20 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D63B20582D8728C300CAFB20 /* InfoPlist.xcstrings */; };
 		D63B205C2D8728C300CAFB20 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63B205B2D8728C300CAFB20 /* AppLocalization.swift */; };
-		E70000000000000000000028 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63B205B2D8728C300CAFB20 /* AppLocalization.swift */; };
-		F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F00300040000000000000001 /* ClashDisplay-Bold.otf */; };
-		F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */ = {isa = PBXBuildFile; fileRef = F00300050000000000000001 /* FFL-ClashDisplay.txt */; };
-		F00300090000000000000001 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = F00300080000000000000001 /* Lottie */; };
-		F003000A0000000000000001 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00300070000000000000001 /* LoginView.swift */; };
-		F003000B0000000000000001 /* Wallet.json in Resources */ = {isa = PBXBuildFile; fileRef = F00300060000000000000001 /* Wallet.json */; };
-		A10000010000000000000001 /* AppToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000100000000000000001 /* AppToast.swift */; };
-		A10000020000000000000001 /* AppToastCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000001 /* AppToastCoordinator.swift */; };
-		A10000030000000000000001 /* AppToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000120000000000000001 /* AppToastView.swift */; };
-		A10000040000000000000001 /* AppToastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000130000000000000001 /* AppToastTests.swift */; };
 		D70000000000000000000001 /* APIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000001 /* APIConfiguration.swift */; };
 		D70000000000000000000002 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000002 /* APIError.swift */; };
 		D70000000000000000000003 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000003 /* APIRequest.swift */; };
@@ -96,6 +81,29 @@
 		D7000000000000000000000E /* AccountsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000000E /* AccountsRepository.swift */; };
 		D7000000000000000000000F /* MovimentiRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000000F /* MovimentiRepository.swift */; };
 		D70000000000000000000010 /* HealthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000010 /* HealthRepository.swift */; };
+		D70000000000000000000011 /* SupabaseAuthConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000014 /* SupabaseAuthConfiguration.swift */; };
+		D70000000000000000000012 /* AppleNonce.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000015 /* AppleNonce.swift */; };
+		D70000000000000000000013 /* SupabaseAuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000016 /* SupabaseAuthModels.swift */; };
+		D70000000000000000000014 /* SupabaseSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000017 /* SupabaseSessionStore.swift */; };
+		D70000000000000000000015 /* SupabaseAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000018 /* SupabaseAuthClient.swift */; };
+		D70000000000000000000016 /* SupabaseAuthSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000019 /* SupabaseAuthSessionCoordinator.swift */; };
+		D70000000000000000000017 /* SupabaseAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001A /* SupabaseAuthService.swift */; };
+		D70000000000000000000018 /* AppleAuthorizationCredentialBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001B /* AppleAuthorizationCredentialBuilder.swift */; };
+		D70000000000000000000019 /* AuthRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001C /* AuthRootView.swift */; };
+		D70000000000000000000020 /* FinancialRemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000020 /* FinancialRemoteStore.swift */; };
+		D70000000000000000000021 /* CategoriesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000021 /* CategoriesRepository.swift */; };
+		D70000000000000000000022 /* TransactionsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000022 /* TransactionsRepository.swift */; };
+		D70000000000000000000023 /* RemoteFinancialViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000023 /* RemoteFinancialViews.swift */; };
+		D70000000000000000000024 /* SubscriptionsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000024 /* SubscriptionsRepository.swift */; };
+		D70000000000000000000025 /* RemoteSubscriptionSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000025 /* RemoteSubscriptionSupport.swift */; };
+		D70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift */; };
+		D70000000000000000000027 /* RemoteBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000027 /* RemoteBudgetView.swift */; };
+		D70000000000000000000028 /* RemoteBudgetEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000028 /* RemoteBudgetEditor.swift */; };
+		D70000000000000000000029 /* CategoryIconDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000029 /* CategoryIconDescriptor.swift */; };
+		D70000000000000000000030 /* NotificationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000030 /* NotificationSupport.swift */; };
+		D70000000000000000000031 /* RemoteMovimentiSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000031 /* RemoteMovimentiSupport.swift */; };
+		D70000000000000000000032 /* BackgroundBlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000032 /* BackgroundBlurView.swift */; };
+		D70000000000000000000033 /* CalendarSettingsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000033 /* CalendarSettingsSupport.swift */; };
 		E70000000000000000000001 /* APIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000001 /* APIConfiguration.swift */; };
 		E70000000000000000000002 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000002 /* APIError.swift */; };
 		E70000000000000000000003 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000003 /* APIRequest.swift */; };
@@ -115,28 +123,17 @@
 		E70000000000000000000011 /* RemoteAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000011 /* RemoteAPIClientTests.swift */; };
 		E70000000000000000000012 /* RemoteDTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000012 /* RemoteDTOTests.swift */; };
 		E70000000000000000000013 /* RemoteValueAndConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000013 /* RemoteValueAndConfigurationTests.swift */; };
-		D70000000000000000000011 /* SupabaseAuthConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000014 /* SupabaseAuthConfiguration.swift */; };
-		D70000000000000000000012 /* AppleNonce.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000015 /* AppleNonce.swift */; };
-		D70000000000000000000013 /* SupabaseAuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000016 /* SupabaseAuthModels.swift */; };
-		D70000000000000000000014 /* SupabaseSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000017 /* SupabaseSessionStore.swift */; };
-		D70000000000000000000015 /* SupabaseAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000018 /* SupabaseAuthClient.swift */; };
-		D70000000000000000000016 /* SupabaseAuthSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000019 /* SupabaseAuthSessionCoordinator.swift */; };
-		D70000000000000000000017 /* SupabaseAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001A /* SupabaseAuthService.swift */; };
-		D70000000000000000000018 /* AppleAuthorizationCredentialBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001B /* AppleAuthorizationCredentialBuilder.swift */; };
-		D70000000000000000000019 /* AuthRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001C /* AuthRootView.swift */; };
-		D70000000000000000000020 /* FinancialRemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000020 /* FinancialRemoteStore.swift */; };
-		D70000000000000000000021 /* CategoriesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000021 /* CategoriesRepository.swift */; };
-		D70000000000000000000022 /* TransactionsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000022 /* TransactionsRepository.swift */; };
-		D70000000000000000000023 /* RemoteFinancialViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000023 /* RemoteFinancialViews.swift */; };
-		D70000000000000000000024 /* SubscriptionsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000024 /* SubscriptionsRepository.swift */; };
-		D70000000000000000000025 /* RemoteSubscriptionSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000025 /* RemoteSubscriptionSupport.swift */; };
-		D70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift */; };
-		D70000000000000000000027 /* RemoteBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000027 /* RemoteBudgetView.swift */; };
-		D70000000000000000000028 /* RemoteBudgetEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000028 /* RemoteBudgetEditor.swift */; };
 		E70000000000000000000020 /* CategoriesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000021 /* CategoriesRepository.swift */; };
 		E70000000000000000000021 /* TransactionsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000022 /* TransactionsRepository.swift */; };
 		E70000000000000000000025 /* RemoteSubscriptionSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000025 /* RemoteSubscriptionSupport.swift */; };
 		E70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift */; };
+		E70000000000000000000027 /* CategoryIconDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000029 /* CategoryIconDescriptor.swift */; };
+		E70000000000000000000028 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63B205B2D8728C300CAFB20 /* AppLocalization.swift */; };
+		F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F00300040000000000000001 /* ClashDisplay-Bold.otf */; };
+		F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */ = {isa = PBXBuildFile; fileRef = F00300050000000000000001 /* FFL-ClashDisplay.txt */; };
+		F00300090000000000000001 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = F00300080000000000000001 /* Lottie */; };
+		F003000A0000000000000001 /* Views/LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00300070000000000000001 /* Views/LoginView.swift */; };
+		F003000B0000000000000001 /* ../../Wallet.json in Resources */ = {isa = PBXBuildFile; fileRef = F00300060000000000000001 /* ../../Wallet.json */; };
 		F70000000000000000000001 /* SupabaseAuthConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000014 /* SupabaseAuthConfiguration.swift */; };
 		F70000000000000000000002 /* AppleNonce.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000015 /* AppleNonce.swift */; };
 		F70000000000000000000003 /* SupabaseAuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000016 /* SupabaseAuthModels.swift */; };
@@ -145,7 +142,6 @@
 		F70000000000000000000006 /* SupabaseAuthSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000019 /* SupabaseAuthSessionCoordinator.swift */; };
 		F70000000000000000000007 /* SupabaseAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001A /* SupabaseAuthService.swift */; };
 		F70000000000000000000008 /* AppleAuthorizationCredentialBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001B /* AppleAuthorizationCredentialBuilder.swift */; };
-		F70000000000000000000009 /* AuthRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001C /* AuthRootView.swift */; };
 		F7000000000000000000000A /* SupabaseAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001D /* SupabaseAuthTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -163,8 +159,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5313EC6128ACE941000EAB0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		5313EC6F28ACE941000EAB0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		5321E1DB291FE02B00D5A931 /* CategoryCreationErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryCreationErrors.swift; sourceTree = "<group>"; };
 		5327D283287C697400F76ADF /* Sa7tot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sa7tot.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5327D286287C697400F76ADF /* Sa7totApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sa7totApp.swift; sourceTree = "<group>"; };
@@ -196,8 +190,6 @@
 		53A4147C28B7C70D008C30E7 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
 		53A839B928D33840006F227C /* UnlockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UnlockManager.swift; path = Sa7tot/Views/UnlockManager.swift; sourceTree = SOURCE_ROOT; };
 		53A839BC28D35738006F227C /* SKProduct-LocalizedPrice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SKProduct-LocalizedPrice.swift"; sourceTree = "<group>"; };
-		53B1D192288ED87000E28062 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		53B1D194288ED87000E28062 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		53B1D1A4289383B100E28062 /* FontExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontExtension.swift; sourceTree = "<group>"; };
 		53B907982AE817EA0001F496 /* DonutSemicircle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DonutSemicircle.swift; sourceTree = "<group>"; };
 		53BC2A502A8B21920019E4A8 /* Sa7totTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Sa7totTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -206,12 +198,17 @@
 		7A7E1A032026080300000001 /* CategoryIconPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryIconPresentation.swift; sourceTree = "<group>"; };
 		7A7E1A062026080300000001 /* NativeTransactionContextMenuRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeTransactionContextMenuRow.swift; sourceTree = "<group>"; };
 		8C6E7A1A2A00000100000001 /* BudgetAmountSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetAmountSupport.swift; sourceTree = "<group>"; };
+		A10000100000000000000001 /* AppToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToast.swift; sourceTree = "<group>"; };
+		A10000110000000000000001 /* AppToastCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastCoordinator.swift; sourceTree = "<group>"; };
+		A10000120000000000000001 /* AppToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastView.swift; sourceTree = "<group>"; };
+		A10000130000000000000001 /* AppToastTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastTests.swift; sourceTree = "<group>"; };
 		A7B000000000000000000008 /* SubscriptionServiceCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionServiceCatalog.swift; sourceTree = "<group>"; };
 		A7B000000000000000000010 /* SubscriptionLogoProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionLogoProvider.swift; sourceTree = "<group>"; };
 		A7B000000000000000000014 /* SubscriptionCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionCatalogTests.swift; sourceTree = "<group>"; };
 		A7B000000000000000000015 /* SubscriptionLogoMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionLogoMetadata.swift; sourceTree = "<group>"; };
 		A7B000000000000000000021 /* SubscriptionCreationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionCreationSupport.swift; sourceTree = "<group>"; };
 		A7B000000000000000000023 /* SubscriptionServicePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionServicePickerView.swift; sourceTree = "<group>"; };
+		AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedTransactions.swift; sourceTree = "<group>"; };
 		B7A000000000000000000002 /* SubscriptionManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManagerView.swift; sourceTree = "<group>"; };
 		B7A000000000000000000004 /* MainTabConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabConfiguration.swift; sourceTree = "<group>"; };
 		C70000000000000000000001 /* APIConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfiguration.swift; sourceTree = "<group>"; };
@@ -257,18 +254,13 @@
 		C70000000000000000000031 /* RemoteMovimentiSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteMovimentiSupport.swift; sourceTree = "<group>"; };
 		C70000000000000000000032 /* BackgroundBlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundBlurView.swift; sourceTree = "<group>"; };
 		C70000000000000000000033 /* CalendarSettingsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSettingsSupport.swift; sourceTree = "<group>"; };
-		AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedTransactions.swift; sourceTree = "<group>"; };
 		D63B20572D8728C300CAFB20 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		D63B20582D8728C300CAFB20 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		D63B205B2D8728C300CAFB20 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 		F00300040000000000000001 /* ClashDisplay-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "ClashDisplay-Bold.otf"; sourceTree = "<group>"; };
 		F00300050000000000000001 /* FFL-ClashDisplay.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "FFL-ClashDisplay.txt"; sourceTree = "<group>"; };
-		F00300060000000000000001 /* Wallet.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../Wallet.json"; sourceTree = "<group>"; };
-		F00300070000000000000001 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/LoginView.swift"; sourceTree = "<group>"; };
-		A10000100000000000000001 /* AppToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToast.swift; sourceTree = "<group>"; };
-		A10000110000000000000001 /* AppToastCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastCoordinator.swift; sourceTree = "<group>"; };
-		A10000120000000000000001 /* AppToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastView.swift; sourceTree = "<group>"; };
-		A10000130000000000000001 /* AppToastTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToastTests.swift; sourceTree = "<group>"; };
+		F00300060000000000000001 /* ../../Wallet.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ../../Wallet.json; sourceTree = "<group>"; };
+		F00300070000000000000001 /* Views/LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/LoginView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -317,7 +309,7 @@
 		5327D285287C697400F76ADF /* Sa7tot */ = {
 			isa = PBXGroup;
 			children = (
-				F00300060000000000000001 /* Wallet.json */,
+				F00300060000000000000001 /* ../../Wallet.json */,
 				F00300040000000000000001 /* ClashDisplay-Bold.otf */,
 				F00300050000000000000001 /* FFL-ClashDisplay.txt */,
 				5327D2E8287C6DF700F76ADF /* Sa7tot.entitlements */,
@@ -325,7 +317,7 @@
 				53A4147828B6625D008C30E7 /* AppDelegate.swift */,
 				53A4147A28B66265008C30E7 /* SceneDelegate.swift */,
 				5327D286287C697400F76ADF /* Sa7totApp.swift */,
-				F00300070000000000000001 /* LoginView.swift */,
+				F00300070000000000000001 /* Views/LoginView.swift */,
 				5327D2DF287C6B7C00F76ADF /* DeviceModels.json */,
 				5327D2CA287C6B4700F76ADF /* ContentView.swift */,
 				5327D294287C698900F76ADF /* Assets.xcassets */,
@@ -336,81 +328,6 @@
 				C72000000000000000000001 /* Remote */,
 			);
 			path = Sa7tot;
-			sourceTree = "<group>";
-		};
-		C72000000000000000000001 /* Remote */ = {
-			isa = PBXGroup;
-			children = (
-				C72000000000000000000002 /* API */,
-				C72000000000000000000003 /* Auth */,
-				C72000000000000000000004 /* DTO */,
-				C72000000000000000000005 /* Repositories */,
-				C72000000000000000000007 /* Financial */,
-			);
-			path = Remote;
-			sourceTree = "<group>";
-		};
-		C72000000000000000000002 /* API */ = {
-			isa = PBXGroup;
-			children = (
-				C70000000000000000000001 /* APIConfiguration.swift */,
-				C70000000000000000000002 /* APIError.swift */,
-				C70000000000000000000003 /* APIRequest.swift */,
-				C70000000000000000000004 /* APIClient.swift */,
-			);
-			path = API;
-			sourceTree = "<group>";
-		};
-		C72000000000000000000003 /* Auth */ = {
-			isa = PBXGroup;
-			children = (
-				C70000000000000000000005 /* AuthTokenProvider.swift */,
-				C70000000000000000000014 /* SupabaseAuthConfiguration.swift */,
-				C70000000000000000000015 /* AppleNonce.swift */,
-				C70000000000000000000016 /* SupabaseAuthModels.swift */,
-				C70000000000000000000017 /* SupabaseSessionStore.swift */,
-				C70000000000000000000018 /* SupabaseAuthClient.swift */,
-				C70000000000000000000019 /* SupabaseAuthSessionCoordinator.swift */,
-				C7000000000000000000001A /* SupabaseAuthService.swift */,
-				C7000000000000000000001B /* AppleAuthorizationCredentialBuilder.swift */,
-			);
-			path = Auth;
-			sourceTree = "<group>";
-		};
-		C72000000000000000000004 /* DTO */ = {
-			isa = PBXGroup;
-			children = (
-				C70000000000000000000006 /* RemoteValueTypes.swift */,
-				C70000000000000000000007 /* AccountDTO.swift */,
-				C70000000000000000000008 /* CategoryDTO.swift */,
-				C70000000000000000000009 /* SubscriptionDTO.swift */,
-				C7000000000000000000000A /* TransactionDTO.swift */,
-				C7000000000000000000000B /* MovementDTO.swift */,
-				C7000000000000000000000C /* BootstrapDTO.swift */,
-			);
-			path = DTO;
-			sourceTree = "<group>";
-		};
-		C72000000000000000000005 /* Repositories */ = {
-			isa = PBXGroup;
-			children = (
-				C7000000000000000000000D /* BootstrapRepository.swift */,
-				C7000000000000000000000E /* AccountsRepository.swift */,
-				C7000000000000000000000F /* MovimentiRepository.swift */,
-				C70000000000000000000010 /* HealthRepository.swift */,
-				C70000000000000000000021 /* CategoriesRepository.swift */,
-				C70000000000000000000022 /* TransactionsRepository.swift */,
-				C70000000000000000000024 /* SubscriptionsRepository.swift */,
-			);
-			path = Repositories;
-			sourceTree = "<group>";
-		};
-		C72000000000000000000007 /* Financial */ = {
-			isa = PBXGroup;
-			children = (
-				C70000000000000000000020 /* FinancialRemoteStore.swift */,
-			);
-			path = Financial;
 			sourceTree = "<group>";
 		};
 		5327D296287C69A400F76ADF /* Utilities */ = {
@@ -509,18 +426,6 @@
 			path = Sa7tot/Tests;
 			sourceTree = "<group>";
 		};
-		C72000000000000000000006 /* Remote */ = {
-			isa = PBXGroup;
-			children = (
-				A10000130000000000000001 /* AppToastTests.swift */,
-				C70000000000000000000011 /* RemoteAPIClientTests.swift */,
-				C70000000000000000000012 /* RemoteDTOTests.swift */,
-				C70000000000000000000013 /* RemoteValueAndConfigurationTests.swift */,
-				C7000000000000000000001D /* SupabaseAuthTests.swift */,
-			);
-			path = Remote;
-			sourceTree = "<group>";
-		};
 		53D6BDBF2AF6647800F5728E /* Buttons */ = {
 			isa = PBXGroup;
 			children = (
@@ -559,6 +464,93 @@
 				AECE7F9D2AED1A6800B57267 /* SuggestedTransactions.swift */,
 			);
 			path = Transactions;
+			sourceTree = "<group>";
+		};
+		C72000000000000000000001 /* Remote */ = {
+			isa = PBXGroup;
+			children = (
+				C72000000000000000000002 /* API */,
+				C72000000000000000000003 /* Auth */,
+				C72000000000000000000004 /* DTO */,
+				C72000000000000000000005 /* Repositories */,
+				C72000000000000000000007 /* Financial */,
+			);
+			path = Remote;
+			sourceTree = "<group>";
+		};
+		C72000000000000000000002 /* API */ = {
+			isa = PBXGroup;
+			children = (
+				C70000000000000000000001 /* APIConfiguration.swift */,
+				C70000000000000000000002 /* APIError.swift */,
+				C70000000000000000000003 /* APIRequest.swift */,
+				C70000000000000000000004 /* APIClient.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		C72000000000000000000003 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				C70000000000000000000005 /* AuthTokenProvider.swift */,
+				C70000000000000000000014 /* SupabaseAuthConfiguration.swift */,
+				C70000000000000000000015 /* AppleNonce.swift */,
+				C70000000000000000000016 /* SupabaseAuthModels.swift */,
+				C70000000000000000000017 /* SupabaseSessionStore.swift */,
+				C70000000000000000000018 /* SupabaseAuthClient.swift */,
+				C70000000000000000000019 /* SupabaseAuthSessionCoordinator.swift */,
+				C7000000000000000000001A /* SupabaseAuthService.swift */,
+				C7000000000000000000001B /* AppleAuthorizationCredentialBuilder.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		C72000000000000000000004 /* DTO */ = {
+			isa = PBXGroup;
+			children = (
+				C70000000000000000000006 /* RemoteValueTypes.swift */,
+				C70000000000000000000007 /* AccountDTO.swift */,
+				C70000000000000000000008 /* CategoryDTO.swift */,
+				C70000000000000000000009 /* SubscriptionDTO.swift */,
+				C7000000000000000000000A /* TransactionDTO.swift */,
+				C7000000000000000000000B /* MovementDTO.swift */,
+				C7000000000000000000000C /* BootstrapDTO.swift */,
+			);
+			path = DTO;
+			sourceTree = "<group>";
+		};
+		C72000000000000000000005 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				C7000000000000000000000D /* BootstrapRepository.swift */,
+				C7000000000000000000000E /* AccountsRepository.swift */,
+				C7000000000000000000000F /* MovimentiRepository.swift */,
+				C70000000000000000000010 /* HealthRepository.swift */,
+				C70000000000000000000021 /* CategoriesRepository.swift */,
+				C70000000000000000000022 /* TransactionsRepository.swift */,
+				C70000000000000000000024 /* SubscriptionsRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		C72000000000000000000006 /* Remote */ = {
+			isa = PBXGroup;
+			children = (
+				A10000130000000000000001 /* AppToastTests.swift */,
+				C70000000000000000000011 /* RemoteAPIClientTests.swift */,
+				C70000000000000000000012 /* RemoteDTOTests.swift */,
+				C70000000000000000000013 /* RemoteValueAndConfigurationTests.swift */,
+				C7000000000000000000001D /* SupabaseAuthTests.swift */,
+			);
+			path = Remote;
+			sourceTree = "<group>";
+		};
+		C72000000000000000000007 /* Financial */ = {
+			isa = PBXGroup;
+			children = (
+				C70000000000000000000020 /* FinancialRemoteStore.swift */,
+			);
+			path = Financial;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -615,16 +607,16 @@
 				LastUpgradeCheck = 1400;
 				TargetAttributes = {
 					5327D282287C697400F76ADF = {
-					CreatedOnToolsVersion = 14.0;
-					SystemCapabilities = {
-						com.apple.SignInWithApple = {
-							enabled = 1;
+						CreatedOnToolsVersion = 14.0;
+						SystemCapabilities = {
+							com.apple.SignInWithApple = {
+								enabled = 1;
+							};
 						};
 					};
-				};
-				53BC2A522A8B21920019E4A8 = {
-					CreatedOnToolsVersion = 26.0;
-				};
+					53BC2A522A8B21920019E4A8 = {
+						CreatedOnToolsVersion = 26.0;
+					};
 				};
 			};
 			buildConfigurationList = 5327D27E287C697400F76ADF /* Build configuration list for PBXProject "Sa7tot" */;
@@ -634,7 +626,6 @@
 			knownRegions = (
 				en,
 				it,
-				Base,
 			);
 			mainGroup = 5327D27A287C697400F76ADF;
 			packageReferences = (
@@ -663,7 +654,7 @@
 				5327D2E0287C6B7D00F76ADF /* DeviceModels.json in Resources */,
 				F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */,
 				F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */,
-				F003000B0000000000000001 /* Wallet.json in Resources */,
+				F003000B0000000000000001 /* ../../Wallet.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -737,7 +728,7 @@
 				53D40B652AB1B2DB001D3866 /* UpdateSheet.swift in Sources */,
 				5327D2BA287C6AFB00F76ADF /* ViewExtension.swift in Sources */,
 				5327D287287C697400F76ADF /* Sa7totApp.swift in Sources */,
-				F003000A0000000000000001 /* LoginView.swift in Sources */,
+				F003000A0000000000000001 /* Views/LoginView.swift in Sources */,
 				53A4147D28B7C70D008C30E7 /* AppVersion.swift in Sources */,
 				5327D2B6287C6AFB00F76ADF /* Authentication.swift in Sources */,
 				5327D2D8287C6B5F00F76ADF /* SettingsView.swift in Sources */,
@@ -823,8 +814,8 @@
 				F70000000000000000000007 /* SupabaseAuthService.swift in Sources */,
 				F70000000000000000000008 /* AppleAuthorizationCredentialBuilder.swift in Sources */,
 				E70000000000000000000028 /* AppLocalization.swift in Sources */,
-				A10000010000000000000001 /* AppToast.swift in Sources */,
-				A10000020000000000000001 /* AppToastCoordinator.swift in Sources */,
+				90B902323029995A00DD1A1B /* AppToast.swift in Sources */,
+				90B902333029995A00DD1A1B /* AppToastCoordinator.swift in Sources */,
 				F7000000000000000000000A /* SupabaseAuthTests.swift in Sources */,
 				A10000040000000000000001 /* AppToastTests.swift in Sources */,
 			);
@@ -952,10 +943,8 @@
 		5327D292287C697C00F76ADF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				API_BASE_URL = "http://127.0.0.1:8000";
-				SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DXteK7EcBCMlMQ2DFkLq2g_uvD3tfPO";
-				SUPABASE_URL = "https://tmqeaurgkmnfcnuzzoau.supabase.co";
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				API_BASE_URL = "http://127.0.0.1:8000";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Sa7tot/Sa7tot.entitlements;
@@ -978,6 +967,8 @@
 				MARKETING_VERSION = 2.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saied.sa7tot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPABASE_PUBLISHABLE_KEY = sb_publishable_DXteK7EcBCMlMQ2DFkLq2g_uvD3tfPO;
+				SUPABASE_URL = "https://tmqeaurgkmnfcnuzzoau.supabase.co";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -991,8 +982,6 @@
 		5327D293287C697C00F76ADF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DXteK7EcBCMlMQ2DFkLq2g_uvD3tfPO";
-				SUPABASE_URL = "https://tmqeaurgkmnfcnuzzoau.supabase.co";
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
@@ -1016,6 +1005,8 @@
 				MARKETING_VERSION = 2.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saied.sa7tot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPABASE_PUBLISHABLE_KEY = sb_publishable_DXteK7EcBCMlMQ2DFkLq2g_uvD3tfPO;
+				SUPABASE_URL = "https://tmqeaurgkmnfcnuzzoau.supabase.co";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -1127,9 +1118,6 @@
 			productName = Lottie;
 		};
 /* End XCSwiftPackageProductDependency section */
-
-/* Begin XCVersionGroup section */
-/* End XCVersionGroup section */
 	};
 	rootObject = 5327D27B287C697400F76ADF /* Project object */;
 }
