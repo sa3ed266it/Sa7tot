@@ -34,6 +34,7 @@ private struct RemoteSplitFinancialAmount: View {
     let color: Color
     let minimumScaleFactor: CGFloat
     let zeroSign: String?
+    var showSign: Bool = true
 
     private var sign: String {
         if minorUnits > 0 {
@@ -54,11 +55,11 @@ private struct RemoteSplitFinancialAmount: View {
     }
 
     private var prefixText: String {
-        "\(sign)\(remoteCurrencySymbol(for: currencyCode))"
+        showSign ? "\(sign)\(remoteCurrencySymbol(for: currencyCode))" : remoteCurrencySymbol(for: currencyCode)
     }
 
     private var accessibilityText: String {
-        "\(prefixText)\(digits)"
+        "\(sign)\(remoteCurrencySymbol(for: currencyCode))\(digits)"
     }
 
     var body: some View {
@@ -337,10 +338,6 @@ struct RemoteMovimentiView: View {
 
     private var movementContent: some View {
         VStack(spacing: 0) {
-            if store.filter != .all && store.filter != .recurring && store.filter != .upcoming {
-                remoteFilterHeader
-            }
-
             ZStack(alignment: .top) {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
@@ -372,12 +369,108 @@ struct RemoteMovimentiView: View {
                             }
 
                             LazyVStack(spacing: 0) {
-                                remoteMovementContainer
-                                    .opacity(periodContentOpacity)
-                                    .offset(x: periodContentOffset)
+                                VStack(spacing: 0) {
+                                    HStack {
+                                        Text(AppLocalization.key("tab.movements"))
+                                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                                            .foregroundStyle(Color.PrimaryText)
+
+                                        Spacer()
+
+                                        Menu {
+                                            Section {
+                                                Button(RemoteMovementFilter.day.title) { store.setFilter(.day) }
+                                                Button(RemoteMovementFilter.week.title) { store.setFilter(.week) }
+                                                Button(RemoteMovementFilter.month.title) { store.setFilter(.month) }
+                                            }
+
+                                            Menu(AppLocalization.string("filter.category")) {
+                                                ForEach(store.categories.filter { $0.deletedAt == nil }) { category in
+                                                    Button(category.name) {
+                                                        store.setCategoryFilter(category.id)
+                                                    }
+                                                }
+                                                Button(AppLocalization.string("subscription.title")) {
+                                                    store.setFilter(.subscription)
+                                                }
+                                            }
+                                        } label: {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(store.filter == .all ? Color.AppSecondarySurface.opacity(0.8) : Color.PrimaryText.opacity(0.15))
+                                                    .frame(width: 36, height: 36)
+
+                                                Image(systemName: store.filter == .all ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.fill")
+                                                    .font(.system(size: 15, weight: .semibold))
+                                                    .foregroundStyle(store.filter == .all ? Color.PrimaryText.opacity(0.8) : Color.PrimaryText)
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(AppLocalization.key("movement.filter"))
+                                        .accessibilityValue(store.filter == .all ? AppLocalization.string("movement.filter") : store.filter.title)
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 22)
+                                    .padding(.bottom, 14)
+
+                                    if store.filter == .week {
+                                        RemoteFinancialPeriodNavigator(
+                                            label: remoteWeekLabel,
+                                            previousAccessibilityLabel: AppLocalization.string("filter.previousWeek"),
+                                            nextAccessibilityLabel: AppLocalization.string("filter.nextWeek"),
+                                            onPrevious: { navigateWeek(by: -1) },
+                                            onNext: { navigateWeek(by: 1) },
+                                            isNavigationDisabled: isPeriodTransitioning,
+                                            contentOpacity: periodContentOpacity,
+                                            contentOffset: periodContentOffset
+                                        )
+                                        .padding(.horizontal, 20)
+                                        .padding(.bottom, 12)
+                                    } else if store.filter == .month {
+                                        RemoteFinancialPeriodNavigator(
+                                            label: remoteMonthLabel,
+                                            previousAccessibilityLabel: AppLocalization.string("filter.previousMonth"),
+                                            nextAccessibilityLabel: AppLocalization.string("filter.nextMonth"),
+                                            onPrevious: { navigateMonth(by: -1) },
+                                            onNext: { navigateMonth(by: 1) },
+                                            onLabelTap: { if !isPeriodTransitioning { isMonthPickerPresented = true } },
+                                            isNavigationDisabled: isPeriodTransitioning,
+                                            contentOpacity: periodContentOpacity,
+                                            contentOffset: periodContentOffset
+                                        )
+                                        .padding(.horizontal, 20)
+                                        .padding(.bottom, 12)
+                                    } else if store.filter == .day {
+                                        DatePicker(AppLocalization.key("filter.day"), selection: $store.selectedDay, displayedComponents: .date)
+                                            .datePickerStyle(.compact)
+                                            .onChange(of: store.selectedDay) { oldValue, _ in store.setDayFilter(previousDay: oldValue) }
+                                            .padding(.horizontal, 20)
+                                            .padding(.bottom, 12)
+                                    } else if store.filter == .type {
+                                        Picker(AppLocalization.key("common.type"), selection: $store.typeIsIncome) {
+                                            Text(AppLocalization.key("movement.expenses")).tag(false)
+                                            Text(AppLocalization.key("movement.incomes")).tag(true)
+                                        }
+                                        .pickerStyle(.segmented)
+                                        .onChange(of: store.typeIsIncome) { oldValue, _ in store.setTypeFilter(previousValue: oldValue) }
+                                        .padding(.horizontal, 20)
+                                        .padding(.bottom, 12)
+                                    }
+
+                                    remoteMovementContainer
+                                        .opacity(periodContentOpacity)
+                                        .offset(x: periodContentOffset)
+                                }
+                                .background {
+                                    UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous)
+                                        .fill(Color.AppSecondarySurface)
+                                        .ignoresSafeArea(edges: .bottom)
+                                }
 
                                 if store.filter == .all {
                                     Color.clear.frame(height: 180).allowsHitTesting(false)
+                                } else {
+                                    Color.clear.frame(height: 80).allowsHitTesting(false)
                                 }
                             }
                         }
@@ -502,50 +595,65 @@ struct RemoteMovimentiView: View {
         Group {
             ForEach(days, id: \.day) { day in
                 VStack(spacing: 0) {
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text(remoteDateLabel(day.day))
-                                .font(.system(size: 16, weight: .semibold, design: .default))
-                            Spacer()
-                            RemoteSplitFinancialAmount(
-                                minorUnits: day.subtotalMinor,
-                                currencyCode: store.selectedCurrencyCode,
-                                exponent: store.selectedCurrencyExponent,
-                                showCents: showCents,
-                                prefixFontSize: 13,
-                                digitsFontSize: 18,
-                                color: Color.SubtitleText,
-                                minimumScaleFactor: 0.7,
-                                zeroSign: nil
-                            )
-                                .layoutPriority(1)
-                        }
-                        .foregroundStyle(Color.SubtitleText)
+                    HStack(alignment: .center) {
+                        Text(remoteDateLabel(day.day).uppercased())
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .tracking(1.0)
+                            .foregroundStyle(Color.SubtitleText)
 
-                        Line().stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+                        Spacer()
+
+                        RemoteSplitFinancialAmount(
+                            minorUnits: day.subtotalMinor,
+                            currencyCode: store.selectedCurrencyCode,
+                            exponent: store.selectedCurrencyExponent,
+                            showCents: showCents,
+                            prefixFontSize: 13,
+                            digitsFontSize: 16,
+                            color: day.subtotalMinor < 0 ? Color.AlertRed : day.subtotalMinor > 0 ? Color.IncomeGreen : Color.SubtitleText,
+                            minimumScaleFactor: 0.7,
+                            zeroSign: nil,
+                            showSign: false
+                        )
+                        .layoutPriority(1)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.top, 10)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+                    .padding(.bottom, 8)
+
+                    Rectangle()
+                        .fill(Color.PrimaryText.opacity(0.14))
+                        .frame(height: 1.0)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 4)
 
                     ForEach(Array(day.movements.enumerated()), id: \.element.id) { index, transaction in
                         let categoryChanged = index > 0 && movementPresentationIdentity(transaction) != movementPresentationIdentity(day.movements[index - 1])
 
-                        RemoteMovementRow(transaction: transaction, showCents: showCents) {
-                            detail = transaction
-                        } onEdit: {
-                            guard transaction.allowsDirectMutation else { return }
-                            editing = transaction
-                        } onDelete: {
-                            guard transaction.allowsDirectMutation else { return }
-                            deleteCandidate = transaction
-                            isDeleteAlertPresented = true
+                        VStack(spacing: 0) {
+                            if index > 0 {
+                                Rectangle()
+                                    .fill(Color.PrimaryText.opacity(0.06))
+                                    .frame(height: 0.5)
+                                    .padding(.leading, 68)
+                                    .padding(.trailing, 20)
+                            }
+
+                            RemoteMovementRow(transaction: transaction, showCents: showCents) {
+                                detail = transaction
+                            } onEdit: {
+                                guard transaction.allowsDirectMutation else { return }
+                                editing = transaction
+                            } onDelete: {
+                                guard transaction.allowsDirectMutation else { return }
+                                deleteCandidate = transaction
+                                isDeleteAlertPresented = true
+                            }
+                            .padding(.top, categoryChanged ? 4 : 0)
+                            .contentShape(Rectangle())
+                            .modifier(MovementRecedingScrollEffect())
+                            .onAppear { store.loadNextPageIfNeeded(after: transaction.id) }
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .padding(.top, categoryChanged ? 4 : 0)
-                        .contentShape(Rectangle())
-                        .modifier(MovementRecedingScrollEffect())
-                        .onAppear { store.loadNextPageIfNeeded(after: transaction.id) }
                     }
                 }
                 .padding(.bottom, 18)
@@ -640,11 +748,11 @@ struct RemoteMovimentiView: View {
                     Text(AppLocalization.key("movement.incomes")).tag(true)
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: store.typeIsIncome) { _ in store.setFilter(.type) }
+                .onChange(of: store.typeIsIncome) { oldValue, _ in store.setTypeFilter(previousValue: oldValue) }
             case .day:
                 DatePicker(AppLocalization.key("filter.day"), selection: $store.selectedDay, displayedComponents: .date)
                     .datePickerStyle(.compact)
-                    .onChange(of: store.selectedDay) { _ in store.setFilter(.day) }
+                    .onChange(of: store.selectedDay) { oldValue, _ in store.setDayFilter(previousDay: oldValue) }
             case .week:
                 RemoteFinancialPeriodNavigator(
                     label: remoteWeekLabel,
@@ -1095,12 +1203,13 @@ private final class RemoteFilterMenuViewController: UIViewController {
             || installedBarButtonItem == nil
             || installedPrivacyButtonItem == nil
             || installedTransferButtonItem == nil {
-            let filterButton = UIBarButtonItem(
-                image: UIImage(systemName: "line.3.horizontal.decrease"),
-                menu: makeFilterMenu()
+            let settingsButton = UIBarButtonItem(
+                image: UIImage(systemName: "gearshape"),
+                style: .plain,
+                target: self,
+                action: #selector(settingsNoOp)
             )
-            filterButton.accessibilityLabel = AppLocalization.string("movement.filter")
-            filterButton.accessibilityValue = filterAccessibilityValue
+            settingsButton.accessibilityLabel = AppLocalization.string("settings.title")
 
             let privacyButton = UIBarButtonItem(
                 image: UIImage(systemName: hideBalances.wrappedValue ? "eye.slash" : "eye"),
@@ -1120,15 +1229,15 @@ private final class RemoteFilterMenuViewController: UIViewController {
             transferButton.accessibilityLabel = AppLocalization.string("action.addTransfer")
             transferButton.isEnabled = selectedAccountID != nil
 
-            navigationItem.rightBarButtonItems = collapseProgress > 0.4 ? [privacyButton] : [filterButton, privacyButton]
+            navigationItem.rightBarButtonItems = collapseProgress > 0.4 ? [privacyButton] : [settingsButton, privacyButton]
             navigationItem.leftBarButtonItem = transferButton
             installedNavigationItem = navigationItem
-            installedBarButtonItem = filterButton
+            installedBarButtonItem = settingsButton
             installedPrivacyButtonItem = privacyButton
             installedTransferButtonItem = transferButton
         } else {
-            installedBarButtonItem?.menu = makeFilterMenu()
-            installedBarButtonItem?.accessibilityValue = filterAccessibilityValue
+            installedBarButtonItem?.image = UIImage(systemName: "gearshape")
+            installedBarButtonItem?.accessibilityLabel = AppLocalization.string("settings.title")
             installedPrivacyButtonItem?.image = UIImage(systemName: hideBalances.wrappedValue ? "eye.slash" : "eye")
             installedPrivacyButtonItem?.accessibilityLabel = AppLocalization.string(hideBalances.wrappedValue ? "movement.showBalance" : "movement.hideBalance")
             installedPrivacyButtonItem?.accessibilityValue = AppLocalization.string(hideBalances.wrappedValue ? "movement.balanceHidden" : "movement.balanceVisible")
@@ -1139,17 +1248,19 @@ private final class RemoteFilterMenuViewController: UIViewController {
 
     func updateButtonVisibilities() {
         guard let navigationItem = installedNavigationItem else { return }
-        guard let filterButton = installedBarButtonItem, let privacyButton = installedPrivacyButtonItem else { return }
+        guard let settingsButton = installedBarButtonItem, let privacyButton = installedPrivacyButtonItem else { return }
 
         let currentlySingle = (navigationItem.rightBarButtonItems?.count ?? 0) == 1
         let shouldBeSingle = currentlySingle ? (collapseProgress > 0.28) : (collapseProgress > 0.45)
-        let targetRightItems = shouldBeSingle ? [privacyButton] : [filterButton, privacyButton]
+        let targetRightItems = shouldBeSingle ? [privacyButton] : [settingsButton, privacyButton]
 
         if (navigationItem.rightBarButtonItems ?? []) != targetRightItems {
             navigationItem.setRightBarButtonItems(targetRightItems, animated: true)
         }
         installedTransferButtonItem?.isEnabled = selectedAccountID != nil
     }
+
+    @objc private func settingsNoOp() {}
 
     @objc private func openTransfer() {
         onTransfer()
@@ -1326,7 +1437,7 @@ private struct RemoteAccountPager: View {
         }
         .scaleEffect(1 - (0.35 * collapseProgress), anchor: .top)
         .offset(y: -12 * collapseProgress)
-        .frame(height: 175 + pageControlReservedSpace)
+        .frame(height: 220 + pageControlReservedSpace)
     }
 
     /// Attempt a smoothstep between edge0 and edge1, clamped to [0,1]
@@ -1349,96 +1460,27 @@ private struct RemoteAccountHeaderPage: View {
         store.cachedSnapshot(for: account.id)
     }
 
-    private var summary: RemoteMovementSummaryDTO {
-        store.cachedSummary(for: account.id) ?? RemoteMovementSummaryDTO(incomeMinor: 0, expensesMinor: 0)
+    private var summary: RemoteMovementSummaryDTO? {
+        store.cachedSummary(for: account.id)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(account.name)
-                .font(.system(size: 19, design: .rounded).weight(.medium))
-                .foregroundStyle(Color.PrimaryText.opacity(0.9))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .padding(.top, 8)
-
-            if let snapshot {
-                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text(snapshot.balanceMinor >= 0 ? currencySymbol : "-\(currencySymbol)")
-                        .font(.system(size: 34, design: .rounded))
-                        .foregroundStyle(Color.SubtitleText)
-                        .layoutPriority(1)
-                    Text(remoteAmountDigits(abs(snapshot.balanceMinor), currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))
-                        .font(RemoteClashDisplayFont.font(size: 84))
-                        .foregroundStyle(Color.PrimaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.55)
-                        .allowsTightening(true)
-                        .monospacedDigit()
-                        .layoutPriority(0)
-                        .blur(radius: hideBalances ? remotePrivacyBlurRadius : 0)
-                        .opacity(hideBalances ? 0.72 : 1)
-                        .animation(remotePrivacyTransition, value: hideBalances)
-                }
-
-                HStack {
-                    RemoteSplitFinancialAmount(
-                        minorUnits: abs(summary.incomeMinor),
-                        currencyCode: snapshot.currencyCode,
-                        exponent: snapshot.currencyExponent,
-                        showCents: showCents,
-                        prefixFontSize: 15,
-                        digitsFontSize: 24,
-                        color: Color.IncomeGreen,
-                        minimumScaleFactor: 0.5,
-                        zeroSign: "+"
-                    )
-
-                    DottedLine()
-                        .stroke(style: StrokeStyle(lineWidth: 1.7, lineCap: .round))
-                        .frame(width: 1.7, height: 15)
-                        .foregroundStyle(Color.Outline)
-
-                    RemoteSplitFinancialAmount(
-                        minorUnits: -abs(summary.expensesMinor),
-                        currencyCode: snapshot.currencyCode,
-                        exponent: snapshot.currencyExponent,
-                        showCents: showCents,
-                        prefixFontSize: 15,
-                        digitsFontSize: 24,
-                        color: Color.AlertRed,
-                        minimumScaleFactor: 0.5,
-                        zeroSign: "−"
-                    )
-                }
-                .padding(.top, 8)
-                .opacity(1 - handoff)
-                .blur(radius: hideBalances ? remoteSubheaderBlurRadius : 0)
-                .opacity(hideBalances ? 0.72 : 1)
-                .animation(remotePrivacyTransition, value: hideBalances)
-                .accessibilityHidden(hideBalances)
-            } else {
-                ProgressView().padding(.top, 35)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 24)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .frame(minHeight: 175)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityText)
-    }
-
-    private var currencySymbol: String {
-        Locale.current.localizedCurrencySymbol(forCurrencyCode: account.currencyCode) ?? account.currencyCode
-    }
-
-    private var accessibilityText: String {
-        if hideBalances {
-            return "\(account.name), saldo nascosto"
-        }
-        let balanceText = snapshot.map { remoteCurrencySymbol(for: $0.currencyCode) + remoteAmountDigits($0.balanceMinor, currencyCode: $0.currencyCode, exponent: $0.currencyExponent) } ?? "non disponibile"
-        return "\(account.name), saldo \(balanceText)"
+        AccountCardPreviewView(
+            name: account.name,
+            type: account.type,
+            currencyCode: snapshot?.currencyCode ?? account.currencyCode,
+            balanceMinor: snapshot?.balanceMinor ?? account.openingBalanceMinor,
+            iconName: account.iconName,
+            colorHex: account.color,
+            currencyExponent: snapshot?.currencyExponent ?? account.currencyExponent,
+            incomeMinor: summary?.incomeMinor,
+            expensesMinor: summary?.expensesMinor,
+            hideBalances: hideBalances,
+            showCents: showCents,
+            handoff: handoff
+        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
     }
 }
 
@@ -1506,39 +1548,40 @@ private struct RemoteMovementRow: View {
     }
 
     private var rowContent: some View {
-            HStack(spacing: 12) {
-                icon
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: displayTitle)
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .foregroundStyle(Color.PrimaryText)
-                        .lineLimit(1)
-                    Text(verbatim: subtitle)
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(Color.SubtitleText)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if let amount = effectiveAmount {
-                    RemoteSplitFinancialAmount(
-                        minorUnits: amount,
-                        currencyCode: amountCurrencyCode,
-                        exponent: amountCurrencyExponent,
-                        showCents: showCents,
-                        prefixFontSize: 14,
-                        digitsFontSize: 21,
-                        color: amount < 0 ? Color.AlertRed : amount > 0 ? Color.IncomeGreen : Color.SubtitleText,
-                        minimumScaleFactor: 0.7,
-                        zeroSign: nil
-                    )
-                        .layoutPriority(1)
-                        .frame(width: 116, alignment: .trailing)
-                }
+        HStack(spacing: 14) {
+            icon
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: displayTitle)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.PrimaryText)
+                    .lineLimit(1)
+                Text(verbatim: subtitle)
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.SubtitleText.opacity(0.85))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 10)
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let amount = effectiveAmount {
+                RemoteSplitFinancialAmount(
+                    minorUnits: amount,
+                    currencyCode: amountCurrencyCode,
+                    exponent: amountCurrencyExponent,
+                    showCents: showCents,
+                    prefixFontSize: 14,
+                    digitsFontSize: 18,
+                    color: amount < 0 ? Color.AlertRed : amount > 0 ? Color.IncomeGreen : Color.SubtitleText,
+                    minimumScaleFactor: 0.7,
+                    zeroSign: nil,
+                    showSign: false
+                )
+                .layoutPriority(1)
+                .frame(width: 110, alignment: .trailing)
+            }
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 20)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -3232,9 +3275,15 @@ private struct AccountCardPreviewView: View {
     let name: String
     let type: String
     let currencyCode: String
-    let openingBalanceMinor: Int64?
+    let balanceMinor: Int64?
     let iconName: String
     let colorHex: String
+    var currencyExponent: Int = 2
+    var incomeMinor: Int64? = nil
+    var expensesMinor: Int64? = nil
+    var hideBalances: Bool = false
+    var showCents: Bool = true
+    var handoff: CGFloat = 0.0
 
     private var trimmedName: String {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3270,7 +3319,7 @@ private struct AccountCardPreviewView: View {
                     .foregroundStyle(.white.opacity(0.45))
             }
 
-            Spacer(minLength: 14)
+            Spacer(minLength: 12)
 
             // Account Name
             Text(displayName)
@@ -3279,16 +3328,51 @@ private struct AccountCardPreviewView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 8)
 
-            // Balance & Account Type Tag
-            VStack(alignment: .leading, spacing: 4) {
-                Text(remoteAmount(openingBalanceMinor ?? 0, currencyCode: currencyCode, exponent: 2))
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
+            // Balance
+            Text(remoteAmount(balanceMinor ?? 0, currencyCode: currencyCode, exponent: currencyExponent, showCents: showCents))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .blur(radius: hideBalances ? remotePrivacyBlurRadius : 0)
+                .opacity(hideBalances ? 0.72 : 1)
+                .animation(remotePrivacyTransition, value: hideBalances)
+
+            Spacer(minLength: 8)
+
+            // Sub-Bottom Row: Income / Expense summary (if provided) + Account Type Tag
+            HStack(alignment: .center, spacing: 10) {
+                if let incomeMinor, let expensesMinor {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down.left")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Color.IncomeGreen)
+                        Text(remoteAmount(abs(incomeMinor), currencyCode: currencyCode, exponent: currencyExponent, showCents: showCents))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .monospacedDigit()
+                    }
+
+                    Text("•")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.3))
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Color.AlertRed)
+                        Text(remoteAmount(-abs(expensesMinor), currencyCode: currencyCode, exponent: currencyExponent, showCents: showCents))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .monospacedDigit()
+                    }
+                    .opacity(1 - handoff)
+                }
+
+                Spacer(minLength: 0)
 
                 Text(typeTitle.uppercased())
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
@@ -3442,7 +3526,7 @@ struct RemoteAccountEditorView: View {
                         name: name,
                         type: type,
                         currencyCode: currencyCode,
-                        openingBalanceMinor: parsedOpeningBalance,
+                        balanceMinor: parsedOpeningBalance,
                         iconName: iconName,
                         colorHex: color
                     )

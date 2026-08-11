@@ -126,6 +126,9 @@
 		E70000000000000000000011 /* RemoteAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000011 /* RemoteAPIClientTests.swift */; };
 		E70000000000000000000012 /* RemoteDTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000012 /* RemoteDTOTests.swift */; };
 		E70000000000000000000013 /* RemoteValueAndConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000013 /* RemoteValueAndConfigurationTests.swift */; };
+		E7000000000000000000002A /* FinancialRemoteStoreFilterCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000002A /* FinancialRemoteStoreFilterCacheTests.swift */; };
+		E7000000000000000000002B /* FinancialRemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000020 /* FinancialRemoteStore.swift */; };
+		E7000000000000000000002C /* SubscriptionsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000024 /* SubscriptionsRepository.swift */; };
 		E70000000000000000000020 /* CategoriesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000021 /* CategoriesRepository.swift */; };
 		E70000000000000000000021 /* TransactionsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000022 /* TransactionsRepository.swift */; };
 		E70000000000000000000025 /* RemoteSubscriptionSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000025 /* RemoteSubscriptionSupport.swift */; };
@@ -244,6 +247,7 @@
 		C7000000000000000000001B /* AppleAuthorizationCredentialBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleAuthorizationCredentialBuilder.swift; sourceTree = "<group>"; };
 		C7000000000000000000001C /* AuthRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRootView.swift; sourceTree = "<group>"; };
 		C7000000000000000000001D /* SupabaseAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthTests.swift; sourceTree = "<group>"; };
+		C7000000000000000000002A /* FinancialRemoteStoreFilterCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancialRemoteStoreFilterCacheTests.swift; sourceTree = "<group>"; };
 		C70000000000000000000020 /* FinancialRemoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinancialRemoteStore.swift; sourceTree = "<group>"; };
 		C70000000000000000000021 /* CategoriesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesRepository.swift; sourceTree = "<group>"; };
 		C70000000000000000000022 /* TransactionsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionsRepository.swift; sourceTree = "<group>"; };
@@ -545,6 +549,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000130000000000000001 /* AppToastTests.swift */,
+				C7000000000000000000002A /* FinancialRemoteStoreFilterCacheTests.swift */,
 				C70000000000000000000011 /* RemoteAPIClientTests.swift */,
 				C70000000000000000000012 /* RemoteDTOTests.swift */,
 				C70000000000000000000013 /* RemoteValueAndConfigurationTests.swift */,
@@ -816,6 +821,9 @@
 				E70000000000000000000011 /* RemoteAPIClientTests.swift in Sources */,
 				E70000000000000000000012 /* RemoteDTOTests.swift in Sources */,
 				E70000000000000000000013 /* RemoteValueAndConfigurationTests.swift in Sources */,
+				E7000000000000000000002A /* FinancialRemoteStoreFilterCacheTests.swift in Sources */,
+				E7000000000000000000002B /* FinancialRemoteStore.swift in Sources */,
+				E7000000000000000000002C /* SubscriptionsRepository.swift in Sources */,
 				F70000000000000000000001 /* SupabaseAuthConfiguration.swift in Sources */,
 				F70000000000000000000002 /* AppleNonce.swift in Sources */,
 				F70000000000000000000003 /* SupabaseAuthModels.swift in Sources */,

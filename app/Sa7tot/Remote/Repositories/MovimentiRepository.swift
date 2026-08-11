@@ -1,6 +1,20 @@
 import Foundation
 
-public struct RemoteMovimentiRepository: Sendable {
+public protocol RemoteMovimentiPageProviding: Sendable {
+    func page(
+        accountID: UUID,
+        limit: Int?,
+        cursor: String?,
+        filter: String?,
+        income: Bool?,
+        day: RemoteDateOnly?,
+        weekStart: RemoteDateOnly?,
+        month: String?,
+        categoryID: UUID?
+    ) async throws -> RemoteMovimentiPageDTO
+}
+
+public struct RemoteMovimentiRepository: Sendable, RemoteMovimentiPageProviding {
     private let client: APIClient
 
     public init(client: APIClient) {

@@ -198,6 +198,12 @@ struct AccountMovementCacheEntry: Sendable {
     }
 }
 
+private struct InFlightMovementRequest {
+    let id: Int
+    let task: Task<RemoteMovimentiPageDTO, Error>
+    var consumers: Int
+}
+
 enum RemoteBootstrapStatus: Equatable {
     case idle
     case loading
@@ -208,6 +214,8 @@ enum RemoteBootstrapStatus: Equatable {
 @MainActor
 final class FinancialRemoteStore: ObservableObject {
     static let lastKnownAccountIDDefaultsKey = "remote.lastKnownAccountID"
+    private static let movementCacheTTL: TimeInterval = 60
+    private static let movementCacheMaximumEntries = 64
 
     let isRemoteOnly: Bool
 
@@ -246,7 +254,7 @@ final class FinancialRemoteStore: ObservableObject {
     private let bootstrapRepository: RemoteBootstrapRepository?
     private let accountsRepository: RemoteAccountsRepository?
     private let categoriesRepository: RemoteCategoriesRepository?
-    private let movementsRepository: RemoteMovimentiRepository?
+    private let movementsRepository: RemoteMovimentiPageProviding?
     private let transactionsRepository: RemoteTransactionsRepository?
     private let subscriptionsRepository: RemoteSubscriptionsRepository?
     private let recurrencesRepository: RemoteRecurrencesRepository?
@@ -267,14 +275,21 @@ final class FinancialRemoteStore: ObservableObject {
     private var pendingSpeculativeUpcomingGeneration: Int?
     private var loadedMovementIDs = Set<UUID>()
     private var loadGeneration = 0
+    private var nextMovementRequestID = 0
+    private var inFlightMovementRequests: [AccountMovementCacheKey: InFlightMovementRequest] = [:]
 
-    init(client: APIClient?) {
+    init(
+        client: APIClient?,
+        movementsRepository: RemoteMovimentiPageProviding? = nil,
+        initialAccounts: [RemoteAccountDTO] = [],
+        initialProfile: RemoteProfileDTO? = nil
+    ) {
         isRemoteOnly = client != nil
         if let client {
             bootstrapRepository = RemoteBootstrapRepository(client: client)
             accountsRepository = RemoteAccountsRepository(client: client)
             categoriesRepository = RemoteCategoriesRepository(client: client)
-            movementsRepository = RemoteMovimentiRepository(client: client)
+            self.movementsRepository = movementsRepository ?? RemoteMovimentiRepository(client: client)
             transactionsRepository = RemoteTransactionsRepository(client: client)
             subscriptionsRepository = RemoteSubscriptionsRepository(client: client)
             recurrencesRepository = RemoteRecurrencesRepository(client: client)
@@ -284,7 +299,7 @@ final class FinancialRemoteStore: ObservableObject {
             bootstrapRepository = nil
             accountsRepository = nil
             categoriesRepository = nil
-            movementsRepository = nil
+            self.movementsRepository = movementsRepository
             transactionsRepository = nil
             subscriptionsRepository = nil
             recurrencesRepository = nil
@@ -292,6 +307,9 @@ final class FinancialRemoteStore: ObservableObject {
             budgetRepository = nil
         }
         selectedAccountID = Self.loadLastKnownAccountID()
+        accounts = initialAccounts
+        profile = initialProfile
+        hasAuthoritativeAccountSet = !initialAccounts.isEmpty
     }
 
     var activeAccounts: [RemoteAccountDTO] {
@@ -338,6 +356,7 @@ final class FinancialRemoteStore: ObservableObject {
             return false
         }
         movementTask?.cancel()
+        cancelInFlightMovementRequests()
         movementTask = nil
         movementTaskAccountID = nil
         movementTaskIsSpeculative = false
@@ -452,6 +471,8 @@ final class FinancialRemoteStore: ObservableObject {
             RemoteProfileUpdatePayload(monthStartDay: monthStartDay, weekStartDay: weekStartDay)
         )
         self.profile = profile
+        invalidateAccountCache()
+        await refresh()
     }
 
     func saveMainBudget(_ payload: RemoteBudgetMutationPayload) async throws {
@@ -479,43 +500,29 @@ final class FinancialRemoteStore: ObservableObject {
         guard selectedAccountID != accountID || selectedSnapshot == nil else { return }
         selectedAccountID = accountID
         persistLastKnownAccountID(accountID)
-
-        loadGeneration += 1
-        movementTask?.cancel()
-        movementTask = nil
-        movementTaskAccountID = nil
-        movementTaskIsSpeculative = false
-        pendingSpeculativePage = nil
-        pendingSpeculativePageGeneration = nil
-        pendingSpeculativeUpcoming = nil
-        pendingSpeculativeUpcomingGeneration = nil
-
-        let key = cacheKey(for: accountID)
-        if let cached = accountCache[key] {
-            selectedSnapshot = cached.selectedSnapshot
-            summary = cached.summary
-            days = cached.days
-            upcomingItems = cached.upcomingItems
-            nextCursor = cached.nextCursor
-            loadedMovementIDs = cached.loadedMovementIDs
-            errorMessage = nil
-
-            if Date().timeIntervalSince(cached.lastLoadedAt) < 60 {
-                return
-            }
-        } else {
-            clearMovements()
-        }
-        let generation = loadGeneration
-        startFirstPageLoad(accountID: accountID, generation: generation)
+        resetAndReload(clearOnCacheMiss: true)
     }
 
     func invalidateAccountCache(for accountID: UUID? = nil) {
         if let accountID {
-            accountCache = accountCache.filter { $0.key.accountID != accountID }
+            invalidateAccountCaches(for: Set([accountID]))
         } else {
             accountCache.removeAll()
+            cancelInFlightMovementRequests()
         }
+    }
+
+    private func invalidateAccountCaches(for accountIDs: Set<UUID>) {
+        guard !accountIDs.isEmpty else { return }
+        accountCache = accountCache.filter { !accountIDs.contains($0.key.accountID) }
+        cancelInFlightMovementRequests(for: accountIDs)
+    }
+
+    private func invalidateMovementCaches(for movementID: UUID, additionalAccountIDs: Set<UUID> = []) {
+        let cachedAccountIDs = accountCache.compactMap { key, entry in
+            entry.loadedMovementIDs.contains(movementID) ? key.accountID : nil
+        }
+        invalidateAccountCaches(for: Set(cachedAccountIDs).union(additionalAccountIDs))
     }
 
     func cacheKey(for accountID: UUID) -> AccountMovementCacheKey {
@@ -604,6 +611,7 @@ final class FinancialRemoteStore: ObservableObject {
     }
 
     func setFilter(_ newFilter: RemoteMovementFilter) {
+        let previousKey = selectedAccountID.map { cacheKey(for: $0) }
         if newFilter == .all {
             typeIsIncome = false
             selectedDay = .now
@@ -628,10 +636,12 @@ final class FinancialRemoteStore: ObservableObject {
             hasSelectedMonthPeriod = true
         }
         filter = newFilter
+        guard selectedAccountID.map({ cacheKey(for: $0) }) != previousKey else { return }
         resetAndReload()
     }
 
     func moveWeek(by offset: Int) {
+        let previousKey = selectedAccountID.map { cacheKey(for: $0) }
         selectedWeek = FinancialPeriodNavigator.shiftedWeek(
             from: hasSelectedWeekPeriod ? selectedWeek : .now,
             by: offset,
@@ -640,10 +650,12 @@ final class FinancialRemoteStore: ObservableObject {
         )
         hasSelectedWeekPeriod = true
         filter = .week
+        guard selectedAccountID.map({ cacheKey(for: $0) }) != previousKey else { return }
         resetAndReload()
     }
 
     func moveMonth(by offset: Int) {
+        let previousKey = selectedAccountID.map { cacheKey(for: $0) }
         selectedMonth = FinancialPeriodNavigator.shiftedMonth(
             from: hasSelectedMonthPeriod ? selectedMonth : .now,
             by: offset,
@@ -652,23 +664,48 @@ final class FinancialRemoteStore: ObservableObject {
         )
         hasSelectedMonthPeriod = true
         filter = .month
+        guard selectedAccountID.map({ cacheKey(for: $0) }) != previousKey else { return }
         resetAndReload()
     }
 
     func selectMonth(_ date: Date) {
-        selectedMonth = FinancialPeriodNavigator.financialMonthStart(
+        let targetMonth = FinancialPeriodNavigator.financialMonthStart(
             for: date,
             monthStartDay: profile?.monthStartDay ?? 1,
             timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
         )
+        let calendar = FinancialPeriodNavigator.calendar(timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone)
+        let currentComponents = calendar.dateComponents([.year, .month, .day], from: canonicalMonthStart(selectedMonth))
+        let targetComponents = calendar.dateComponents([.year, .month, .day], from: targetMonth)
+        guard filter != .month || currentComponents != targetComponents else { return }
+        selectedMonth = targetMonth
         hasSelectedMonthPeriod = true
         filter = .month
         resetAndReload()
     }
 
     func setCategoryFilter(_ categoryID: UUID?) {
+        guard filter != .category || selectedCategoryID != categoryID else { return }
+        let previousKey = selectedAccountID.map { cacheKey(for: $0) }
         selectedCategoryID = categoryID
-        setFilter(.category)
+        filter = .category
+        guard selectedAccountID.map({ cacheKey(for: $0) }) != previousKey else { return }
+        resetAndReload()
+    }
+
+    func setTypeFilter(previousValue: Bool) {
+        let filterChanged = filter != .type
+        let typeChanged = previousValue != typeIsIncome
+        filter = .type
+        guard filterChanged || typeChanged else { return }
+        resetAndReload()
+    }
+
+    func setDayFilter(previousDay: Date) {
+        let calendar = Calendar.current
+        guard filter != .day || !calendar.isDate(previousDay, inSameDayAs: selectedDay) else { return }
+        filter = .day
+        resetAndReload()
     }
 
     func createAccount(_ payload: RemoteAccountCreatePayload) async throws {
@@ -745,6 +782,7 @@ final class FinancialRemoteStore: ObservableObject {
     func createTransaction(_ payload: RemoteTransactionCreatePayload) async throws -> RemoteTransactionDTO? {
         guard let transactionsRepository else { return nil }
         let result = try await transactionsRepository.create(payload)
+        invalidateAccountCache(for: payload.accountID)
         await refresh()
         return result
     }
@@ -753,6 +791,7 @@ final class FinancialRemoteStore: ObservableObject {
     func createRecurrence(_ payload: RemoteRecurrenceCreatePayload) async throws -> RemoteRecurrenceRuleDTO? {
         guard let recurrencesRepository else { return nil }
         let result = try await recurrencesRepository.create(payload)
+        invalidateAccountCache(for: payload.accountID)
         _ = try await recurrencesRepository.materialize()
         recurrenceRules = try await recurrencesRepository.list()
         await refresh()
@@ -762,7 +801,9 @@ final class FinancialRemoteStore: ObservableObject {
     @discardableResult
     func updateRecurrence(_ ruleID: UUID, payload: RemoteRecurrenceUpdatePayload) async throws -> RemoteRecurrenceRuleDTO? {
         guard let recurrencesRepository else { return nil }
+        let existingAccountID = recurrenceRules.first(where: { $0.id == ruleID })?.accountID
         let result = try await recurrencesRepository.update(ruleID: ruleID, payload)
+        invalidateAccountCaches(for: Set([existingAccountID, payload.accountID].compactMap { $0 }))
         _ = try await recurrencesRepository.materialize()
         recurrenceRules = try await recurrencesRepository.list()
         await refresh()
@@ -771,13 +812,17 @@ final class FinancialRemoteStore: ObservableObject {
 
     func pauseRecurrence(_ ruleID: UUID) async throws {
         guard let recurrencesRepository else { return }
+        let accountID = recurrenceRules.first(where: { $0.id == ruleID })?.accountID
         _ = try await recurrencesRepository.pause(ruleID: ruleID)
+        if let accountID { invalidateAccountCache(for: accountID) }
         recurrenceRules = try await recurrencesRepository.list()
     }
 
     func resumeRecurrence(_ ruleID: UUID) async throws {
         guard let recurrencesRepository else { return }
+        let accountID = recurrenceRules.first(where: { $0.id == ruleID })?.accountID
         _ = try await recurrencesRepository.resume(ruleID: ruleID)
+        if let accountID { invalidateAccountCache(for: accountID) }
         _ = try await recurrencesRepository.materialize()
         recurrenceRules = try await recurrencesRepository.list()
         await refresh()
@@ -785,7 +830,9 @@ final class FinancialRemoteStore: ObservableObject {
 
     func cancelRecurrence(_ ruleID: UUID) async throws {
         guard let recurrencesRepository else { return }
+        let accountID = recurrenceRules.first(where: { $0.id == ruleID })?.accountID
         _ = try await recurrencesRepository.cancel(ruleID: ruleID)
+        if let accountID { invalidateAccountCache(for: accountID) }
         recurrenceRules = try await recurrencesRepository.list()
         await refresh()
     }
@@ -794,6 +841,7 @@ final class FinancialRemoteStore: ObservableObject {
     func updateTransaction(_ transactionID: UUID, payload: RemoteTransactionUpdatePayload) async throws -> RemoteTransactionDTO? {
         guard let transactionsRepository else { return nil }
         let result = try await transactionsRepository.update(transactionID: transactionID, payload)
+        invalidateMovementCaches(for: transactionID, additionalAccountIDs: Set([payload.accountID].compactMap { $0 }))
         await refresh()
         return result
     }
@@ -801,6 +849,7 @@ final class FinancialRemoteStore: ObservableObject {
     func deleteTransaction(_ transactionID: UUID) async throws {
         guard let transactionsRepository else { return }
         try await transactionsRepository.delete(transactionID: transactionID)
+        invalidateMovementCaches(for: transactionID)
         await refresh()
     }
 
@@ -808,6 +857,7 @@ final class FinancialRemoteStore: ObservableObject {
     func createTransfer(_ payload: RemoteTransferCreatePayload) async throws -> RemoteTransactionDTO? {
         guard let transactionsRepository else { return nil }
         let result = try await transactionsRepository.createTransfer(payload)
+        invalidateAccountCaches(for: Set([payload.sourceAccountID, payload.destinationAccountID]))
         await refresh()
         return result
     }
@@ -818,6 +868,7 @@ final class FinancialRemoteStore: ObservableObject {
         do {
             _ = try await subscriptionsRepository.materialize()
             subscriptions = try await subscriptionsRepository.list()
+            invalidateAccountCaches(for: Set(subscriptions.map(\.accountID)))
         } catch {
             subscriptionErrorMessage = userFacingMessage(for: error)
             throw error
@@ -828,6 +879,7 @@ final class FinancialRemoteStore: ObservableObject {
     func createSubscription(_ payload: RemoteSubscriptionCreatePayload) async throws -> RemoteSubscriptionDTO? {
         guard let subscriptionsRepository else { return nil }
         let result = try await subscriptionsRepository.create(payload)
+        invalidateAccountCache(for: payload.accountID)
         _ = try await subscriptionsRepository.materialize()
         subscriptions = try await subscriptionsRepository.list()
         await refresh()
@@ -837,7 +889,9 @@ final class FinancialRemoteStore: ObservableObject {
     @discardableResult
     func updateSubscription(_ subscriptionID: UUID, payload: RemoteSubscriptionUpdatePayload) async throws -> RemoteSubscriptionDTO? {
         guard let subscriptionsRepository else { return nil }
+        let existingAccountID = subscriptions.first(where: { $0.id == subscriptionID })?.accountID
         let result = try await subscriptionsRepository.update(subscriptionID: subscriptionID, payload)
+        invalidateAccountCaches(for: Set([existingAccountID, payload.accountID].compactMap { $0 }))
         _ = try await subscriptionsRepository.materialize()
         subscriptions = try await subscriptionsRepository.list()
         await refresh()
@@ -846,24 +900,31 @@ final class FinancialRemoteStore: ObservableObject {
 
     func pauseSubscription(_ subscriptionID: UUID) async throws {
         guard let subscriptionsRepository else { return }
+        let accountID = subscriptions.first(where: { $0.id == subscriptionID })?.accountID
         _ = try await subscriptionsRepository.pause(subscriptionID: subscriptionID)
+        if let accountID { invalidateAccountCache(for: accountID) }
         subscriptions = try await subscriptionsRepository.list()
     }
 
     func resumeSubscription(_ subscriptionID: UUID) async throws {
         guard let subscriptionsRepository else { return }
+        let accountID = subscriptions.first(where: { $0.id == subscriptionID })?.accountID
         _ = try await subscriptionsRepository.resume(subscriptionID: subscriptionID)
+        if let accountID { invalidateAccountCache(for: accountID) }
         subscriptions = try await subscriptionsRepository.list()
     }
 
     func cancelSubscription(_ subscriptionID: UUID) async throws {
         guard let subscriptionsRepository else { return }
+        let accountID = subscriptions.first(where: { $0.id == subscriptionID })?.accountID
         _ = try await subscriptionsRepository.cancel(subscriptionID: subscriptionID)
+        if let accountID { invalidateAccountCache(for: accountID) }
         subscriptions = try await subscriptionsRepository.list()
     }
 
     func resetRemoteState() {
         movementTask?.cancel()
+        cancelInFlightMovementRequests()
         movementTask = nil
         movementTaskAccountID = nil
         movementTaskIsSpeculative = false
@@ -918,7 +979,7 @@ final class FinancialRemoteStore: ObservableObject {
            pendingPage.account.id == accountID {
             pendingSpeculativePage = nil
             pendingSpeculativePageGeneration = nil
-            publish(pendingPage, for: accountID)
+            publish(pendingPage, for: accountID, key: cacheKey(for: accountID))
             return
         }
         if filter == .upcoming,
@@ -941,7 +1002,7 @@ final class FinancialRemoteStore: ObservableObject {
         switch decision {
         case .useFreshCache:
             if let cached = freshMovementCache(for: accountID) {
-                publish(cached, for: accountID)
+                publish(cached, for: accountID, key: cacheKey(for: accountID))
             }
             return
         case .awaitSpeculativePage:
@@ -962,7 +1023,12 @@ final class FinancialRemoteStore: ObservableObject {
         await movementTask?.value
     }
 
-    private func startFirstPageLoad(accountID: UUID, generation: Int, isSpeculative: Bool = false) {
+    private func startFirstPageLoad(
+        accountID: UUID,
+        generation: Int,
+        isSpeculative: Bool = false,
+        clearOnCacheMiss: Bool = false
+    ) {
         movementTask?.cancel()
         movementTaskAccountID = accountID
         movementTaskIsSpeculative = isSpeculative
@@ -972,24 +1038,40 @@ final class FinancialRemoteStore: ObservableObject {
             pendingSpeculativeUpcoming = nil
             pendingSpeculativeUpcomingGeneration = nil
         }
+
+        let key = cacheKey(for: accountID)
+        if filter != .upcoming, let cached = accountCache[key] {
+            publish(cached, for: accountID, key: key)
+            if isFresh(cached) {
+                movementTask = nil
+                return
+            }
+        } else if clearOnCacheMiss {
+            clearMovements()
+        }
+
         movementTask = Task { [weak self] in
             guard let self else { return }
-            await self.fetchFirstPage(accountID: accountID, generation: generation)
+            await self.fetchFirstPage(accountID: accountID, generation: generation, key: key)
         }
     }
 
     private func freshMovementCache(for accountID: UUID) -> AccountMovementCacheEntry? {
         let key = cacheKey(for: accountID)
-        guard let cached = accountCache[key], Date().timeIntervalSince(cached.lastLoadedAt) < 60 else { return nil }
+        guard let cached = accountCache[key], isFresh(cached) else { return nil }
         return cached
+    }
+
+    private func isFresh(_ entry: AccountMovementCacheEntry) -> Bool {
+        Date().timeIntervalSince(entry.lastLoadedAt) < Self.movementCacheTTL
     }
 
     private func hasFreshMovementCache(for accountID: UUID) -> Bool {
         freshMovementCache(for: accountID) != nil
     }
 
-    private func publish(_ cached: AccountMovementCacheEntry, for accountID: UUID) {
-        guard cached.selectedSnapshot?.id == accountID, selectedAccountID == accountID else { return }
+    private func publish(_ cached: AccountMovementCacheEntry, for accountID: UUID, key: AccountMovementCacheKey) {
+        guard cached.selectedSnapshot?.id == accountID, isCurrentSelection(accountID: accountID, key: key) else { return }
         selectedSnapshot = cached.selectedSnapshot
         summary = cached.summary
         days = cached.days
@@ -999,23 +1081,112 @@ final class FinancialRemoteStore: ObservableObject {
         errorMessage = nil
     }
 
-    private func publish(_ page: RemoteMovimentiPageDTO, for accountID: UUID) {
-        guard selectedAccountID == accountID else { return }
+    private func publish(_ page: RemoteMovimentiPageDTO, for accountID: UUID, key: AccountMovementCacheKey) {
+        let existingUpcomingItems = accountCache[key]?.upcomingItems ?? []
+        let pageMovementIDs = Set(page.days.flatMap(\.movements).map(\.id))
+        accountCache[key] = AccountMovementCacheEntry(
+            selectedSnapshot: page.account,
+            summary: page.summary,
+            days: page.days,
+            upcomingItems: existingUpcomingItems,
+            nextCursor: page.nextCursor,
+            loadedMovementIDs: pageMovementIDs
+        )
+        pruneMovementCache()
+
+        guard isCurrentSelection(accountID: accountID, key: key) else { return }
         selectedSnapshot = page.account
         summary = page.summary
         days = page.days
         nextCursor = page.nextCursor
-        loadedMovementIDs = Set(page.days.flatMap(\.movements).map(\.id))
+        loadedMovementIDs = pageMovementIDs
         errorMessage = nil
+    }
 
-        accountCache[cacheKey(for: accountID)] = AccountMovementCacheEntry(
-            selectedSnapshot: selectedSnapshot,
-            summary: summary,
-            days: days,
-            upcomingItems: upcomingItems,
-            nextCursor: nextCursor,
-            loadedMovementIDs: loadedMovementIDs
+    private func isCurrentSelection(accountID: UUID, key: AccountMovementCacheKey) -> Bool {
+        selectedAccountID == accountID && cacheKey(for: accountID) == key
+    }
+
+    private func sharedMovementRequest(
+        key: AccountMovementCacheKey,
+        repository: RemoteMovimentiPageProviding,
+        accountID: UUID,
+        filter: RemoteMovementFilter,
+        typeIsIncome: Bool,
+        day: RemoteDateOnly?,
+        weekStart: RemoteDateOnly?,
+        month: String?,
+        categoryID: UUID?
+    ) -> InFlightMovementRequest {
+        if let existing = inFlightMovementRequests[key] {
+            var retained = existing
+            retained.consumers += 1
+            inFlightMovementRequests[key] = retained
+            return existing
+        }
+
+        nextMovementRequestID += 1
+        let requestID = nextMovementRequestID
+        let task = Task {
+            try await repository.page(
+                accountID: accountID,
+                limit: 50,
+                cursor: nil,
+                filter: filter.rawValue,
+                income: filter == .type ? typeIsIncome : nil,
+                day: day,
+                weekStart: weekStart,
+                month: month,
+                categoryID: categoryID
+            )
+        }
+        let request = InFlightMovementRequest(id: requestID, task: task, consumers: 1)
+        inFlightMovementRequests[key] = request
+        return request
+    }
+
+    private func removeMovementRequest(_ key: AccountMovementCacheKey, id: Int) {
+        guard var request = inFlightMovementRequests[key], request.id == id else { return }
+        request.consumers -= 1
+        if request.consumers == 0 {
+            inFlightMovementRequests[key] = nil
+        } else {
+            inFlightMovementRequests[key] = request
+        }
+    }
+
+    private func cancelInFlightMovementRequests(for accountIDs: Set<UUID>? = nil) {
+        let keys = inFlightMovementRequests.keys.filter { key in
+            accountIDs == nil || accountIDs?.contains(key.accountID) == true
+        }
+        for key in keys {
+            inFlightMovementRequests[key]?.task.cancel()
+            inFlightMovementRequests[key] = nil
+        }
+    }
+
+    private func cache(_ page: RemoteMovimentiPageDTO, key: AccountMovementCacheKey) {
+        let existingUpcomingItems = accountCache[key]?.upcomingItems ?? []
+        accountCache[key] = AccountMovementCacheEntry(
+            selectedSnapshot: page.account,
+            summary: page.summary,
+            days: page.days,
+            upcomingItems: existingUpcomingItems,
+            nextCursor: page.nextCursor,
+            loadedMovementIDs: Set(page.days.flatMap(\.movements).map(\.id))
         )
+        pruneMovementCache()
+    }
+
+    private func pruneMovementCache() {
+        guard accountCache.count > Self.movementCacheMaximumEntries else { return }
+        let keysToRemove = accountCache
+            .sorted { $0.value.lastLoadedAt > $1.value.lastLoadedAt }
+            .dropFirst(Self.movementCacheMaximumEntries)
+            .map(\.key)
+        for key in keysToRemove {
+            accountCache[key] = nil
+        }
     }
 
     private func publish(_ response: RemoteUpcomingResponseDTO, for accountID: UUID) {
@@ -1032,27 +1203,58 @@ final class FinancialRemoteStore: ObservableObject {
             nextCursor: nextCursor,
             loadedMovementIDs: loadedMovementIDs
         )
+        pruneMovementCache()
     }
 
-    private func fetchFirstPage(accountID: UUID, generation: Int? = nil) async {
-        if filter == .upcoming {
+    private func fetchFirstPage(
+        accountID: UUID,
+        generation: Int? = nil,
+        key: AccountMovementCacheKey? = nil
+    ) async {
+        let requestFilter = filter
+        if requestFilter == .upcoming {
             await fetchUpcoming(accountID: accountID, generation: generation)
             return
         }
         guard let movementsRepository else { return }
         let expectedGeneration = generation ?? loadGeneration
+        let requestKey = key ?? cacheKey(for: accountID)
+        let requestTypeIsIncome = typeIsIncome
+        let requestDay = requestFilter == .day ? remoteDateOnly(selectedDay) : nil
+        let requestWeekStart = requestFilter == .week ? remoteFinancialDateOnly(canonicalWeekStart(selectedWeek)) : nil
+        let requestMonth = requestFilter == .month ? remoteFinancialMonth(canonicalMonthStart(selectedMonth)) : nil
+        let requestCategoryID = requestFilter == .category ? selectedCategoryID : nil
+
+        if requestFilter == .recurring {
+            do {
+                invalidateAccountCache()
+                _ = try await recurrencesRepository?.materialize()
+            } catch is CancellationError {
+                return
+            } catch {
+                guard expectedGeneration == loadGeneration else { return }
+                errorMessage = userFacingMessage(for: error)
+                return
+            }
+        }
+
+        let request = sharedMovementRequest(
+            key: requestKey,
+            repository: movementsRepository,
+            accountID: accountID,
+            filter: requestFilter,
+            typeIsIncome: requestTypeIsIncome,
+            day: requestDay,
+            weekStart: requestWeekStart,
+            month: requestMonth,
+            categoryID: requestCategoryID
+        )
+
+        defer { removeMovementRequest(requestKey, id: request.id) }
+
         do {
-            if filter == .recurring { _ = try await recurrencesRepository?.materialize() }
-            let page = try await movementsRepository.page(
-                accountID: accountID,
-                limit: 50,
-                filter: filter.rawValue,
-                income: filter == .type ? typeIsIncome : nil,
-                day: filter == .day ? remoteDateOnly(selectedDay) : nil,
-                weekStart: filter == .week ? remoteFinancialDateOnly(canonicalWeekStart(selectedWeek)) : nil,
-                month: filter == .month ? remoteFinancialMonth(canonicalMonthStart(selectedMonth)) : nil,
-                categoryID: filter == .category ? selectedCategoryID : nil
-            )
+            let page = try await request.task.value
+            cache(page, key: requestKey)
             try Task.checkCancellation()
             guard RemoteStartupFastPathDecision.canPublish(
                 pageAccountID: page.account.id,
@@ -1060,7 +1262,7 @@ final class FinancialRemoteStore: ObservableObject {
                 expectedGeneration: expectedGeneration,
                 currentGeneration: loadGeneration,
                 hasAuthoritativeAccountSet: true
-            ), selectedAccountID == accountID else { return }
+            ), isCurrentSelection(accountID: accountID, key: requestKey) else { return }
             if RemoteStartupFastPathDecision.shouldDeferSpeculativePage(
                 isSpeculative: movementTaskIsSpeculative,
                 hasAuthoritativeAccountSet: hasAuthoritativeAccountSet
@@ -1069,7 +1271,7 @@ final class FinancialRemoteStore: ObservableObject {
                 pendingSpeculativePageGeneration = expectedGeneration
                 return
             }
-            publish(page, for: accountID)
+            publish(page, for: accountID, key: requestKey)
         } catch is CancellationError {
         } catch {
             guard expectedGeneration == loadGeneration else { return }
@@ -1133,10 +1335,11 @@ final class FinancialRemoteStore: ObservableObject {
                 nextCursor: nextCursor,
                 loadedMovementIDs: loadedMovementIDs
             )
+            pruneMovementCache()
         }
     }
 
-    private func resetAndReload() {
+    private func resetAndReload(clearOnCacheMiss: Bool = false) {
         loadGeneration += 1
         movementTask?.cancel()
         movementTask = nil
@@ -1148,7 +1351,11 @@ final class FinancialRemoteStore: ObservableObject {
         pendingSpeculativeUpcomingGeneration = nil
         guard let selectedAccountID else { clearMovements(); return }
         let generation = loadGeneration
-        startFirstPageLoad(accountID: selectedAccountID, generation: generation)
+        startFirstPageLoad(
+            accountID: selectedAccountID,
+            generation: generation,
+            clearOnCacheMiss: clearOnCacheMiss
+        )
     }
 
     private func normalizeSelectedAccount() {
