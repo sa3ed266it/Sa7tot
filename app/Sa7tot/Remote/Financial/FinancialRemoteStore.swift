@@ -27,6 +27,62 @@ enum RemoteMovementFilter: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+struct AccountMovementCacheKey: Hashable, Sendable {
+    let accountID: UUID
+    let filter: RemoteMovementFilter
+    let typeIsIncome: Bool
+    let selectedDayComponents: DateComponents?
+    let selectedWeekComponents: DateComponents?
+    let selectedMonthComponents: DateComponents?
+    let selectedCategoryID: UUID?
+
+    init(
+        accountID: UUID,
+        filter: RemoteMovementFilter,
+        typeIsIncome: Bool,
+        selectedDayComponents: DateComponents?,
+        selectedWeekComponents: DateComponents?,
+        selectedMonthComponents: DateComponents?,
+        selectedCategoryID: UUID?
+    ) {
+        self.accountID = accountID
+        self.filter = filter
+        self.typeIsIncome = typeIsIncome
+        self.selectedDayComponents = selectedDayComponents
+        self.selectedWeekComponents = selectedWeekComponents
+        self.selectedMonthComponents = selectedMonthComponents
+        self.selectedCategoryID = selectedCategoryID
+    }
+}
+
+struct AccountMovementCacheEntry: Sendable {
+    var selectedSnapshot: RemoteAccountSnapshotDTO?
+    var summary: RemoteMovementSummaryDTO
+    var days: [RemoteMovementDayDTO]
+    var upcomingItems: [RemoteUpcomingItemDTO]
+    var nextCursor: String?
+    var loadedMovementIDs: Set<UUID>
+    var lastLoadedAt: Date
+
+    init(
+        selectedSnapshot: RemoteAccountSnapshotDTO?,
+        summary: RemoteMovementSummaryDTO,
+        days: [RemoteMovementDayDTO],
+        upcomingItems: [RemoteUpcomingItemDTO],
+        nextCursor: String?,
+        loadedMovementIDs: Set<UUID>,
+        lastLoadedAt: Date = Date()
+    ) {
+        self.selectedSnapshot = selectedSnapshot
+        self.summary = summary
+        self.days = days
+        self.upcomingItems = upcomingItems
+        self.nextCursor = nextCursor
+        self.loadedMovementIDs = loadedMovementIDs
+        self.lastLoadedAt = lastLoadedAt
+    }
+}
+
 enum RemoteBootstrapStatus: Equatable {
     case idle
     case loading
@@ -65,6 +121,10 @@ final class FinancialRemoteStore: ObservableObject {
     @Published var deferredFeatureMessage: String?
     @Published private(set) var subscriptionErrorMessage: String?
     @Published private(set) var bootstrapStatus: RemoteBootstrapStatus = .idle
+    @Published private(set) var isUpdatingDefaultCurrency = false
+    @Published private(set) var isUpdatingFinancialCalendar = false
+
+    var accountCache: [AccountMovementCacheKey: AccountMovementCacheEntry] = [:]
 
     private let bootstrapRepository: RemoteBootstrapRepository?
     private let accountsRepository: RemoteAccountsRepository?
@@ -207,6 +267,28 @@ final class FinancialRemoteStore: ObservableObject {
         isBudgetLoading = false
     }
 
+    func updateDefaultCurrency(_ currencyCode: String) async throws {
+        guard !isUpdatingDefaultCurrency, let bootstrapRepository else { return }
+        isUpdatingDefaultCurrency = true
+        defer { isUpdatingDefaultCurrency = false }
+
+        let profile = try await bootstrapRepository.updateProfile(
+            RemoteProfileUpdatePayload(defaultCurrencyCode: currencyCode)
+        )
+        self.profile = profile
+    }
+
+    func updateFinancialCalendar(monthStartDay: Int? = nil, weekStartDay: Int? = nil) async throws {
+        guard !isUpdatingFinancialCalendar, let bootstrapRepository else { return }
+        isUpdatingFinancialCalendar = true
+        defer { isUpdatingFinancialCalendar = false }
+
+        let profile = try await bootstrapRepository.updateProfile(
+            RemoteProfileUpdatePayload(monthStartDay: monthStartDay, weekStartDay: weekStartDay)
+        )
+        self.profile = profile
+    }
+
     func saveMainBudget(_ payload: RemoteBudgetMutationPayload) async throws {
         guard let budgetRepository else { return }
         budgetSummary = try await budgetRepository.upsertMain(payload)
@@ -231,7 +313,25 @@ final class FinancialRemoteStore: ObservableObject {
         guard activeAccounts.contains(where: { $0.id == accountID }) else { return }
         guard selectedAccountID != accountID || selectedSnapshot == nil else { return }
         selectedAccountID = accountID
-        loadGeneration += 1
+
+        let key = cacheKey(for: accountID)
+        if let cached = accountCache[key] {
+            selectedSnapshot = cached.selectedSnapshot
+            summary = cached.summary
+            days = cached.days
+            upcomingItems = cached.upcomingItems
+            nextCursor = cached.nextCursor
+            loadedMovementIDs = cached.loadedMovementIDs
+            errorMessage = nil
+
+            if Date().timeIntervalSince(cached.lastLoadedAt) < 60 {
+                return
+            }
+        } else {
+            clearMovements()
+        }
+
+loadGeneration += 1
         let generation = loadGeneration
         movementTask?.cancel()
         movementTask = Task { [weak self] in
@@ -240,9 +340,54 @@ final class FinancialRemoteStore: ObservableObject {
         }
     }
 
+    func invalidateAccountCache(for accountID: UUID? = nil) {
+        if let accountID {
+            accountCache = accountCache.filter { $0.key.accountID != accountID }
+        } else {
+            accountCache.removeAll()
+        }
+    }
+
+    func cacheKey(for accountID: UUID) -> AccountMovementCacheKey {
+        AccountMovementCacheKey(
+            accountID: accountID,
+            filter: filter,
+            typeIsIncome: typeIsIncome,
+            selectedDayComponents: filter == .day ? Calendar.current.dateComponents([.year, .month, .day], from: selectedDay) : nil,
+            selectedWeekComponents: filter == .week ? Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedWeek) : nil,
+            selectedMonthComponents: filter == .month ? Calendar.current.dateComponents([.year, .month], from: selectedMonth) : nil,
+            selectedCategoryID: filter == .category ? selectedCategoryID : nil
+        )
+    }
+
+    func cachedSnapshot(for accountID: UUID) -> RemoteAccountSnapshotDTO? {
+        if selectedAccountID == accountID, let selectedSnapshot {
+            return selectedSnapshot
+        }
+        let key = cacheKey(for: accountID)
+        return accountCache[key]?.selectedSnapshot
+    }
+
+    func cachedSummary(for accountID: UUID) -> RemoteMovementSummaryDTO? {
+        if selectedAccountID == accountID {
+            return summary
+        }
+        let key = cacheKey(for: accountID)
+        return accountCache[key]?.summary
+    }
+
+    func cachedDays(for accountID: UUID) -> [RemoteMovementDayDTO] {
+        if selectedAccountID == accountID {
+            return days
+        }
+        let key = cacheKey(for: accountID)
+        return accountCache[key]?.days ?? []
+    }
+
     func refresh() async {
         guard let selectedAccountID else { return }
         isRefreshing = true
+        invalidateAccountCache(for: selectedAccountID)
         if filter != .upcoming { _ = try? await recurrencesRepository?.materialize() }
         await fetchFirstPage(accountID: selectedAccountID)
         isRefreshing = false
@@ -323,6 +468,27 @@ final class FinancialRemoteStore: ObservableObject {
             return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
         return created
+    }
+
+    @discardableResult
+    func activateCategoryPreset(_ preset: CategoryPreset) async throws -> RemoteCategoryDTO {
+        guard let categoriesRepository else { throw APIError.unauthorized(nil) }
+        let activated = try await categoriesRepository.activatePreset(
+            key: preset.key,
+            income: preset.income,
+            displayName: preset.localizedTitle
+        )
+        if let index = categories.firstIndex(where: { $0.id == activated.id }) {
+            categories[index] = activated
+        } else {
+            categories.append(activated)
+        }
+        categories.sort {
+            if $0.income != $1.income { return !$0.income }
+            if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
+            return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+        return activated
     }
 
     func updateCategory(_ categoryID: UUID, payload: RemoteCategoryUpdatePayload) async throws {
@@ -479,6 +645,7 @@ final class FinancialRemoteStore: ObservableObject {
         selectedAccountID = nil
         selectedSnapshot = nil
         clearMovements()
+        accountCache.removeAll()
         subscriptionErrorMessage = nil
         errorMessage = nil
     }
@@ -526,6 +693,16 @@ final class FinancialRemoteStore: ObservableObject {
             nextCursor = page.nextCursor
             loadedMovementIDs = Set(page.days.flatMap(\.movements).map(\.id))
             errorMessage = nil
+
+            let key = cacheKey(for: accountID)
+            accountCache[key] = AccountMovementCacheEntry(
+                selectedSnapshot: selectedSnapshot,
+                summary: summary,
+                days: days,
+                upcomingItems: upcomingItems,
+                nextCursor: nextCursor,
+                loadedMovementIDs: loadedMovementIDs
+            )
         } catch is CancellationError {
         } catch {
             guard expectedGeneration == loadGeneration else { return }
@@ -544,6 +721,16 @@ final class FinancialRemoteStore: ObservableObject {
             upcomingItems = response.items
             clearMovementPageOnly()
             errorMessage = nil
+
+            let key = cacheKey(for: accountID)
+            accountCache[key] = AccountMovementCacheEntry(
+                selectedSnapshot: selectedSnapshot,
+                summary: summary,
+                days: days,
+                upcomingItems: upcomingItems,
+                nextCursor: nextCursor,
+                loadedMovementIDs: loadedMovementIDs
+            )
         } catch is CancellationError {
         } catch {
             guard expectedGeneration == loadGeneration else { return }
@@ -566,6 +753,18 @@ final class FinancialRemoteStore: ObservableObject {
         }
         days.sort { $0.day > $1.day }
         nextCursor = page.nextCursor
+
+        if let selectedAccountID {
+            let key = cacheKey(for: selectedAccountID)
+            accountCache[key] = AccountMovementCacheEntry(
+                selectedSnapshot: selectedSnapshot,
+                summary: summary,
+                days: days,
+                upcomingItems: upcomingItems,
+                nextCursor: nextCursor,
+                loadedMovementIDs: loadedMovementIDs
+            )
+        }
     }
 
     private func resetAndReload() {
@@ -613,11 +812,16 @@ final class FinancialRemoteStore: ObservableObject {
     }
 
     private func remoteMonth(_ date: Date) -> String {
-        let components = Calendar.current.dateComponents([.year, .month], from: date)
-        return String(format: "%04d-%02d", components.year ?? 2000, components.month ?? 1)
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 2000,
+            components.month ?? 1,
+            components.day ?? 1
+        )
     }
 
-    private func userFacingMessage(for error: Error) -> String {
+    func userFacingMessage(for error: Error) -> String {
         if let error = error as? APIError {
             switch error {
             case .unauthorized: return AppLocalization.string("error.unauthorized")

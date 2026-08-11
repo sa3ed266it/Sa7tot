@@ -43,27 +43,16 @@
             "state" : "translated",
             "value" : "%1$@ — %2$@"
           }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ — %2$@"
-          }
         }
       }
     },
     "%@, saldo %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@, balance %2$@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, saldo %2$@"
           }
         }
       }
@@ -75,16 +64,11 @@
             "state" : "translated",
             "value" : "%1$@, balance %2$@%3$@"
           }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, saldo %2$@%3$@"
-          }
         }
       }
     },
     "%@, saldo nascosto" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -105,12 +89,6 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@%2$@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "new",
             "value" : "%1$@%2$@"
           }
         }
@@ -930,6 +908,23 @@
         }
       }
     },
+    "action.swap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inverti"
+          }
+        }
+      }
+    },
     "auth.configuration" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1491,6 +1486,40 @@
         }
       }
     },
+    "category.activateError" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to add the suggested category."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aggiungere la categoria suggerita."
+          }
+        }
+      }
+    },
+    "category.active" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active categories"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorie attive"
+          }
+        }
+      }
+    },
     "category.addFromSettings" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1508,6 +1537,23 @@
         }
       }
     },
+    "category.addSuggested" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi %@"
+          }
+        }
+      }
+    },
     "category.all" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1521,6 +1567,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tutte le categorie"
+          }
+        }
+      }
+    },
+    "category.choose" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Category"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli categoria"
           }
         }
       }
@@ -1746,6 +1809,295 @@
         }
       }
     },
+    "category.preset.expense.family" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Family"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Famiglia"
+          }
+        }
+      }
+    },
+    "category.preset.expense.fashion" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fashion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moda"
+          }
+        }
+      }
+    },
+    "category.preset.expense.food" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Food"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cibo"
+          }
+        }
+      }
+    },
+    "category.preset.expense.gifts" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gifts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regali"
+          }
+        }
+      }
+    },
+    "category.preset.expense.groceries" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groceries"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spesa"
+          }
+        }
+      }
+    },
+    "category.preset.expense.healthcare" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Healthcare"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salute"
+          }
+        }
+      }
+    },
+    "category.preset.expense.pets" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pets"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animali"
+          }
+        }
+      }
+    },
+    "category.preset.expense.rent" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affitto"
+          }
+        }
+      }
+    },
+    "category.preset.expense.sneakers" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sneakers"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sneakers"
+          }
+        }
+      }
+    },
+    "category.preset.expense.transport" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transport"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasporti"
+          }
+        }
+      }
+    },
+    "category.preset.expense.utilities" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilities"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utenze"
+          }
+        }
+      }
+    },
+    "category.preset.income.allowance" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paghetta"
+          }
+        }
+      }
+    },
+    "category.preset.income.gifts" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gifts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regali"
+          }
+        }
+      }
+    },
+    "category.preset.income.investments" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Investments"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Investimenti"
+          }
+        }
+      }
+    },
+    "category.preset.income.part_time" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Part-Time"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Part-time"
+          }
+        }
+      }
+    },
+    "category.preset.income.paycheck" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paycheck"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stipendio"
+          }
+        }
+      }
+    },
+    "category.preset.income.tips" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tips"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mance"
+          }
+        }
+      }
+    },
     "category.preview" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1793,6 +2145,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seleziona categoria"
+          }
+        }
+      }
+    },
+    "category.suggested" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggerite"
           }
         }
       }
@@ -2934,23 +3303,6 @@
         }
       }
     },
-    "settings.animatedCharts" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Animated charts"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grafici animati"
-          }
-        }
-      }
-    },
     "settings.appearance" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3019,6 +3371,23 @@
         }
       }
     },
+    "settings.financialCalendar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FINANCIAL CALENDAR"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CALENDARIO FINANZIARIO"
+          }
+        }
+      }
+    },
     "settings.haptics.excessive" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3070,23 +3439,6 @@
         }
       }
     },
-    "settings.incomeTracking" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Income tracking"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Monitoraggio delle entrate"
-          }
-        }
-      }
-    },
     "settings.light" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3100,6 +3452,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chiaro"
+          }
+        }
+      }
+    },
+    "settings.monthStartDay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month starts on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il mese inizia il"
           }
         }
       }
@@ -3223,6 +3592,40 @@
         }
       }
     },
+    "settings.weekStartDay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Week starts on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La settimana inizia di"
+          }
+        }
+      }
+    },
+    "settings.defaultCurrency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Currency"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuta predefinita"
+          }
+        }
+      }
+    },
     "settings.preferences" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3270,23 +3673,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostra centesimi"
-          }
-        }
-      }
-    },
-    "settings.showSigns" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show +/- symbol"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra simbolo +/-"
           }
         }
       }
@@ -3406,23 +3792,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impostazioni"
-          }
-        }
-      }
-    },
-    "settings.weekStart" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Week starts on"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La settimana inizia di"
           }
         }
       }

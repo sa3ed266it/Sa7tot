@@ -83,6 +83,10 @@ public struct RemoteTransactionDTO: Codable, Equatable, Identifiable, Sendable {
         return RemoteMoney(minorUnits: effectiveAmountMinor, currencyCode: currencyCode, exponent: currencyExponent)
     }
 
+    public var allowsDirectMutation: Bool {
+        subscription == nil
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case userID = "user_id"

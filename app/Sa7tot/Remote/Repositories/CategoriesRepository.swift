@@ -15,6 +15,14 @@ public struct RemoteCategoriesRepository: Sendable {
         try await client.post(RemoteCategoryDTO.self, path: "/v1/categories", body: payload)
     }
 
+    public func activatePreset(key: String, income: Bool, displayName: String) async throws -> RemoteCategoryDTO {
+        try await client.post(
+            RemoteCategoryDTO.self,
+            path: "/v1/categories/presets/activate",
+            body: RemoteCategoryPresetActivationPayload(presetKey: key, income: income, displayName: displayName)
+        )
+    }
+
     public func update(categoryID: UUID, _ payload: RemoteCategoryUpdatePayload) async throws -> RemoteCategoryDTO {
         try await client.patch(RemoteCategoryDTO.self, path: "/v1/categories/\(categoryID.uuidString)", body: payload)
     }

@@ -45,6 +45,8 @@ class ProfileOut(APIModel):
     locale: str | None
     timezone: str
     default_currency_code: str
+    month_start_day: int
+    week_start_day: int
 
 
 class BootstrapResponse(APIModel):

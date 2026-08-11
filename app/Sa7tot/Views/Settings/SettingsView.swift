@@ -7,7 +7,6 @@
 
 import Combine
 import Foundation
-import StoreKit
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -24,12 +23,8 @@ struct SettingsView: View {
     self.nativeNavigationRouter = nativeNavigationRouter
   }
 
-  @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
   @AppStorage("colourScheme", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var colourScheme: Int = 0
-  @AppStorage("firstWeekday", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var firstWeekday: Int = 1
 
   @AppStorage("showNotifications", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showNotifications: Bool = false
@@ -38,39 +33,17 @@ struct SettingsView: View {
   @Environment(\.scenePhase) private var scenePhase
   @State private var notificationPermission: UNAuthorizationStatus = .notDetermined
   @State private var showingNotificationPermissionAlert = false
+  @State private var financialCalendarErrorMessage: String?
 
   @EnvironmentObject var appLockVM: AppLockViewModel
   @EnvironmentObject private var authService: SupabaseAuthService
   @EnvironmentObject private var remoteStore: FinancialRemoteStore
-  @Namespace var animation
 
   @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showCents: Bool = true
 
-  @AppStorage("animated", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var animated:
-    Bool = true
-
-  @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency:
-    String = Locale.current.currencyCode!
-
-  @AppStorage("incomeTracking", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var incomeTracking: Bool = true
-    
-  @AppStorage("showExpenseOrIncomeSign", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var showExpenseOrIncomeSign: Bool = true
-
-    @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-    var hapticType: Int = 1
-
-    var hapticString: String {
-      if hapticType == 0 {
-        return AppLocalization.string("settings.haptics.none")
-      } else if hapticType == 1 {
-        return AppLocalization.string("settings.haptics.subtle")
-      } else {
-        return AppLocalization.string("settings.haptics.excessive")
-      }
-    }
+  @AppStorage("haptics", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
+  var hapticType: Int = 1
 
   // popups
 
@@ -97,35 +70,37 @@ struct SettingsView: View {
               .labelsHidden()
               .tint(.green)
           }
-          SettingsDivider()
-          SettingsRowLayout(title: "common.currency", systemImage: "eurosign", tint: .green) {
+        }
+
+        SettingsCard(title: "settings.financialCalendar") {
+          SettingsRowLayout(title: "settings.monthStartDay", systemImage: "calendar", tint: .purple) {
             Menu {
-              Picker(AppLocalization.key("common.currency"), selection: $currency) {
-                ForEach(Currency.allCurrencies, id: \.code) { item in
-                  Text("\(item.code) — \(item.name)").tag(item.code)
+              Picker(AppLocalization.key("settings.monthStartDay"), selection: monthStartDayBinding) {
+                ForEach(1...31, id: \.self) { day in
+                  Text(String(day)).tag(day)
                 }
               }
             } label: {
-              SettingsMenuValue(text: currency)
+              SettingsMenuValue(text: String(financialMonthStartDay))
             }
-            .accessibilityLabel(AppLocalization.key("common.currency"))
-            .accessibilityValue(currency)
-            .tint(.secondary)
+            .accessibilityLabel(AppLocalization.key("settings.monthStartDay"))
+            .accessibilityValue(String(financialMonthStartDay))
+            .disabled(remoteStore.isUpdatingFinancialCalendar)
           }
           SettingsDivider()
-          SettingsRowLayout(title: "settings.weekStart", systemImage: "calendar", tint: .purple) {
+          SettingsRowLayout(title: "settings.weekStartDay", systemImage: "calendar", tint: .indigo) {
             Menu {
-              Picker(AppLocalization.key("settings.weekStart"), selection: $firstWeekday) {
-                ForEach(Sa7totWeekday.allCases) { weekday in
-                  Text(verbatim: weekday.localizedName).tag(weekday.rawValue)
+              Picker(AppLocalization.key("settings.weekStartDay"), selection: weekStartDayBinding) {
+                ForEach(FinancialWeekday.allCases) { weekday in
+                  Text(AppLocalization.key(weekday.localizationKey)).tag(weekday.rawValue)
                 }
               }
             } label: {
-              SettingsMenuValue(text: Sa7totWeekday(rawValue: firstWeekday)?.localizedName ?? AppLocalization.string("weekday.sunday"))
+              SettingsMenuValue(text: AppLocalization.string(financialWeekday.localizationKey))
             }
-            .accessibilityLabel(AppLocalization.key("settings.weekStart"))
-            .accessibilityValue(Sa7totWeekday(rawValue: firstWeekday)?.localizedName ?? AppLocalization.string("weekday.sunday"))
-            .tint(.secondary)
+            .accessibilityLabel(AppLocalization.key("settings.weekStartDay"))
+            .accessibilityValue(AppLocalization.key(financialWeekday.localizationKey))
+            .disabled(remoteStore.isUpdatingFinancialCalendar)
           }
         }
 
@@ -159,14 +134,6 @@ struct SettingsView: View {
           }
         }
 
-        SettingsCard(title: "settings.monitoring") {
-          SettingsRowLayout(title: "settings.incomeTracking", systemImage: "banknote.fill", tint: .green) {
-            Toggle("", isOn: incomeTrackingBinding)
-              .labelsHidden()
-              .tint(.green)
-          }
-        }
-
         SettingsCard(title: "settings.security") {
           SettingsRowLayout(title: "settings.authentication", systemImage: "faceid", tint: .blue) {
             Toggle("", isOn: appLockBinding)
@@ -193,14 +160,6 @@ struct SettingsView: View {
           SettingsDivider()
           SettingsRowLayout(title: "settings.showCents", systemImage: "centsign.circle.fill", tint: .teal) {
             Toggle("", isOn: $showCents).labelsHidden().tint(.green)
-          }
-          SettingsDivider()
-          SettingsRowLayout(title: "settings.showSigns", systemImage: "plus.forwardslash.minus", tint: .pink) {
-            Toggle("", isOn: $showExpenseOrIncomeSign).labelsHidden().tint(.green)
-          }
-          SettingsDivider()
-          SettingsRowLayout(title: "settings.animatedCharts", systemImage: "hare.fill", tint: .mint) {
-            Toggle("", isOn: $animated).labelsHidden().tint(.green)
           }
         }
 
@@ -252,16 +211,10 @@ struct SettingsView: View {
     .navigationTitle(AppLocalization.key("settings.title"))
     .navigationBarTitleDisplayMode(.large)
     .dynamicTypeSize(...DynamicTypeSize.accessibility5)
-    .onChange(of: firstWeekday) { newValue in
-      if let weekday = Sa7totWeekday(rawValue: newValue) {
-        Sa7totCalendarSettings.updateWeekday(weekday)
-      }
-    }
     .onChange(of: scenePhase) { newPhase in
       if newPhase == .active { refreshNotificationPermission() }
     }
     .onAppear {
-      if !(1...7).contains(firstWeekday) { firstWeekday = 1 }
       refreshNotificationPermission()
     }
     .alert(AppLocalization.key("settings.notificationsDisabled"), isPresented: $showingNotificationPermissionAlert) {
@@ -280,6 +233,19 @@ struct SettingsView: View {
       Button(AppLocalization.key("action.cancel"), role: .cancel) {}
     } message: {
       Text(AppLocalization.key("settings.signout.confirm.message"))
+    }
+    .alert(
+      AppLocalization.key("error.generic"),
+      isPresented: Binding(
+        get: { financialCalendarErrorMessage != nil },
+        set: { if !$0 { financialCalendarErrorMessage = nil } }
+      )
+    ) {
+      Button(AppLocalization.key("action.ok"), role: .cancel) {
+        financialCalendarErrorMessage = nil
+      }
+    } message: {
+      Text(financialCalendarErrorMessage ?? AppLocalization.string("error.generic"))
     }
   }
 
@@ -362,14 +328,6 @@ struct SettingsView: View {
     }
   }
 
-  private var hapticValue: String {
-    switch hapticType {
-    case 0: return AppLocalization.string("settings.haptics.none")
-    case 1: return AppLocalization.string("settings.haptics.subtle")
-    default: return AppLocalization.string("settings.haptics.excessive")
-    }
-  }
-
   private var appLockBinding: Binding<Bool> {
     Binding(
       get: { appLockVM.isAppLockEnabled },
@@ -377,59 +335,72 @@ struct SettingsView: View {
     )
   }
 
-  private var incomeTrackingBinding: Binding<Bool> {
+  private var financialMonthStartDay: Int {
+    remoteStore.profile?.monthStartDay ?? 1
+  }
+
+  private var financialWeekday: FinancialWeekday {
+    FinancialWeekday(rawValue: remoteStore.profile?.weekStartDay ?? 1) ?? .monday
+  }
+
+  private var monthStartDayBinding: Binding<Int> {
     Binding(
-      get: { incomeTracking },
+      get: { financialMonthStartDay },
       set: { newValue in
-        incomeTracking = newValue
-        if !newValue {
-          UserDefaults(suiteName: "group.com.saied.sa7tot")?.set(
-            3, forKey: "logInsightsType")
-        }
+        guard newValue != financialMonthStartDay else { return }
+        updateFinancialCalendar(monthStartDay: newValue)
       }
     )
   }
 
-  @ViewBuilder
-    func ToggleRow(icon: String, color: String, text: String, bool: Bool, smaller: Bool = false, onTap: @escaping () -> Void)
-    -> some View {
-    HStack(spacing: 12) {
-      Image(systemName: icon)
-            .font(.system(smaller ? .subheadline : .body, design: .rounded))
-        .foregroundColor(.white)
-        .frame(
-          width: dynamicTypeSize > .xLarge ? 40 : 30, height: dynamicTypeSize > .xLarge ? 40 : 30,
-          alignment: .center
-        )
-        .background(Color(color), in: RoundedRectangle(cornerRadius: 6))
-
-      Text(text)
-        .font(.system(.body, design: .rounded).weight(.medium))
-        .lineLimit(1)
-        .foregroundColor(Color.PrimaryText)
-
-      Spacer()
-
-      ZStack(alignment: bool ? .trailing : .leading) {
-        Capsule()
-          .frame(width: 42, height: 28)
-          .foregroundColor(bool ? .green : .gray.opacity(0.8))
-
-        Circle()
-          .foregroundColor(Color.white)
-          .padding(2)
-          .frame(width: 28, height: 28)
-          .matchedGeometryEffect(id: "toggle\(color)", in: animation)
+  private var weekStartDayBinding: Binding<Int> {
+    Binding(
+      get: { financialWeekday.rawValue },
+      set: { newValue in
+        guard newValue != financialWeekday.rawValue else { return }
+        updateFinancialCalendar(weekStartDay: newValue)
       }
-      .onTapGesture {
-        withAnimation {
-          onTap()
-        }
-      }
-    }
-    .frame(maxWidth: .infinity)
+    )
   }
 
+  private func updateFinancialCalendar(monthStartDay: Int? = nil, weekStartDay: Int? = nil) {
+    guard !remoteStore.isUpdatingFinancialCalendar else { return }
+    Task { @MainActor in
+      do {
+        try await remoteStore.updateFinancialCalendar(
+          monthStartDay: monthStartDay,
+          weekStartDay: weekStartDay
+        )
+      } catch {
+        financialCalendarErrorMessage = remoteStore.userFacingMessage(for: error)
+      }
+    }
+  }
+
+}
+
+private enum FinancialWeekday: Int, CaseIterable, Identifiable {
+  case monday = 1
+  case tuesday
+  case wednesday
+  case thursday
+  case friday
+  case saturday
+  case sunday
+
+  var id: Int { rawValue }
+
+  var localizationKey: String {
+    switch self {
+    case .monday: return "weekday.monday"
+    case .tuesday: return "weekday.tuesday"
+    case .wednesday: return "weekday.wednesday"
+    case .thursday: return "weekday.thursday"
+    case .friday: return "weekday.friday"
+    case .saturday: return "weekday.saturday"
+    case .sunday: return "weekday.sunday"
+    }
+  }
 }
 
 private struct SettingsCard<Content: View>: View {
@@ -630,61 +601,6 @@ private struct SettingsDivider: View {
   }
 }
 
-private struct SettingsNativeLabel: View {
-  let title: String
-  let systemImage: String
-  let tint: Color
-
-  var body: some View {
-    Label {
-      Text(AppLocalization.key(title))
-        .font(.callout)
-        .foregroundStyle(.primary)
-    } icon: {
-      SettingsNativeIcon(systemImage: systemImage, tint: tint)
-    }
-    .accessibilityLabel(AppLocalization.key(title))
-  }
-}
-
-private struct SettingsNativeRow: View {
-  let title: String
-  let systemImage: String
-  let tint: Color
-  let value: String?
-
-  init(title: String, systemImage: String, tint: Color, value: String? = nil) {
-    self.title = title
-    self.systemImage = systemImage
-    self.tint = tint
-    self.value = value
-  }
-
-  var body: some View {
-    HStack(spacing: 12) {
-      SettingsNativeIcon(systemImage: systemImage, tint: tint)
-      Text(AppLocalization.key(title))
-        .font(.callout)
-        .foregroundStyle(.primary)
-        .lineLimit(2)
-        .layoutPriority(1)
-      Spacer(minLength: 8)
-      if let value {
-        Text(verbatim: value)
-          .font(.callout)
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
-          .truncationMode(.tail)
-          .multilineTextAlignment(.trailing)
-      }
-    }
-    .frame(minHeight: 44)
-    .accessibilityElement(children: .combine)
-    .accessibilityLabel(AppLocalization.key(title))
-    .accessibilityValue(value ?? "")
-  }
-}
-
 private struct SettingsNativeIcon: View {
   let systemImage: String
   let tint: Color
@@ -697,294 +613,5 @@ private struct SettingsNativeIcon: View {
       .frame(width: 38, height: 38)
       .background(tint.opacity(0.22), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
       .accessibilityHidden(true)
-  }
-}
-
-#if false
-struct TipJarAlert: View {
-  @Environment(\.dismiss) var dismiss
-  @Environment(\.colorScheme) var systemColorScheme
-  @EnvironmentObject var unlockManager: UnlockManager
-
-  @State private var offset: CGFloat = 0
-
-  @AppStorage("bottomEdge", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
-  var bottomEdge: Double = 15
-
-  @State var opacity = 0.0
-  @State var counter = 0
-
-  var bottomCaption: String {
-    if unlockManager.failedTransaction {
-      return "La mancia non è andata a buon fine. Riprova!"
-    } else if unlockManager.purchaseCount > 0 {
-      return "Thanks a million, \(Image(systemName: "heart.fill")) Rafael"
-    } else {
-      return "Have a great day ahead!"
-    }
-  }
-
-  //    var sortedProducts: [SKProduct] {
-  //        let holding = unlockManager.loadedProducts.sorted {
-  //            $0.price.doubleValue > $1.price.doubleValue
-  //        }
-  //
-  //        return holding
-  //    }
-
-  var body: some View {
-    let caption = bottomCaption
-    let supportMessage = "Hey! Sa7tot was built by a solo student developer, and is intended to be completely free-of-charge, with no paywalls or ads. If you enjoy using Sa7tot and want to support development, please consider a small tip."
-
-    ZStack(alignment: .bottom) {
-      Color.AppPageBackground.opacity(opacity)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture {
-          withAnimation(.easeIn(duration: 0.15)) {
-            opacity = 0
-            offset += 300
-          }
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            dismiss()
-          }
-        }
-        .onAppear {
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            withAnimation {
-              opacity = 0.4
-            }
-          }
-        }
-
-      VStack {
-        switch unlockManager.requestState {
-        case .loading:
-          ProgressView {
-            Text("Caricamento")
-              .font(.system(.body, design: .rounded).weight(.medium))
-              //                            .font(.system(size: 18, weight: .medium, design: .rounded))
-              .foregroundColor(Color.SubtitleText)
-              .frame(maxWidth: .infinity)
-              .frame(height: 200)
-          }
-        case .failed:
-          Text("Impossibile caricare le opzioni per la mancia. Riprova più tardi 🥲")
-            .font(.system(.body, design: .rounded).weight(.medium))
-
-            //                        .font(.system(size: 18, weight: .medium, design: .rounded))
-            .multilineTextAlignment(.center)
-            .foregroundColor(Color.SubtitleText)
-            .frame(maxWidth: .infinity)
-            .frame(height: 200)
-        default:
-          VStack(alignment: .leading, spacing: 4) {
-            HStack {
-              Image(systemName: "heart.fill")
-                .font(.system(.callout, design: .rounded))
-
-              //                                .font(.system(size: 16))
-              Text("Barattolo delle mance")
-                .font(.system(.title2, design: .rounded).weight(.medium))
-
-              //                                .font(.system(size: 22, weight: .medium, design: .rounded))
-            }
-            .foregroundColor(.PrimaryText)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .trailing) {
-              Button {
-                withAnimation(.easeIn(duration: 0.15)) {
-                  opacity = 0
-                  offset += 300
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                  dismiss()
-                }
-              } label: {
-                Image(systemName: "xmark")
-                  .font(.system(.subheadline, design: .rounded).weight(.semibold))
-
-                  //                                    .font(.system(size: 14, weight: .semibold))
-                  .foregroundColor(Color.SubtitleText)
-                  .padding(7)
-                  .background(Color.AppSecondarySurface, in: Circle())
-                  .contentShape(Circle())
-              }
-              .offset(x: 5, y: -5)
-            }
-
-            Text(supportMessage)
-            .font(.system(.callout, design: .rounded).weight(.medium))
-
-            //                            .font(.system(size: 16, weight: .medium, design: .rounded))
-            .foregroundColor(.SubtitleText)
-            .padding(.bottom, 20)
-
-            ProductView(
-              products: unlockManager.loadedProducts.sorted {
-                $0.price.doubleValue < $1.price.doubleValue
-              }
-            )
-            .padding(.bottom, 20)
-
-            Text(verbatim: caption)
-              .font(.system(.subheadline, design: .rounded).weight(.medium))
-
-              //                                .font(.system(size: 14, weight: .medium, design: .rounded))
-              .frame(maxWidth: .infinity)
-              .foregroundColor(.SubtitleText)
-          }
-        }
-      }
-      .padding(18)
-      .animation(.easeInOut, value: unlockManager.failedTransaction)
-      .background(
-        RoundedRectangle(cornerRadius: 13).fill(Color.AppPageBackground).shadow(
-          color: systemColorScheme == .dark ? Color.clear : Color.gray.opacity(0.25), radius: 6)
-      )
-      .overlay(
-        RoundedRectangle(cornerRadius: 13).stroke(
-          systemColorScheme == .dark ? Color.gray.opacity(0.1) : Color.clear, lineWidth: 1.3)
-      )
-      .offset(y: offset)
-      .confettiCannon(
-        counter: $counter, num: 50, openingAngle: Angle(degrees: 0),
-        closingAngle: Angle(degrees: 360), radius: 200
-      )
-      .gesture(
-        DragGesture()
-          .onChanged { gesture in
-            if gesture.translation.height < 0 {
-              offset = gesture.translation.height / 3
-            } else {
-              offset = gesture.translation.height
-            }
-          }
-          .onEnded { value in
-            if value.translation.height > 30 {
-              withAnimation(.easeIn(duration: 0.15)) {
-                opacity = 0
-                offset += 300
-              }
-              DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                dismiss()
-              }
-
-            } else {
-              withAnimation {
-                offset = 0
-              }
-            }
-          }
-      )
-      .padding(.horizontal, 17)
-      .padding(.bottom, bottomEdge == 0 ? 13 : bottomEdge)
-      .onChange(of: unlockManager.purchaseCount) { _ in
-        counter += 1
-      }
-    }
-    .edgesIgnoringSafeArea(.all)
-    .background(BackgroundBlurView())
-  }
-}
-
-struct ProductView: View {
-  @EnvironmentObject var unlockManager: UnlockManager
-  let products: [SKProduct]
-
-  var body: some View {
-    VStack {
-      ForEach(products, id: \.self) { product in
-        HStack {
-          Text(getText(product.productIdentifier))
-
-          Spacer()
-
-          Button {
-            unlock(product)
-          } label: {
-            Text(product.localizedPrice)
-              .monospacedDigit()
-              .padding(6)
-              .background(
-                Color.AppSecondarySurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-              )
-          }
-        }
-      }
-    }
-    .foregroundColor(.PrimaryText)
-    .font(.system(.body, design: .rounded).weight(.semibold))
-    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-    //        .font(.system(size: 18, weight: .semibold, design: .rounded))
-  }
-
-  func unlock(_ product: SKProduct) {
-    unlockManager.buy(product: product)
-  }
-
-  func getText(_ string: String) -> String {
-    if string == "com.saied.sa7tot.smalltip" {
-      return String(localized: "☕ Coffee-Sized Tip")
-    } else if string == "com.saied.sa7tot.mediumtip" {
-      return String(localized: "🌮 Taco-Sized Tip")
-    } else if string == "com.saied.sa7tot.largetip" {
-      return String(localized: "🍕 Pizza-Sized Tip")
-    } else {
-      return ""
-    }
-  }
-}
-
-#endif
-
-struct SettingsRowView: View {
-  var systemImage: String
-  var title: String
-  var colour: Int
-  var optionalText: String?
-
-  @Environment(\.dynamicTypeSize) var dynamicTypeSize
-
-  var body: some View {
-    HStack(spacing: 12) {
-      Image(systemName: systemImage)
-        .font(.system(.body, design: .rounded))
-
-        //                .font(.system(size: 17))
-        //                .padding(5)
-        .foregroundColor(.white)
-        .frame(
-          width: dynamicTypeSize > .xLarge ? 40 : 30, height: dynamicTypeSize > .xLarge ? 40 : 30,
-          alignment: .center
-        )
-        .background(Color("\(colour)"), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-
-      Text(LocalizedStringKey(title))
-        .font(.system(.body, design: .rounded).weight(.medium))
-
-        //                .font(.system(size: 17, weight: .medium, design: .rounded))
-        .lineLimit(1)
-        .foregroundColor(Color.PrimaryText)
-
-      Spacer()
-
-      if optionalText != nil {
-        Text(optionalText!)
-          .font(.system(.body, design: .rounded))
-
-          //                    .font(.system(size: 17, weight: .regular, design: .rounded))
-          .foregroundColor(.DarkIcon.opacity(0.6))
-          .layoutPriority(1)
-          .padding(.trailing, -8)
-      }
-
-      Image(systemName: "chevron.forward")
-        .font(.system(.subheadline, design: .rounded))
-        //                .font(.system(size: 15))
-        .foregroundColor(.DarkIcon.opacity(0.6))
-    }
-    .frame(maxWidth: .infinity)
-    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 }

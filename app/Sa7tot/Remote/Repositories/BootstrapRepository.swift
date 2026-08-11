@@ -12,4 +12,8 @@ public struct RemoteBootstrapRepository: Sendable {
             APIRequest<RemoteBootstrapDTO>(method: .get, path: "/v1/bootstrap")
         )
     }
+
+    public func updateProfile(_ payload: RemoteProfileUpdatePayload) async throws -> RemoteProfileDTO {
+        try await client.patch(RemoteProfileDTO.self, path: "/v1/profile", body: payload)
+    }
 }

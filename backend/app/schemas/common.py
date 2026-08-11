@@ -80,6 +80,7 @@ class CategoryBrief(APIModel):
     income: bool
     icon_identifier: str
     color: str
+    preset_key: str | None
 
 
 class AccountBrief(APIModel):

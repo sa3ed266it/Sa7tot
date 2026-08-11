@@ -79,13 +79,7 @@ struct ContentView: View {
             }
 
             center.getNotificationSettings { settings in
-                if settings.authorizationStatus == .authorized {
-                    if !showNotifications && notificationsEnabled == false {
-                        showNotifications = true
-                        notificationsEnabled = true
-                        newNotification()
-                    }
-                } else if settings.authorizationStatus == .denied {
+                if settings.authorizationStatus == .denied {
                     notificationsEnabled = false
 
                     if showNotifications {
@@ -102,13 +96,7 @@ struct ContentView: View {
                 }
             } else if newPhase == .active {
                 center.getNotificationSettings { settings in
-                    if settings.authorizationStatus == .authorized {
-                        if !showNotifications && notificationsEnabled == false {
-                            showNotifications = true
-                            notificationsEnabled = true
-                            newNotification()
-                        }
-                    } else if settings.authorizationStatus == .denied {
+                    if settings.authorizationStatus == .denied {
                         notificationsEnabled = false
 
                         if showNotifications {

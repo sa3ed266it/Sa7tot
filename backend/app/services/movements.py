@@ -13,6 +13,8 @@ from app.models.entities import Transaction
 from app.schemas.movements import AccountSnapshot, DayGroup, MovementsResponse, MovementSummary
 from app.services.accounts import get_account
 from app.services.financial import effective_amount_minor
+from app.services.financial_calendar import financial_month_window, financial_week_window
+from app.services.common import get_or_create_profile
 from app.services.transactions import transaction_out
 
 
@@ -31,6 +33,7 @@ async def get_account_movements(
     category_id: UUID | None = None,
 ) -> MovementsResponse:
     account = await get_account(session, user_id, account_id)
+    profile = await get_or_create_profile(session, user_id)
     now = datetime.now(UTC)
     ownership = or_(
         Transaction.account_id == account.id,
@@ -54,20 +57,26 @@ async def get_account_movements(
     elif filter == "day" and day is not None:
         filtered_query = filtered_query.where(Transaction.local_day == day)
     elif filter == "week" and week_start is not None:
+        period = financial_week_window(week_start, profile.week_start_day, profile.timezone)
         filtered_query = filtered_query.where(
-            Transaction.local_day >= week_start,
-            Transaction.local_day < week_start + timedelta(days=7),
+            Transaction.occurred_at >= period.utc_start,
+            Transaction.occurred_at < period.utc_end,
         )
     elif filter == "month" and month is not None:
         try:
-            year, month_number = (int(part) for part in month.split("-"))
-            month_start = date(year, month_number, 1)
-            month_end = date(year + (month_number == 12), 1 if month_number == 12 else month_number + 1, 1)
+            components = [int(part) for part in month.split("-")]
+            if len(components) == 2:
+                year, month_number = components
+                anchor = date(year, month_number, 1)
+            else:
+                year, month_number, day = components
+                anchor = date(year, month_number, day)
+            period = financial_month_window(anchor, profile.month_start_day, profile.timezone)
         except (ValueError, TypeError):
             raise DomainError(422, "month is invalid", "invalid_month") from None
         filtered_query = filtered_query.where(
-            Transaction.local_day >= month_start,
-            Transaction.local_day < month_end,
+            Transaction.occurred_at >= period.utc_start,
+            Transaction.occurred_at < period.utc_end,
         )
     elif filter == "category" and category_id is not None:
         filtered_query = filtered_query.where(Transaction.category_id == category_id)

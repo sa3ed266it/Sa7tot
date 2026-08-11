@@ -11,6 +11,7 @@ from app.core.errors import DomainError
 from app.models.entities import Budget, Category, MainBudget, Profile, Transaction
 from app.schemas.budget import BudgetCategoryMutation, BudgetMutation, BudgetPeriod
 from app.services.common import get_or_create_profile, normalize_currency
+from app.services.financial_calendar import financial_month_window, financial_week_window
 
 
 def _zone(timezone_name: str) -> ZoneInfo:
@@ -20,32 +21,37 @@ def _zone(timezone_name: str) -> ZoneInfo:
         return ZoneInfo("Europe/Rome")
 
 
-def _period_start(now: date, period: BudgetPeriod, supplied: date | None, first_weekday: int = 1) -> date:
+def _period_start(
+    now: date,
+    period: BudgetPeriod,
+    supplied: date | None,
+    month_start_day: int,
+    week_start_day: int,
+    timezone_name: str,
+) -> date:
     if period is BudgetPeriod.day:
         return now
     if period is BudgetPeriod.week:
-        # Profile settings currently default to Sunday in the iOS app.
-        weekday = now.isoweekday() % 7 + 1
-        return now - timedelta(days=(weekday - first_weekday) % 7)
+        return financial_week_window(now, week_start_day, timezone_name).local_start
     if period is BudgetPeriod.month:
-        return now.replace(day=1)
+        return financial_month_window(now, month_start_day, timezone_name).local_start
     return now.replace(month=1, day=1)
 
 
-def _next_start(start: date, period: str) -> date:
+def _next_start(start: date, period: str, month_start_day: int, timezone_name: str) -> date:
     if period == BudgetPeriod.day:
         return start + timedelta(days=1)
     if period == BudgetPeriod.week:
         return start + timedelta(days=7)
     if period == BudgetPeriod.month:
-        return date(start.year + (start.month == 12), 1 if start.month == 12 else start.month + 1, 1)
+        return financial_month_window(start, month_start_day, timezone_name).local_end
     return date(start.year + 1, 1, 1)
 
 
-def _normalize_start(start: date, period: str, today: date) -> date:
+def _normalize_start(start: date, period: str, today: date, month_start_day: int, timezone_name: str) -> date:
     current = start
-    while _next_start(current, period) <= today:
-        current = _next_start(current, period)
+    while _next_start(current, period, month_start_day, timezone_name) <= today:
+        current = _next_start(current, period, month_start_day, timezone_name)
     return current
 
 
@@ -89,8 +95,21 @@ def _progress(amount: int, spent: int) -> float:
     return 0.0 if amount <= 0 else min(max(spent / amount, 0.0), 1.0)
 
 
-async def _normalize_budget(budget: MainBudget | Budget, today: date) -> bool:
-    normalized = _normalize_start(budget.period_start, budget.period_type, today)
+async def _normalize_budget(
+    budget: MainBudget | Budget,
+    today: date,
+    month_start_day: int,
+    week_start_day: int,
+    timezone_name: str,
+) -> bool:
+    if budget.period_type == BudgetPeriod.week:
+        normalized = financial_week_window(today, week_start_day, timezone_name).local_start
+    elif budget.period_type == BudgetPeriod.month:
+        normalized = financial_month_window(today, month_start_day, timezone_name).local_start
+    else:
+        normalized = _normalize_start(
+            budget.period_start, budget.period_type, today, month_start_day, timezone_name
+        )
     if normalized == budget.period_start:
         return False
     budget.period_start = normalized
@@ -110,7 +129,13 @@ async def get_summary(session: AsyncSession, user_id: UUID) -> dict:
     )
     changed = False
     for budget in [main, *categories] if main else categories:
-        changed = await _normalize_budget(budget, today) or changed
+        changed = await _normalize_budget(
+            budget,
+            today,
+            profile.month_start_day,
+            profile.week_start_day,
+            profile.timezone,
+        ) or changed
     if changed:
         await session.commit()
     return {
@@ -121,7 +146,7 @@ async def get_summary(session: AsyncSession, user_id: UUID) -> dict:
 
 
 async def _main_out(session: AsyncSession, budget: MainBudget, profile: Profile) -> dict:
-    end = _next_start(budget.period_start, budget.period_type)
+    end = _next_start(budget.period_start, budget.period_type, profile.month_start_day, profile.timezone)
     spent = await _spent(
         session, budget.user_id, budget.period_start, end, profile.timezone, None, budget.currency_code
     )
@@ -145,7 +170,7 @@ async def _category_out(session: AsyncSession, budget: Budget, profile: Profile)
     category = await session.scalar(
         select(Category).where(Category.id == budget.category_id, Category.user_id == budget.user_id)
     )
-    end = _next_start(budget.period_start, budget.period_type)
+    end = _next_start(budget.period_start, budget.period_type, profile.month_start_day, profile.timezone)
     spent = await _spent(
         session, budget.user_id, budget.period_start, end, profile.timezone, budget.category_id, budget.currency_code
     )
@@ -174,7 +199,14 @@ async def upsert_main(session: AsyncSession, user_id: UUID, payload: BudgetMutat
     profile = await get_or_create_profile(session, user_id)
     today = datetime.now(_zone(profile.timezone)).date()
     budget = await session.scalar(select(MainBudget).where(MainBudget.user_id == user_id))
-    start = _period_start(today, payload.period_type, payload.period_start)
+    start = _period_start(
+        today,
+        payload.period_type,
+        payload.period_start,
+        profile.month_start_day,
+        profile.week_start_day,
+        profile.timezone,
+    )
     if budget is None:
         budget = MainBudget(user_id=user_id)
         session.add(budget)
@@ -207,7 +239,14 @@ async def upsert_category(session: AsyncSession, user_id: UUID, payload: BudgetC
     budget.currency_code = normalize_currency(payload.currency_code)
     budget.currency_exponent = payload.currency_exponent
     budget.period_type = payload.period_type.value
-    budget.period_start = _period_start(today, payload.period_type, payload.period_start)
+    budget.period_start = _period_start(
+        today,
+        payload.period_type,
+        payload.period_start,
+        profile.month_start_day,
+        profile.week_start_day,
+        profile.timezone,
+    )
     await session.commit()
     return await get_summary(session, user_id)
 

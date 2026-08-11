@@ -150,7 +150,10 @@ final class ContextMenuBackgroundEffectController {
 
 struct NativeTransactionContextMenuRow<Content: View>: UIViewControllerRepresentable {
     let identifier: String
+    let canEdit: Bool
     let canDelete: Bool
+    let editTitle: String
+    let deleteTitle: String
     let content: Content
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -158,7 +161,10 @@ struct NativeTransactionContextMenuRow<Content: View>: UIViewControllerRepresent
     func makeUIViewController(context: Context) -> NativeTransactionContextMenuRowViewController<Content> {
         NativeTransactionContextMenuRowViewController(
             identifier: identifier,
+            canEdit: canEdit,
             canDelete: canDelete,
+            editTitle: editTitle,
+            deleteTitle: deleteTitle,
             content: content,
             onEdit: onEdit,
             onDelete: onDelete
@@ -168,7 +174,10 @@ struct NativeTransactionContextMenuRow<Content: View>: UIViewControllerRepresent
     func updateUIViewController(_ controller: NativeTransactionContextMenuRowViewController<Content>, context: Context) {
         controller.update(
             identifier: identifier,
+            canEdit: canEdit,
             canDelete: canDelete,
+            editTitle: editTitle,
+            deleteTitle: deleteTitle,
             content: content,
             onEdit: onEdit,
             onDelete: onDelete
@@ -183,15 +192,21 @@ struct NativeTransactionContextMenuRow<Content: View>: UIViewControllerRepresent
 
 final class NativeTransactionContextMenuRowViewController<Content: View>: UIViewController, UIContextMenuInteractionDelegate {
     private var identifier: String
+    private var canEdit: Bool
     private var canDelete: Bool
+    private var editTitle: String
+    private var deleteTitle: String
     private var onEdit: () -> Void
     private var onDelete: () -> Void
     private let hostingController: UIHostingController<Content>
     private let backgroundEffectController = ContextMenuBackgroundEffectController()
 
-    init(identifier: String, canDelete: Bool, content: Content, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    init(identifier: String, canEdit: Bool, canDelete: Bool, editTitle: String, deleteTitle: String, content: Content, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.identifier = identifier
+        self.canEdit = canEdit
         self.canDelete = canDelete
+        self.editTitle = editTitle
+        self.deleteTitle = deleteTitle
         self.onEdit = onEdit
         self.onDelete = onDelete
         self.hostingController = UIHostingController(rootView: content)
@@ -225,9 +240,12 @@ final class NativeTransactionContextMenuRowViewController<Content: View>: UIView
         view.addInteraction(UIContextMenuInteraction(delegate: self))
     }
 
-    func update(identifier: String, canDelete: Bool, content: Content, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    func update(identifier: String, canEdit: Bool, canDelete: Bool, editTitle: String, deleteTitle: String, content: Content, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.identifier = identifier
+        self.canEdit = canEdit
         self.canDelete = canDelete
+        self.editTitle = editTitle
+        self.deleteTitle = deleteTitle
         self.onEdit = onEdit
         self.onDelete = onDelete
         hostingController.rootView = content
@@ -240,16 +258,19 @@ final class NativeTransactionContextMenuRowViewController<Content: View>: UIView
     }
 
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
-        UIContextMenuConfiguration(identifier: identifier as NSString, previewProvider: nil) { [weak self] _ in
+        guard canEdit || canDelete else { return nil }
+        return UIContextMenuConfiguration(identifier: identifier as NSString, previewProvider: nil) { [weak self] _ in
             guard let self else { return UIMenu(title: "", children: []) }
 
-            let edit = UIAction(title: "Modifica", image: UIImage(systemName: "pencil")) { [weak self] _ in
-                self?.onEdit()
+            var actions: [UIMenuElement] = []
+            if self.canEdit {
+                let edit = UIAction(title: self.editTitle, image: UIImage(systemName: "pencil")) { [weak self] _ in
+                    self?.onEdit()
+                }
+                actions.append(edit)
             }
-
-            var actions: [UIMenuElement] = [edit]
             if self.canDelete {
-                let delete = UIAction(title: "Elimina", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                let delete = UIAction(title: self.deleteTitle, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                     self?.onDelete()
                 }
                 actions.append(delete)

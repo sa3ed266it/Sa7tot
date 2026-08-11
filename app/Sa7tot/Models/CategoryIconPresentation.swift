@@ -53,7 +53,7 @@ enum CategoryIconCatalog {
         .init("globe.europe.africa.fill", "Estero", .travel), .init("tent.fill", "Campeggio", .travel), .init("bed.double.fill", "Hotel", .travel), .init("map.fill", "Mappa", .travel), .init("suitcase.fill", "Valigia", .travel),
 
         // Home and bills
-        .init("house.fill", "Casa", .home), .init("building.2.fill", "Edificio", .home), .init("lightbulb.fill", "Luce", .home), .init("drop.fill", "Acqua", .home), .init("wifi", "Internet", .home),
+        .init("house.fill", "Casa", .home), .init("building.2.fill", "Edificio", .home), .init("lightbulb.fill", "Luce", .home), .init("bolt.fill", "Energia", .home), .init("drop.fill", "Acqua", .home), .init("wifi", "Internet", .home),
         .init("iphone.gen3", "Telefono", .home), .init("tv.fill", "Televisione", .home), .init("washer.fill", "Lavatrice", .home), .init("fan.fill", "Clima", .home), .init("wrench.and.screwdriver.fill", "Manutenzione", .home),
 
         // Shopping and personal care
@@ -69,7 +69,7 @@ enum CategoryIconCatalog {
         .init("gamecontroller.fill", "Giochi", .leisure), .init("music.note", "Musica", .leisure), .init("film.fill", "Cinema", .leisure), .init("ticket.fill", "Eventi", .leisure), .init("paintpalette.fill", "Creatività", .leisure), .init("sportscourt.fill", "Sport", .leisure),
 
         // Money, banking and subscriptions
-        .init("banknote.fill", "Denaro", .finance), .init("building.columns.fill", "Banca", .finance), .init("creditcard.fill", "Carta", .finance), .init("wallet.pass.fill", "Portafoglio", .finance), .init("chart.line.uptrend.xyaxis", "Risparmi", .finance),
+        .init("banknote.fill", "Denaro", .finance), .init("arrow.down.circle.fill", "Entrata", .finance), .init("building.columns.fill", "Banca", .finance), .init("creditcard.fill", "Carta", .finance), .init("wallet.pass.fill", "Portafoglio", .finance), .init("chart.line.uptrend.xyaxis", "Risparmi", .finance), .init("hand.thumbsup.fill", "Mancia", .finance),
         .init("arrow.left.arrow.right", "Trasferimento", .finance), .init("arrow.triangle.2.circlepath", "Ricorrenza", .finance), .init("calendar.badge.clock", "Abbonamento", .finance), .init("percent", "Sconto", .finance), .init("dollarsign.circle.fill", "Valuta", .finance),
 
         // Other useful category concepts

@@ -137,6 +137,7 @@ def _category_brief(category: Category | None) -> CategoryBrief | None:
         income=category.income,
         icon_identifier=category.icon_identifier,
         color=category.color,
+        preset_key=category.preset_key,
     )
 
 

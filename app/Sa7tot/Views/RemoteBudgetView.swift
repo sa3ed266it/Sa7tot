@@ -70,7 +70,10 @@ private struct RemoteBudgetContent: View {
             await store.loadBudget()
         }
         .sheet(isPresented: $showingNewBudget) {
-            RemoteBudgetEditor(overallBudgetCreated: store.budgetSummary?.main != nil)
+            RemoteBudgetEditor(
+                overallBudgetCreated: store.budgetSummary?.main != nil,
+                defaultCurrencyCode: "EUR"
+            )
                 .environmentObject(store)
         }
         .sheet(item: $editingMain) { budget in
@@ -164,7 +167,14 @@ private struct RemoteMainBudgetCard: View {
                     .foregroundColor(Color.SubtitleText)
                     .frame(width: width, height: 10)
                 VStack(spacing: -4) {
-                    BudgetDollarView(amount: difference, red: spent >= total, scale: 3, size: width - 60)
+                    BudgetDollarView(
+                        amountMinor: abs(budget.amountMinor - budget.spentMinor),
+                        currencyCode: budget.currencyCode,
+                        currencyExponent: budget.currencyExponent,
+                        red: spent >= total,
+                        scale: 3,
+                        size: width - 60
+                    )
                         .frame(width: width - 60)
                     Text(verbatim: "\(AppLocalization.string(total >= spent ? "budget.remaining" : "budget.over")) \(periodName)")
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
@@ -270,13 +280,16 @@ private struct BudgetEmptyState: View {
 struct BudgetDollarView: View {
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var showCents: Bool = true
 
-    var amount: Double
+    var amountMinor: Int64
+    var currencyCode: String
+    var currencyExponent: Int
     var red: Bool
     var scale: Int
     var size: CGFloat
 
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) var currency: String = Locale.current.currencyCode!
-    var currencySymbol: String { Locale.current.localizedCurrencySymbol(forCurrencyCode: currency)! }
+    var currencySymbol: String {
+        Locale.current.localizedCurrencySymbol(forCurrencyCode: currencyCode) ?? currencyCode
+    }
 
     var dynamicTypeSizes: (symbol: Font.TextStyle, amount: Font.TextStyle) {
         if scale == 1 { return (.callout, .title3) }
@@ -289,7 +302,12 @@ struct BudgetDollarView: View {
             Text(currencySymbol)
                 .font(.system(dynamicTypeSizes.symbol, design: .rounded).weight(.medium))
                 .foregroundColor(red ? Color("BudgetRed") : Color.SubtitleText) +
-            Text("\(amount, specifier: showCents && amount < 100 ? "%.2f" : "%.0f")")
+            Text(FinancialFormatting.digits(
+                minorUnits: amountMinor,
+                currencyCode: currencyCode,
+                exponent: currencyExponent,
+                showCents: showCents
+            ))
                 .font(.system(dynamicTypeSizes.amount, design: .rounded).weight(.medium))
                 .foregroundColor(red ? Color("BudgetRed") : Color.PrimaryText)
                 .monospacedDigit()

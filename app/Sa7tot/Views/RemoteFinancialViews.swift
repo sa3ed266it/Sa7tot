@@ -82,7 +82,10 @@ struct RemoteFinancialHomeView: View {
                 RemoteTransferEditorView()
                     .environmentObject(store)
             case .account:
-                RemoteAccountEditorView(account: nil)
+                RemoteAccountEditorView(
+                    account: nil,
+                    defaultCurrencyCode: "EUR"
+                )
                     .environmentObject(store)
             }
         }
@@ -139,6 +142,7 @@ private enum RemoteFinancialRoute: Identifiable {
 @available(iOS 26.0, *)
 struct RemoteMovimentiView: View {
     @EnvironmentObject private var store: FinancialRemoteStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var showCents = true
     @AppStorage("hideBalances", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var hideBalances = false
 
@@ -152,6 +156,12 @@ struct RemoteMovimentiView: View {
     @State private var balanceCollapseProgress: CGFloat = 0
     @State private var expandedBalanceHeaderHeight: CGFloat = 175
     @State private var displayedContentIsEmpty = false
+    @State private var visualAccountID: UUID?
+    @State private var displayedAccountID: UUID?
+    @State private var handoffOpacity: CGFloat = 1.0
+    @State private var handoffXOffset: CGFloat = 0.0
+    @State private var handoffGeneration = 0
+    @State private var lastSwipeDirection: Int = 1 // +1 = forward/next, -1 = backward/prev
 
     private let compactBalanceHeaderHeight: CGFloat = 54
 
@@ -159,10 +169,10 @@ struct RemoteMovimentiView: View {
         min(max(balanceCollapseProgress, 0), 1)
     }
 
-    private var selectedBinding: Binding<UUID?> {
+    private var visualBinding: Binding<UUID?> {
         Binding(
-            get: { store.selectedAccountID },
-            set: { if let value = $0 { store.selectAccount(value) } }
+            get: { visualAccountID ?? store.selectedAccountID },
+            set: { visualAccountID = $0 }
         )
     }
 
@@ -257,16 +267,20 @@ struct RemoteMovimentiView: View {
             ZStack(alignment: .top) {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 0) {
+                        VStack(spacing: 0) {
                             Color.clear.frame(height: 0).id("remote-movements-top")
 
                             if store.filter == .all {
                                 RemoteAccountPager(
-                                    selectedAccountID: selectedBinding,
+                                    visualAccountID: visualBinding,
                                     hideBalances: hideBalances,
                                     showCents: showCents,
                                     collapseProgress: balanceCollapseProgress,
-                                    handoff: balanceHandoff
+                                    handoff: balanceHandoff,
+                                    onCommitAccount: { accountID in
+                                        performAccountSwitchHandoff(to: accountID, proxy: proxy)
+                                    },
+                                    reduceMotion: reduceMotion
                                 )
                                 .opacity(1 - balanceHandoff)
                                 .overlay(alignment: .top) {
@@ -280,10 +294,12 @@ struct RemoteMovimentiView: View {
                                 }
                             }
 
-                            remoteMovementList
+                            LazyVStack(spacing: 0) {
+                                remoteMovementContainer
 
-                            if store.filter == .all {
-                                Color.clear.frame(height: 180).allowsHitTesting(false)
+                                if store.filter == .all {
+                                    Color.clear.frame(height: 180).allowsHitTesting(false)
+                                }
                             }
                         }
                     }
@@ -293,9 +309,19 @@ struct RemoteMovimentiView: View {
                         let collapseDistance = max(1, expandedBalanceHeaderHeight - compactBalanceHeaderHeight)
                         balanceCollapseProgress = min(max(offset / collapseDistance, 0), 1)
                     })
-                    .onChange(of: store.selectedAccountID) { _ in
-                        proxy.scrollTo("remote-movements-top", anchor: .top)
-                        balanceCollapseProgress = 0
+                    .onChange(of: store.selectedAccountID) { newID in
+                        visualAccountID = newID
+                        if displayedAccountID == nil {
+                            displayedAccountID = newID
+                        }
+                    }
+                    .onAppear {
+                        if visualAccountID == nil {
+                            visualAccountID = store.selectedAccountID
+                        }
+                        if displayedAccountID == nil {
+                            displayedAccountID = store.selectedAccountID
+                        }
                     }
                 }
             }
@@ -311,55 +337,133 @@ struct RemoteMovimentiView: View {
         .refreshable { await store.refresh() }
     }
 
-    @ViewBuilder
-    private var remoteMovementList: some View {
-        if store.filter == .upcoming {
-            remoteUpcomingList
-        } else if store.days.isEmpty && !store.isLoading {
-            NoResultsView(fullscreen: true)
-        } else {
-            remoteHistoryList
+    private var remoteMovementContainer: some View {
+        remoteMovementList(for: displayedAccountID ?? store.selectedAccountID)
+            .opacity(handoffOpacity)
+            .offset(x: handoffXOffset)
+    }
+
+    private func performAccountSwitchHandoff(to targetAccountID: UUID, proxy: ScrollViewProxy) {
+        guard targetAccountID != store.selectedAccountID else { return }
+
+        // Determine direction from account index order
+        let accounts = store.activeAccounts
+        let oldIndex = accounts.firstIndex(where: { $0.id == store.selectedAccountID }) ?? 0
+        let newIndex = accounts.firstIndex(where: { $0.id == targetAccountID }) ?? 0
+        let direction: CGFloat = newIndex > oldIndex ? -1.0 : 1.0 // next = exit left, prev = exit right
+        lastSwipeDirection = newIndex > oldIndex ? 1 : -1
+
+        handoffGeneration += 1
+        let currentGeneration = handoffGeneration
+
+        if reduceMotion {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                store.selectAccount(targetAccountID)
+                displayedAccountID = targetAccountID
+                visualAccountID = targetAccountID
+                handoffOpacity = 1.0
+                handoffXOffset = 0.0
+            }
+            proxy.scrollTo("remote-movements-top", anchor: .top)
+            balanceCollapseProgress = 0
+            return
+        }
+
+        // Phase 1 — Outgoing: movements exit in swipe direction (~0.10s)
+        withAnimation(.easeIn(duration: 0.10)) {
+            handoffOpacity = 0.0
+            handoffXOffset = direction * 11.0
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            guard handoffGeneration == currentGeneration else { return }
+
+            // Midpoint: swap data while invisible, position at opposite entry side
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                store.selectAccount(targetAccountID)
+                displayedAccountID = targetAccountID
+                visualAccountID = targetAccountID
+                handoffXOffset = -direction * 11.0 // enter from opposite side
+            }
+
+            proxy.scrollTo("remote-movements-top", anchor: .top)
+            balanceCollapseProgress = 0
+
+            // Phase 2 — Incoming: movements arrive from opposite direction (~0.15s)
+            withAnimation(.easeOut(duration: 0.15)) {
+                handoffOpacity = 1.0
+                handoffXOffset = 0.0
+            }
         }
     }
 
     @ViewBuilder
-    private var remoteHistoryList: some View {
-        ForEach(store.days, id: \.day) { day in
-            VStack(spacing: 0) {
-                VStack(spacing: 4) {
-                    HStack {
-                        Text(remoteDateLabel(day.day).uppercased())
-                        Spacer()
-                        Text(remoteSignedAmount(day.subtotalMinor, currencyCode: store.selectedCurrencyCode, exponent: store.selectedCurrencyExponent, showCents: showCents))
-                            .monospacedDigit()
-                            .layoutPriority(1)
-                    }
-                    .font(.system(.callout, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Color.SubtitleText)
+    private func remoteMovementList(for accountID: UUID?) -> some View {
+        let currentAccountID = accountID ?? store.selectedAccountID
+        let days = currentAccountID.map { store.cachedDays(for: $0) } ?? store.days
 
-                    Line().stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
-                }
-                .padding(.horizontal, 10)
-                .padding(.top, 10)
+        Group {
+            if store.filter == .upcoming {
+                remoteUpcomingList
+            } else if days.isEmpty && !store.isLoading {
+                NoResultsView(fullscreen: true)
+            } else {
+                remoteHistoryList(for: days)
+            }
+        }
+    }
 
-                ForEach(day.movements) { transaction in
-                    RemoteMovementRow(transaction: transaction, showCents: showCents) {
-                        detail = transaction
-                    } onEdit: {
-                        guard transaction.kind != .transfer else { return }
-                        editing = transaction
-                    } onDelete: {
-                        deleteCandidate = transaction
-                        isDeleteAlertPresented = true
+    @ViewBuilder
+    private func remoteHistoryList(for days: [RemoteMovementDayDTO]) -> some View {
+        Group {
+            ForEach(days, id: \.day) { day in
+                VStack(spacing: 0) {
+                    VStack(spacing: 4) {
+                        HStack {
+                            Text(remoteDateLabel(day.day).uppercased())
+                            Spacer()
+                            Text(remoteSignedAmount(day.subtotalMinor, currencyCode: store.selectedCurrencyCode, exponent: store.selectedCurrencyExponent, showCents: showCents))
+                                .monospacedDigit()
+                                .layoutPriority(1)
+                        }
+                        .font(.system(.callout, design: .rounded).weight(.semibold))
+                        .foregroundStyle(Color.SubtitleText)
+
+                        Line().stroke(Color.Outline, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
                     }
                     .padding(.horizontal, 10)
-                    .modifier(MovementRecedingScrollEffect())
-                    .onAppear { store.loadNextPageIfNeeded(after: transaction.id) }
+                    .padding(.top, 10)
+
+                    ForEach(day.movements) { transaction in
+                        RemoteMovementRow(transaction: transaction, showCents: showCents) {
+                            detail = transaction
+                        } onEdit: {
+                            guard transaction.allowsDirectMutation else { return }
+                            editing = transaction
+                        } onDelete: {
+                            guard transaction.allowsDirectMutation else { return }
+                            deleteCandidate = transaction
+                            isDeleteAlertPresented = true
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                        .modifier(MovementRecedingScrollEffect())
+                        .onAppear { store.loadNextPageIfNeeded(after: transaction.id) }
+                    }
                 }
+                .padding(.bottom, 18)
             }
-            .padding(.bottom, 18)
+
+            if store.isLoadingNextPage {
+                ProgressView().padding(.vertical, 14)
+            }
         }
-        if store.isLoadingNextPage { ProgressView().padding(.vertical, 14) }
     }
 
     @ViewBuilder
@@ -668,37 +772,88 @@ private struct RemoteCompactBalanceToolbarTitle: View {
 @available(iOS 26.0, *)
 private struct RemoteAccountPager: View {
     @EnvironmentObject private var store: FinancialRemoteStore
-    @Binding var selectedAccountID: UUID?
+    @Binding var visualAccountID: UUID?
     let hideBalances: Bool
     let showCents: Bool
     let collapseProgress: CGFloat
     let handoff: CGFloat
+    let onCommitAccount: (UUID) -> Void
+    let reduceMotion: Bool
 
     private var pageControlReservedSpace: CGFloat {
         store.activeAccounts.count > 1 ? 24 : 0
     }
 
     var body: some View {
-        TabView(selection: $selectedAccountID) {
-            ForEach(store.activeAccounts) { account in
-                RemoteAccountHeader(
-                    account: account,
-                    hideBalances: hideBalances,
-                    showCents: showCents,
-                    collapseProgress: collapseProgress,
-                    handoff: handoff
-                )
-                .padding(.bottom, pageControlReservedSpace)
-                    .tag(Optional(account.id))
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 0) {
+                    ForEach(store.activeAccounts) { account in
+                        RemoteAccountHeaderPage(
+                            account: account,
+                            hideBalances: hideBalances,
+                            showCents: showCents,
+                            collapseProgress: collapseProgress,
+                            handoff: handoff
+                        )
+                        .containerRelativeFrame(.horizontal)
+                        .scrollTransition(.interactive) { content, phase in
+                            let raw = min(1.0, max(0.0, abs(phase.value)))
+                            let p = reduceMotion ? 0.0 : (raw * raw * (3.0 - 2.0 * raw))
+
+                            // Shared-axis: outgoing exits in swipe direction, incoming enters from opposite
+                            let axisX = phase.value < 0 ? (-16.0 * p) : (16.0 * p)
+
+                            // Asymmetric opacity: stays mostly visible early, fades decisively late
+                            let outOpacity = 1.0 - smoothstepRange(0.20, 0.85, p)
+
+                            // Tiny scale focus cue
+                            let scale = 1.0 - (0.015 * p)
+
+                            return content
+                                .offset(x: axisX)
+                                .opacity(max(0.0, outOpacity))
+                                .scaleEffect(scale)
+                        }
+                        .id(account.id)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $visualAccountID)
+            .onScrollPhaseChange { _, newPhase in
+                if newPhase == .idle, let settledID = visualAccountID {
+                    onCommitAccount(settledID)
+                }
+            }
+
+            if store.activeAccounts.count > 1 {
+                HStack(spacing: 6) {
+                    ForEach(store.activeAccounts) { account in
+                        Circle()
+                            .fill(account.id == (visualAccountID ?? store.selectedAccountID ?? store.activeAccounts.first?.id) ? Color.PrimaryText.opacity(0.85) : Color.PrimaryText.opacity(0.25))
+                            .frame(width: 6, height: 6)
+                            .animation(.easeInOut(duration: 0.18), value: visualAccountID)
+                    }
+                }
+                .frame(height: 24)
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: .automatic))
+        .scaleEffect(1 - (0.35 * collapseProgress), anchor: .top)
+        .offset(y: -12 * collapseProgress)
         .frame(height: 175 + pageControlReservedSpace)
+    }
+
+    /// Attempt a smoothstep between edge0 and edge1, clamped to [0,1]
+    private func smoothstepRange(_ edge0: Double, _ edge1: Double, _ x: Double) -> Double {
+        let t = min(1.0, max(0.0, (x - edge0) / (edge1 - edge0)))
+        return t * t * (3.0 - 2.0 * t)
     }
 }
 
 @available(iOS 26.0, *)
-private struct RemoteAccountHeader: View {
+private struct RemoteAccountHeaderPage: View {
     @EnvironmentObject private var store: FinancialRemoteStore
     let account: RemoteAccountDTO
     let hideBalances: Bool
@@ -707,7 +862,11 @@ private struct RemoteAccountHeader: View {
     let handoff: CGFloat
 
     private var snapshot: RemoteAccountSnapshotDTO? {
-        store.selectedSnapshot?.id == account.id ? store.selectedSnapshot : nil
+        store.cachedSnapshot(for: account.id)
+    }
+
+    private var summary: RemoteMovementSummaryDTO {
+        store.cachedSummary(for: account.id) ?? RemoteMovementSummaryDTO(incomeMinor: 0, expensesMinor: 0)
     }
 
     var body: some View {
@@ -739,7 +898,7 @@ private struct RemoteAccountHeader: View {
                 }
 
                 HStack {
-                    Text("+\(remoteAmountDigits(store.summary.incomeMinor, currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))")
+                    Text("+\(remoteAmountDigits(summary.incomeMinor, currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))")
                         .font(.system(size: 24, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
                         .monospacedDigit()
@@ -751,7 +910,7 @@ private struct RemoteAccountHeader: View {
                         .frame(width: 1.7, height: 15)
                         .foregroundStyle(Color.Outline)
 
-                    Text("-\(remoteAmountDigits(store.summary.expensesMinor, currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))")
+                    Text("-\(remoteAmountDigits(summary.expensesMinor, currencyCode: snapshot.currencyCode, exponent: snapshot.currencyExponent, showCents: showCents))")
                         .font(.system(size: 24, design: .rounded).weight(.medium))
                         .minimumScaleFactor(0.5)
                         .monospacedDigit()
@@ -770,16 +929,22 @@ private struct RemoteAccountHeader: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 24)
-        .scaleEffect(1 - (0.35 * collapseProgress), anchor: .top)
-        .offset(y: -12 * collapseProgress)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .frame(minHeight: 175)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(hideBalances ? "\(account.name), saldo nascosto" : "\(account.name), saldo \(snapshot.map { remoteCurrencySymbol(for: $0.currencyCode) + remoteAmountDigits($0.balanceMinor, currencyCode: $0.currencyCode, exponent: $0.currencyExponent) } ?? "non disponibile")")
+        .accessibilityLabel(accessibilityText)
     }
 
     private var currencySymbol: String {
         Locale.current.localizedCurrencySymbol(forCurrencyCode: account.currencyCode) ?? account.currencyCode
+    }
+
+    private var accessibilityText: String {
+        if hideBalances {
+            return "\(account.name), saldo nascosto"
+        }
+        let balanceText = snapshot.map { remoteCurrencySymbol(for: $0.currencyCode) + remoteAmountDigits($0.balanceMinor, currencyCode: $0.currencyCode, exponent: $0.currencyExponent) } ?? "non disponibile"
+        return "\(account.name), saldo \(balanceText)"
     }
 }
 
@@ -811,7 +976,42 @@ private struct RemoteMovementRow: View {
     }
 
     var body: some View {
+        if transaction != nil {
+            NativeTransactionContextMenuRow(
+                identifier: transaction?.id.uuidString ?? "",
+                canEdit: allowsEdit,
+                canDelete: allowsDelete,
+                editTitle: AppLocalization.string("action.edit"),
+                deleteTitle: AppLocalization.string("action.delete"),
+                content: rowButton,
+                onEdit: { if allowsEdit { onEdit() } },
+                onDelete: { if allowsDelete { onDelete() } }
+            )
+            .fixedSize(horizontal: false, vertical: true)
+            .contentShape(Rectangle())
+        } else {
+            rowButton
+        }
+    }
+
+    private var allowsEdit: Bool {
+        guard let transaction else { return false }
+        return transaction.allowsDirectMutation
+    }
+
+    private var allowsDelete: Bool {
+        guard let transaction else { return false }
+        return transaction.allowsDirectMutation
+    }
+
+    private var rowButton: some View {
         Button(action: onDetail) {
+            rowContent
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var rowContent: some View {
             HStack(spacing: 12) {
                 icon
                 VStack(alignment: .leading, spacing: 2) {
@@ -839,14 +1039,6 @@ private struct RemoteMovementRow: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
             .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            if let transaction {
-                if transaction.kind != .transfer { Button(AppLocalization.key("action.edit"), action: onEdit) }
-                Button(AppLocalization.key("action.delete"), role: .destructive, action: onDelete)
-            }
-        }
     }
 
     @ViewBuilder
@@ -986,7 +1178,17 @@ struct RemoteTransactionDetailView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     VStack(spacing: 6) {
-                        if let subscription = transaction.subscription {
+                        if transaction.kind == .transfer {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.AppSecondarySurface)
+                                    .frame(width: 56, height: 56)
+                                Image(systemName: "arrow.left.arrow.right")
+                                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Color.PrimaryText)
+                            }
+                            .padding(.bottom, 2)
+                        } else if let subscription = transaction.subscription {
                             SubscriptionLogoView(
                                 service: SubscriptionServiceCatalog.service(forID: subscription.serviceID),
                                 size: 56
@@ -1249,14 +1451,24 @@ struct RemoteTransactionEditorView: View {
     let initialAccountID: UUID?
 
     var body: some View {
-        RemoteMovementEditorSurface(kind: .transaction(transaction), initialAccountID: initialAccountID)
+        if let transaction, transaction.kind == .transfer {
+            RemoteTransferEditorView(transferTransaction: transaction)
+        } else {
+            RemoteMovementEditorSurface(kind: .transaction(transaction), initialAccountID: initialAccountID)
+        }
     }
 }
 
 @available(iOS 26.0, *)
 struct RemoteTransferEditorView: View {
+    let transferTransaction: RemoteTransactionDTO?
+
+    init(transferTransaction: RemoteTransactionDTO? = nil) {
+        self.transferTransaction = transferTransaction
+    }
+
     var body: some View {
-        RemoteMovementEditorSurface(kind: .transfer, initialAccountID: nil)
+        RemoteMovementEditorSurface(kind: .transfer(transferTransaction), initialAccountID: nil)
     }
 }
 
@@ -1264,7 +1476,7 @@ struct RemoteTransferEditorView: View {
 private struct RemoteMovementEditorSurface: View {
     enum Kind {
         case transaction(RemoteTransactionDTO?)
-        case transfer
+        case transfer(RemoteTransactionDTO? = nil)
         case subscription(RemoteSubscriptionDTO?)
     }
 
@@ -1292,7 +1504,7 @@ private struct RemoteMovementEditorSurface: View {
     @State private var repeatType = 0
     @State private var repeatCoefficient = 1
     @State private var showNoteSheet = false
-    @State private var showingNewCategory = false
+    @State private var showingCategoryPicker = false
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var subscriptionService: SubscriptionCatalogService?
@@ -1308,7 +1520,7 @@ private struct RemoteMovementEditorSurface: View {
         let subscription: RemoteSubscriptionDTO?
         switch kind {
         case let .transaction(value): transaction = value; subscription = nil
-        case .transfer: transaction = nil; subscription = nil
+        case let .transfer(value): transaction = value; subscription = nil
         case let .subscription(value): transaction = nil; subscription = value
         }
         _mode = State(initialValue: subscription != nil ? .subscription : (transaction?.kind == .income ? .income : .expense))
@@ -1331,8 +1543,11 @@ private struct RemoteMovementEditorSurface: View {
     }
 
     private var transaction: RemoteTransactionDTO? {
-        if case let .transaction(value) = kind { return value }
-        return nil
+        switch kind {
+        case let .transaction(value): return value
+        case let .transfer(value): return value
+        case .subscription: return nil
+        }
     }
 
     private var subscription: RemoteSubscriptionDTO? {
@@ -1341,8 +1556,11 @@ private struct RemoteMovementEditorSurface: View {
     }
 
     private var isTransfer: Bool {
-        if case .transfer = kind { return true }
-        return false
+        switch kind {
+        case .transfer: return true
+        case let .transaction(tx): return tx?.kind == .transfer
+        case .subscription: return false
+        }
     }
 
     private var isSubscription: Bool {
@@ -1351,11 +1569,12 @@ private struct RemoteMovementEditorSurface: View {
     }
 
     private var isEditing: Bool { transaction != nil || subscription != nil }
+    private var isEditingTransaction: Bool { transaction != nil && !isTransfer && !isSubscription }
 
     var body: some View {
         NavigationStack { editorContent }
             .dynamicTypeSize(...DynamicTypeSize.accessibility5)
-            .modifier(RemoteEditorSheetPresentation(compact: isTransfer))
+            .modifier(RemoteEditorSheetPresentation(compact: isTransfer, isEditingTransaction: isEditingTransaction))
             .onAppear {
                 normalizeSelections()
                 syncRecurrenceSelection()
@@ -1414,15 +1633,10 @@ private struct RemoteMovementEditorSurface: View {
         .sheet(isPresented: $showNoteSheet, onDismiss: { noteDraft = note }) {
             RemoteTransactionNoteSheet(note: $note, draft: $noteDraft, isPresented: $showNoteSheet)
         }
-        .sheet(isPresented: $showingNewCategory) {
-            RemoteCategoryEditorView(
-                category: nil,
-                initialIncome: mode == .income,
-                onCreated: { createdCategory in
-                    if createdCategory.income == (mode == .income) {
-                        categoryID = createdCategory.id
-                    }
-                }
+        .sheet(isPresented: $showingCategoryPicker) {
+            RemoteMovementCategoryPickerView(
+                selectedCategoryID: $categoryID,
+                income: mode == .income
             )
             .environmentObject(store)
             .environmentObject(appToastCoordinator)
@@ -1525,7 +1739,7 @@ private struct RemoteMovementEditorSurface: View {
     private var categoryCarousel: some View {
         Group {
             if filteredCategories.isEmpty {
-                Button { showingNewCategory = true } label: {
+                Button { showingCategoryPicker = true } label: {
                     Label(AppLocalization.key("action.addCategory"), systemImage: "plus.circle.fill")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
@@ -1570,7 +1784,7 @@ private struct RemoteMovementEditorSurface: View {
                                 .id(category.id)
                             }
 
-                            Button { showingNewCategory = true } label: {
+                            Button { showingCategoryPicker = true } label: {
                                 Label(AppLocalization.key("action.addCategory"), systemImage: "plus.circle.fill")
                                     .font(.body.weight(.semibold))
                                     .foregroundStyle(.primary)
@@ -1598,62 +1812,11 @@ private struct RemoteMovementEditorSurface: View {
     }
 
     private var accountCarousel: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(AppLocalization.string("common.account"))
-                .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .foregroundStyle(Color.SubtitleText)
-                .padding(.horizontal, 2)
-
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 10) {
-                        ForEach(store.activeAccounts) { account in
-                            Button {
-                                if isTransfer {
-                                    sourceID = account.id
-                                } else {
-                                    accountID = account.id
-                                }
-                            } label: {
-                                HStack(spacing: 7) {
-                                    Image(systemName: Sa7totSymbolResolver.resolved(account.iconName))
-                                        .font(.body.weight(.medium))
-                                        .foregroundStyle(accountDisplayColor(account.color))
-                                    Text(account.name)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                    if account.id == (isTransfer ? sourceID : accountID) {
-                                        Image(systemName: "checkmark")
-                                            .font(.caption.weight(.bold))
-                                    }
-                                }
-                                .font(.body.weight(account.id == (isTransfer ? sourceID : accountID) ? .semibold : .regular))
-                                .frame(minHeight: 44)
-                                .padding(.horizontal, 13)
-                                .background(Color.AppSecondarySurface, in: Capsule())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(account.name)
-                            .accessibilityAddTraits(account.id == (isTransfer ? sourceID : accountID) ? .isSelected : [])
-                            .id(account.id)
-                        }
-                    }
-                    .padding(.horizontal, 2)
-                    .padding(.vertical, 2)
-                }
-                .frame(minHeight: 52)
-                .onAppear {
-                    if let selectedID = (isTransfer ? sourceID : accountID) {
-                        proxy.scrollTo(selectedID, anchor: .center)
-                    }
-                }
-                .onChange(of: isTransfer ? sourceID : accountID) { value in
-                    guard let value else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo(value, anchor: .center) }
-                }
-            }
-        }
+        RemoteHorizontalAccountPicker(
+            title: AppLocalization.string("common.account"),
+            accounts: store.activeAccounts,
+            selection: $accountID
+        )
     }
 
     private var subscriptionContent: some View {
@@ -1712,54 +1875,70 @@ private struct RemoteMovementEditorSurface: View {
     }
 
     private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if (isEditing && !isTransfer) || isTransfer {
-                GroupBox {
-                    VStack(spacing: 10) {
-                        if isEditing && !isTransfer {
-                            dateTimeRow
-                        }
-                        if isTransfer {
-                            RemoteEditorRow(title: AppLocalization.string("transfer.from"), systemImage: "arrow.up.right") {
-                                RemoteAccountMenu(accounts: store.activeAccounts, selection: $sourceID, singleLine: true)
-                            }
-                            RemoteEditorRow(title: AppLocalization.string("transfer.to"), systemImage: "arrow.down.left") {
-                                RemoteAccountMenu(accounts: destinationAccounts, selection: $destinationID, singleLine: true)
-                            }
-                        }
-                    }
-                }
+        VStack(alignment: .leading, spacing: isTransfer ? 8 : 14) {
+            if isTransfer {
+                transferAccountSelectionSection
             }
+
             compactNoteRow
         }
     }
 
-    private var dateTimeRow: some View {
-        HStack(spacing: 8) {
+    private var transferAccountSelectionSection: some View {
+        VStack(spacing: 4) {
+            RemoteHorizontalAccountPicker(
+                title: AppLocalization.string("transfer.from"),
+                accounts: store.activeAccounts,
+                selection: $sourceID,
+                disabledID: destinationID,
+                compact: true
+            )
+
             HStack(spacing: 8) {
-                Image(systemName: "calendar")
-                Text(AppLocalization.string("transaction.dateTime"))
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-                .font(.subheadline)
-                .layoutPriority(1)
+                Rectangle()
+                    .fill(Color.Outline.opacity(0.4))
+                    .frame(height: 1)
 
-            Spacer(minLength: 4)
+                Button {
+                    swapTransferAccounts()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(AppLocalization.string("action.swap"))
+                            .font(.system(.caption, design: .rounded).weight(.semibold))
+                    }
+                    .foregroundStyle(Color.PrimaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.AppSecondarySurface, in: Capsule())
+                    .overlay(Capsule().stroke(Color.Outline.opacity(0.5), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(AppLocalization.string("action.swap"))
 
-            HStack(spacing: 4) {
-                DatePicker("", selection: $occurredAt, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .controlSize(.small)
-                DatePicker("", selection: $occurredAt, displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .controlSize(.small)
+                Rectangle()
+                    .fill(Color.Outline.opacity(0.4))
+                    .frame(height: 1)
             }
-            .environment(\.locale, .current)
-            .fixedSize(horizontal: true, vertical: false)
+            .padding(.vertical, 2)
+
+            RemoteHorizontalAccountPicker(
+                title: AppLocalization.string("transfer.to"),
+                accounts: store.activeAccounts,
+                selection: $destinationID,
+                disabledID: sourceID,
+                compact: true
+            )
         }
-        .frame(minHeight: 44)
+    }
+
+    private func swapTransferAccounts() {
+        guard let currentSource = sourceID, let currentDest = destinationID else { return }
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+            sourceID = currentDest
+            destinationID = currentSource
+        }
     }
 
     private var recurrenceRow: some View {
@@ -2134,12 +2313,19 @@ private struct RemoteMovementEditorSurface: View {
 @available(iOS 26.0, *)
 private struct RemoteEditorSheetPresentation: ViewModifier {
     let compact: Bool
+    let isEditingTransaction: Bool
 
     func body(content: Content) -> some View {
         if compact {
             content
                 .presentationDetents([.fraction(0.52)])
                 .presentationContentInteraction(.scrolls)
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(28)
+                .presentationBackground(AnyShapeStyle(Color.AppPageBackground.opacity(0.14)))
+        } else if isEditingTransaction {
+            content
+                .presentationDetents([.height(448), .large])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
                 .presentationBackground(AnyShapeStyle(Color.AppPageBackground.opacity(0.14)))
@@ -2188,6 +2374,74 @@ private struct RemoteAmountChangeAnimation: ViewModifier {
 }
 
 @available(iOS 26.0, *)
+private struct RemoteHorizontalAccountPicker: View {
+    let title: String
+    let accounts: [RemoteAccountDTO]
+    @Binding var selection: UUID?
+    var disabledID: UUID? = nil
+    var compact: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 3 : 6) {
+            Text(title)
+                .font(.system(compact ? .footnote : .subheadline, design: .rounded).weight(.medium))
+                .foregroundStyle(Color.SubtitleText)
+                .padding(.horizontal, 2)
+
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: compact ? 7 : 10) {
+                        ForEach(accounts) { account in
+                            let isSelected = account.id == selection
+                            let isDisabled = account.id == disabledID
+
+                            Button {
+                                selection = account.id
+                            } label: {
+                                HStack(spacing: compact ? 5 : 7) {
+                                    Image(systemName: Sa7totSymbolResolver.resolved(account.iconName))
+                                        .font(.system(size: compact ? 13 : 14, weight: .medium))
+                                        .foregroundStyle(accountDisplayColor(account.color))
+                                    Text(account.name)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                    if isSelected {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: compact ? 10 : 11, weight: .bold))
+                                    }
+                                }
+                                .font(.system(compact ? .subheadline : .body, design: .rounded).weight(isSelected ? .semibold : .regular))
+                                .frame(minHeight: compact ? 36 : 44)
+                                .padding(.horizontal, compact ? 10 : 13)
+                                .background(Color.AppSecondarySurface, in: Capsule())
+                                .opacity(isDisabled ? 0.38 : 1.0)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isDisabled)
+                            .accessibilityLabel(account.name)
+                            .accessibilityAddTraits(isSelected ? .isSelected : [])
+                            .id(account.id)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 1)
+                }
+                .frame(minHeight: compact ? 40 : 52)
+                .onAppear {
+                    if let selection {
+                        proxy.scrollTo(selection, anchor: .center)
+                    }
+                }
+                .onChange(of: selection) { value in
+                    guard let value else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo(value, anchor: .center) }
+                }
+            }
+        }
+    }
+}
+
 private struct RemoteAccountMenu: View {
     let accounts: [RemoteAccountDTO]
     @Binding var selection: UUID?
@@ -2349,7 +2603,11 @@ struct RemoteAccountListView: View {
             }
         }
         .sheet(isPresented: $showingNewAccount) {
-            RemoteAccountEditorView(account: nil).environmentObject(store)
+            RemoteAccountEditorView(
+                account: nil,
+                defaultCurrencyCode: "EUR"
+            )
+            .environmentObject(store)
         }
         .sheet(item: $editingAccount) { account in
             RemoteAccountEditorView(account: account).environmentObject(store)
@@ -2452,6 +2710,7 @@ struct RemoteAccountEditorView: View {
     @EnvironmentObject private var store: FinancialRemoteStore
     @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     let account: RemoteAccountDTO?
+    let defaultCurrencyCode: String
 
     @State private var name: String
     @State private var type: String
@@ -2463,11 +2722,12 @@ struct RemoteAccountEditorView: View {
     @State private var isSaving = false
     @State private var showingIconPicker = false
 
-    init(account: RemoteAccountDTO?) {
+    init(account: RemoteAccountDTO?, defaultCurrencyCode: String = "EUR") {
         self.account = account
+        self.defaultCurrencyCode = defaultCurrencyCode
         _name = State(initialValue: account?.name ?? "")
         _type = State(initialValue: account?.type ?? "other")
-        _currencyCode = State(initialValue: account?.currencyCode ?? "EUR")
+        _currencyCode = State(initialValue: account?.currencyCode ?? defaultCurrencyCode)
         _openingBalance = State(initialValue: account.map { remoteAccountDecimalString($0.openingBalanceMinor, exponent: $0.currencyExponent) } ?? remoteAccountDecimalString(0, exponent: 2))
         let storedIcon = account?.iconName ?? "building.columns.fill"
         _iconName = State(initialValue: RemoteAccountIconCatalog.all.contains(where: { $0.symbolName == storedIcon }) ? storedIcon : "building.columns.fill")
@@ -2660,6 +2920,7 @@ struct RemoteCategoryListView: View {
     @State private var showingNewCategory = false
     @State private var editingCategory: RemoteCategoryDTO?
     @State private var errorMessage: String?
+    @State private var activatingPresetKeys: Set<String> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -2674,7 +2935,7 @@ struct RemoteCategoryListView: View {
             .padding(.bottom, 4)
 
             List {
-                Section {
+                Section(header: Text(AppLocalization.key("category.active"))) {
                     if filteredCategories.isEmpty {
                         Text(AppLocalization.key(selectedFilter.emptyStateKey))
                             .font(.subheadline)
@@ -2684,49 +2945,51 @@ struct RemoteCategoryListView: View {
                             .listRowSeparator(.hidden)
                     } else {
                         ForEach(filteredCategories) { category in
-                            Button { editingCategory = category } label: {
+                            categoryRow(category)
+                        }
+                    }
+                }
+
+                if !suggestedPresets.isEmpty {
+                    Section(header: Text(AppLocalization.key("category.suggested"))) {
+                        ForEach(suggestedPresets) { preset in
+                            Button { activate(preset) } label: {
                                 HStack(spacing: 12) {
                                     CategoryIconView(
-                                        descriptor: CategoryIconPresentation.descriptor(for: category.iconIdentifier),
+                                        descriptor: .sfSymbol(preset.symbolName),
                                         role: .category,
-                                        tint: Color(hex: category.color),
-                                        accessibilityLabel: category.name
+                                        tint: Color(hex: preset.defaultColor),
+                                        accessibilityLabel: preset.localizedTitle
                                     )
                                     .frame(width: 44, height: 44)
 
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(category.name)
-                                            .font(.body.weight(.medium))
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(1)
-                                        Text(AppLocalization.key(category.income ? "category.income" : "category.expense"))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    Text(preset.localizedTitle)
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
 
                                     Spacer(minLength: 8)
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.tertiary)
+                                    if activatingPresetKeys.contains(preset.key) {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "plus")
+                                            .font(.body.weight(.semibold))
+                                            .foregroundStyle(.tint)
+                                            .frame(width: 32, height: 32)
+                                    }
                                 }
                                 .padding(.vertical, 5)
                             }
                             .buttonStyle(.plain)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    Task {
-                                        do { try await store.deleteCategory(category.id) }
-                                        catch { errorMessage = AppLocalization.string("category.deleteError") }
-                                    }
-                                } label: {
-                                    Label(AppLocalization.key("action.delete"), systemImage: "trash")
-                                }
-                            }
+                            .disabled(activatingPresetKeys.contains(preset.key))
+                            .accessibilityLabel(AppLocalization.format("category.addSuggested", preset.localizedTitle))
                         }
                     }
                 }
             }
             .listStyle(.insetGrouped)
+            .animation(.easeInOut(duration: 0.2), value: store.categories.map(\.id))
         }
         .navigationTitle(AppLocalization.key("category.title"))
         .navigationBarTitleDisplayMode(.inline)
@@ -2761,6 +3024,95 @@ struct RemoteCategoryListView: View {
 
     private var filteredCategories: [RemoteCategoryDTO] {
         store.categories.filter { $0.income == selectedFilter.isIncome }
+    }
+
+    private var suggestedPresets: [CategoryPreset] {
+        let activePresetKeys = Set(filteredCategories.compactMap(\.presetKey))
+        let customNames = Set(
+            filteredCategories
+                .filter { $0.presetKey == nil }
+                .map { normalizedDisplayName($0.name) }
+        )
+
+        return CategoryPresetCatalog.presets(income: selectedFilter.isIncome).filter { preset in
+            !activePresetKeys.contains(preset.key) && !customNames.contains(normalizedDisplayName(preset.localizedTitle))
+        }
+    }
+
+    @ViewBuilder
+    private func categoryRow(_ category: RemoteCategoryDTO) -> some View {
+        Group {
+            if category.presetKey == nil {
+                Button { editingCategory = category } label: {
+                    categoryRowContent(category, showsChevron: true)
+                }
+            } else {
+                categoryRowContent(category, showsChevron: false)
+            }
+        }
+        .buttonStyle(.plain)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                Task {
+                    do { try await store.deleteCategory(category.id) }
+                    catch { errorMessage = AppLocalization.string("category.deleteError") }
+                }
+            } label: {
+                Label(AppLocalization.key("action.delete"), systemImage: "trash")
+            }
+        }
+    }
+
+    private func categoryRowContent(_ category: RemoteCategoryDTO, showsChevron: Bool) -> some View {
+        HStack(spacing: 12) {
+            CategoryIconView(
+                descriptor: CategoryIconPresentation.descriptor(for: category.iconIdentifier),
+                role: .category,
+                tint: Color(hex: category.color),
+                accessibilityLabel: category.name
+            )
+            .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(category.presetKey.flatMap { key in
+                    CategoryPresetCatalog.all.first(where: { $0.key == key })?.localizedTitle
+                } ?? category.name)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(AppLocalization.key(category.income ? "category.income" : "category.expense"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.vertical, 5)
+    }
+
+    private func activate(_ preset: CategoryPreset) {
+        guard !activatingPresetKeys.contains(preset.key) else { return }
+        activatingPresetKeys.insert(preset.key)
+        Task {
+            do {
+                _ = try await store.activateCategoryPreset(preset)
+            } catch {
+                errorMessage = AppLocalization.string("category.activateError")
+            }
+            activatingPresetKeys.remove(preset.key)
+        }
+    }
+
+    private func normalizedDisplayName(_ value: String) -> String {
+        value
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
     }
 }
 

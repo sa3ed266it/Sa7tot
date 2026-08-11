@@ -181,6 +181,7 @@ async def transaction_out(session: AsyncSession, transaction: Transaction, persp
             income=category.income,
             icon_identifier=category.icon_identifier,
             color=category.color,
+            preset_key=category.preset_key,
         )
         if category
         else None

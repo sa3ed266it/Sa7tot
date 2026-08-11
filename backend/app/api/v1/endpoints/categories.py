@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.security import CurrentUser, get_current_user
-from app.schemas.categories import CategoryCreate, CategoryOut, CategoryUpdate
+from app.schemas.categories import CategoryCreate, CategoryOut, CategoryPresetActivation, CategoryUpdate
 from app.services.categories import (
+    activate_category_preset,
     create_category,
     list_categories,
     soft_delete_category,
@@ -30,6 +31,21 @@ async def post_category(
     user: CurrentUser = Depends(get_current_user),
 ):
     return await create_category(session, user.id, payload)
+
+
+@router.post("/presets/activate", response_model=CategoryOut)
+async def post_category_preset_activation(
+    payload: CategoryPresetActivation,
+    session: AsyncSession = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+):
+    return await activate_category_preset(
+        session,
+        user.id,
+        payload.preset_key,
+        requested_income=payload.income,
+        display_name=payload.display_name,
+    )
 
 
 @router.patch("/{category_id}", response_model=CategoryOut)

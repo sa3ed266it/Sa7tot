@@ -31,6 +31,8 @@ async def get_bootstrap(session: AsyncSession, user_id: UUID) -> BootstrapRespon
             locale=profile.locale,
             timezone=profile.timezone,
             default_currency_code=profile.default_currency_code,
+            month_start_day=profile.month_start_day,
+            week_start_day=profile.week_start_day,
         ),
         accounts=accounts,
         categories=[CategoryOut.model_validate(category) for category in categories],

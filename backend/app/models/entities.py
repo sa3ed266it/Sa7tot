@@ -46,6 +46,8 @@ class Profile(Timestamped, Base):
     locale: Mapped[str | None] = mapped_column(Text, nullable=True)
     timezone: Mapped[str] = mapped_column(Text, nullable=False, default="Europe/Rome", server_default="Europe/Rome")
     default_currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR", server_default="EUR")
+    month_start_day: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, server_default="1")
+    week_start_day: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, server_default="1")
 
 
 class Account(Timestamped, Base):
@@ -87,6 +89,13 @@ class Category(Timestamped, Base):
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
         ),
+        Index(
+            "uq_categories_user_preset",
+            "user_id",
+            "preset_key",
+            unique=True,
+            postgresql_where=text("preset_key IS NOT NULL"),
+        ),
         Index("ix_categories_user_id", "user_id"),
     )
 
@@ -100,6 +109,7 @@ class Category(Timestamped, Base):
     )
     color: Mapped[str] = mapped_column(Text, nullable=False, default="#FFFFFF", server_default="#FFFFFF")
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    preset_key: Mapped[str | None] = mapped_column(Text, nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 

@@ -66,6 +66,35 @@ final class RemoteAPIClientTests: XCTestCase {
         XCTAssertEqual(response.status, "accepted")
     }
 
+    func testProfileUpdateUsesAuthenticatedPatchAndDecodesProfile() async throws {
+        let client = try makeClient(token: "profile-token")
+        let userID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let payload = RemoteProfileUpdatePayload(monthStartDay: 15, weekStartDay: 3)
+
+        TestURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "PATCH")
+            XCTAssertEqual(request.url?.path, "/v1/profile")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer profile-token")
+            let body = try? JSONSerialization.jsonObject(with: requestBodyData(request)) as? [String: Any]
+            XCTAssertEqual(body?["month_start_day"] as? Int, 15)
+            XCTAssertEqual(body?["week_start_day"] as? Int, 3)
+            return .json(statusCode: 200, object: [
+                "user_id": userID.uuidString,
+                "locale": "it-IT",
+                "timezone": "Europe/Rome",
+                "default_currency_code": "EUR",
+                "month_start_day": 15,
+                "week_start_day": 3
+            ])
+        }
+
+        let profile = try await RemoteBootstrapRepository(client: client).updateProfile(payload)
+        XCTAssertEqual(profile.userID, userID)
+        XCTAssertEqual(profile.defaultCurrencyCode, "EUR")
+        XCTAssertEqual(profile.monthStartDay, 15)
+        XCTAssertEqual(profile.weekStartDay, 3)
+    }
+
     func testPutBudgetMutationUsesAuthenticatedRequestAndMinorUnits() async throws {
         let client = try makeClient(token: "budget-token")
         let payload = RemoteBudgetMutationPayload(

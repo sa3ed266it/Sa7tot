@@ -12,22 +12,29 @@ private enum RemoteBudgetScope: String, CaseIterable, Identifiable {
 struct RemoteBudgetEditor: View {
     @EnvironmentObject private var store: FinancialRemoteStore
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("currency", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var currencyCode = Locale.current.currencyCode ?? "EUR"
 
     let overallBudgetCreated: Bool
     let mainBudget: RemoteMainBudgetDTO?
     let categoryBudget: RemoteCategoryBudgetDTO?
+    let defaultCurrencyCode: String
     @State private var scope: RemoteBudgetScope
     @State private var selectedCategoryID: UUID?
     @State private var period: BudgetTimeFrame
     @State private var amountText: String
+    @State private var currencyCode: String
     @State private var isSaving = false
     @State private var errorMessage: String?
 
-    init(overallBudgetCreated: Bool = false, mainBudget: RemoteMainBudgetDTO? = nil, categoryBudget: RemoteCategoryBudgetDTO? = nil) {
+    init(
+        overallBudgetCreated: Bool = false,
+        mainBudget: RemoteMainBudgetDTO? = nil,
+        categoryBudget: RemoteCategoryBudgetDTO? = nil,
+        defaultCurrencyCode: String = "EUR"
+    ) {
         self.overallBudgetCreated = overallBudgetCreated
         self.mainBudget = mainBudget
         self.categoryBudget = categoryBudget
+        self.defaultCurrencyCode = defaultCurrencyCode
         let editingCategory = categoryBudget != nil
         let startsWithCategoryBudget = editingCategory || (overallBudgetCreated && mainBudget == nil)
         _scope = State(initialValue: startsWithCategoryBudget ? .category : .overall)
@@ -35,6 +42,7 @@ struct RemoteBudgetEditor: View {
         _period = State(initialValue: Self.timeFrame(for: mainBudget?.periodType ?? categoryBudget?.periodType ?? .week))
         let amountMinor = mainBudget?.amountMinor ?? categoryBudget?.amountMinor ?? 0
         _amountText = State(initialValue: Self.amountString(minor: amountMinor, exponent: mainBudget?.currencyExponent ?? categoryBudget?.currencyExponent ?? 2))
+        _currencyCode = State(initialValue: mainBudget?.currencyCode ?? categoryBudget?.currencyCode ?? defaultCurrencyCode)
     }
 
     var body: some View {

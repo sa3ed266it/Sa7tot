@@ -24,7 +24,7 @@ async def get_movements(
     income: bool | None = Query(default=None),
     day: date | None = Query(default=None),
     week_start: date | None = Query(default=None),
-    month: str | None = Query(default=None, pattern="^\\d{4}-\\d{2}$"),
+    month: str | None = Query(default=None, pattern="^\\d{4}-\\d{2}(-\\d{2})?$"),
     category_id: UUID | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
     user: CurrentUser = Depends(get_current_user),

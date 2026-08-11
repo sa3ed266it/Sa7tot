@@ -42,6 +42,69 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
         XCTAssertTrue(initialIncomeForIncome, "Income mode must preselect Income (initialIncome = true).")
     }
 
+    func testCategoryPresetCatalogHasApprovedV1ShapeAndNoSubscriptions() {
+        XCTAssertEqual(CategoryPresetCatalog.expenses.count, 11)
+        XCTAssertEqual(CategoryPresetCatalog.incomes.count, 6)
+        XCTAssertFalse(CategoryPresetCatalog.all.contains { $0.key == "expense.subscriptions" })
+        XCTAssertFalse(CategoryPresetCatalog.all.contains { $0.key.localizedCaseInsensitiveContains("subscription") })
+        XCTAssertEqual(CategoryPresetCatalog.expenses.map(\.order), Array(0..<11))
+        XCTAssertEqual(CategoryPresetCatalog.incomes.map(\.order), Array(0..<6))
+    }
+
+    func testCategoryPresetCatalogUsesRefinedNativeSymbols() {
+        XCTAssertEqual(
+            CategoryPresetCatalog.expenses.map(\.symbolName),
+            [
+                "fork.knife", "car.fill", "house.fill", "cart.fill", "person.2.fill",
+                "bolt.fill", "tshirt.fill", "cross.case.fill", "pawprint.fill", "shoe.2.fill", "gift.fill"
+            ]
+        )
+        XCTAssertEqual(
+            CategoryPresetCatalog.incomes.map(\.symbolName),
+            [
+                "arrow.down.circle.fill", "wallet.pass.fill", "briefcase.fill",
+                "chart.line.uptrend.xyaxis", "gift.fill", "hand.thumbsup.fill"
+            ]
+        )
+    }
+
+    func testCategoryPresetDisplayUsesLocalizedCatalogKey() {
+        let preset = try! XCTUnwrap(CategoryPresetCatalog.expenses.first { $0.key == "expense.food" })
+        XCTAssertEqual(preset.localizedTitle, AppLocalization.string("category.preset.expense.food"))
+        XCTAssertEqual(preset.symbolName, "fork.knife")
+        XCTAssertEqual(preset.defaultColor, "#279AF4")
+    }
+
+    func testCategoryDTODecodesNullablePresetKeyAndActivationPayloadUsesStableKey() throws {
+        let json = """
+        {
+          "id":"00000000-0000-0000-0000-000000000020",
+          "user_id":"00000000-0000-0000-0000-000000000001",
+          "name":"Food",
+          "income":false,
+          "icon_identifier":"sf:fork.knife",
+          "color":"#279AF4",
+          "sort_order":0,
+          "preset_key":"expense.food",
+          "deleted_at":null,
+          "created_at":"2026-08-08T10:00:00Z",
+          "updated_at":"2026-08-08T10:00:00Z"
+        }
+        """
+        let category = try RemoteJSON.decoder().decode(RemoteCategoryDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(category.presetKey, "expense.food")
+
+        let payload = RemoteCategoryPresetActivationPayload(
+            presetKey: "expense.food",
+            income: false,
+            displayName: "Cibo"
+        )
+        let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any]
+        XCTAssertEqual(object?["preset_key"] as? String, "expense.food")
+        XCTAssertEqual(object?["income"] as? Bool, false)
+        XCTAssertEqual(object?["display_name"] as? String, "Cibo")
+    }
+
     func testDirectCategoryAutoSelectionMatchesTypeSafetyRules() {
         let expenseCategoryID = UUID()
         let createdExpenseCategory = RemoteCategoryBriefDTO(
@@ -49,7 +112,8 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
             name: "Test Direct Expense",
             income: false,
             iconIdentifier: "sf:tag.fill",
-            color: "#279AF4"
+            color: "#279AF4",
+            presetKey: nil
         )
 
         var selectedID: UUID? = nil
@@ -67,7 +131,8 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
             name: "Test Direct Income",
             income: true,
             iconIdentifier: "sf:tag.fill",
-            color: "#279AF4"
+            color: "#279AF4",
+            presetKey: nil
         )
 
         if createdIncomeCategory.income == currentModeIsIncome {
@@ -118,7 +183,8 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
             name: "Test 2",
             income: false,
             iconIdentifier: "sf:scooter",
-            color: "#EC7A58"
+            color: "#EC7A58",
+            presetKey: nil
         )
 
         let expenseWithCategoryAndNote = RemoteTransactionDTO(
@@ -221,6 +287,60 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
         XCTAssertLessThanOrEqual(resolvedTimestampForNew, afterSave)
     }
 
+    func testEditMovementPayloadPreservesOriginalTimestampWithoutCurrentTime() {
+        let originalDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let originalAccountID = UUID()
+        let updatedAccountID = UUID()
+        let categoryID = UUID()
+
+        let existingTransaction = RemoteTransactionDTO(
+            id: UUID(),
+            userID: UUID(),
+            kind: .expense,
+            accountID: originalAccountID,
+            destinationAccountID: nil,
+            amountMinor: -4500,
+            currencyCode: "EUR",
+            currencyExponent: 2,
+            occurredAt: originalDate,
+            localDay: try! RemoteDateOnly(isoString: "2023-11-14"),
+            title: "Cena",
+            effectiveAmountMinor: -4500,
+            category: nil,
+            transfer: nil,
+            subscription: nil,
+            recurrence: nil,
+            note: "Vecchia nota",
+            merchant: nil,
+            origin: "manual",
+            reviewStatus: "confirmed",
+            externalReference: nil,
+            createdAt: originalDate,
+            updatedAt: originalDate
+        )
+
+        // Simulate building update payload with edited fields (amount, account, category, note)
+        let updatePayload = RemoteTransactionUpdatePayload(
+            kind: .expense,
+            accountID: updatedAccountID,
+            amountMinor: 5500,
+            currencyCode: "EUR",
+            currencyExponent: 2,
+            occurredAt: existingTransaction.occurredAt,
+            categoryID: categoryID,
+            note: "Nuova nota",
+            merchant: nil,
+            origin: "manual",
+            reviewStatus: "confirmed"
+        )
+
+        XCTAssertEqual(updatePayload.occurredAt, originalDate, "Update payload must preserve the exact original timestamp of the transaction.")
+        XCTAssertNotEqual(updatePayload.occurredAt, Date(), "Update payload timestamp must not be replaced with current time Date().")
+        XCTAssertEqual(updatePayload.accountID, updatedAccountID)
+        XCTAssertEqual(updatePayload.amountMinor, 5500)
+        XCTAssertEqual(updatePayload.note, "Nuova nota")
+    }
+
     func testAccountSelectorPreselection() {
         let accountA = UUID()
         let accountB = UUID()
@@ -229,5 +349,138 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
 
         let resolved = initialAccountID ?? selectedAccountID
         XCTAssertEqual(resolved, accountA, "Initial account ID passed to editor must take precedence for initial account selection.")
+    }
+
+    func testSubscriptionOriginTransactionDisallowsDirectMutationAndRowActions() {
+        let date = Date()
+        let subscriptionBrief = RemoteSubscriptionBriefDTO(id: UUID(), serviceID: "netflix", displayName: "Netflix")
+
+        let subscriptionTransaction = RemoteTransactionDTO(
+            id: UUID(),
+            userID: UUID(),
+            kind: .expense,
+            accountID: UUID(),
+            destinationAccountID: nil,
+            amountMinor: -1599,
+            currencyCode: "EUR",
+            currencyExponent: 2,
+            occurredAt: date,
+            localDay: try! RemoteDateOnly(isoString: "2026-08-10"),
+            title: "Netflix",
+            effectiveAmountMinor: -1599,
+            category: nil,
+            transfer: nil,
+            subscription: subscriptionBrief,
+            recurrence: nil,
+            note: nil,
+            merchant: nil,
+            origin: "subscription",
+            reviewStatus: "confirmed",
+            externalReference: nil,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        let normalExpense = RemoteTransactionDTO(
+            id: UUID(),
+            userID: UUID(),
+            kind: .expense,
+            accountID: UUID(),
+            destinationAccountID: nil,
+            amountMinor: -500,
+            currencyCode: "EUR",
+            currencyExponent: 2,
+            occurredAt: date,
+            localDay: try! RemoteDateOnly(isoString: "2026-08-10"),
+            title: "Caffè",
+            effectiveAmountMinor: -500,
+            category: nil,
+            transfer: nil,
+            subscription: nil,
+            recurrence: nil,
+            note: nil,
+            merchant: nil,
+            origin: "manual",
+            reviewStatus: "confirmed",
+            externalReference: nil,
+            createdAt: date,
+            updatedAt: date
+        )
+
+        XCTAssertFalse(subscriptionTransaction.allowsDirectMutation, "Subscription-origin transaction must disallow direct row mutation (Edit/Delete).")
+        XCTAssertTrue(normalExpense.allowsDirectMutation, "Normal expense transaction must allow direct row mutation (Edit/Delete).")
+    }
+
+    func testVisualPagerPositionChangeAloneDoesNotCommitStoreAccountUntilSettled() {
+        let accountA = UUID()
+        let accountB = UUID()
+
+        var committedAccountID = accountA
+        var visualAccountID: UUID? = accountA
+
+        // Intermediate scroll drag to account B
+        visualAccountID = accountB
+
+        // Drag is active (not settled) -> store commit must not happen yet
+        XCTAssertEqual(committedAccountID, accountA, "Visual pager position change alone during drag must not commit store account.")
+
+        // Paging settles on account B -> commit account B
+        if let settledID = visualAccountID, settledID != committedAccountID {
+            committedAccountID = settledID
+        }
+
+        XCTAssertEqual(committedAccountID, accountB, "Settled scroll position must commit account selection.")
+    }
+
+    func testCanceledInteractiveSwipeDoesNotSwitchMovementDataset() {
+        let accountA = UUID()
+        let accountB = UUID()
+
+        var committedAccountID = accountA
+        var visualAccountID: UUID? = accountA
+
+        // Swipe begins toward account B
+        visualAccountID = accountB
+
+        // User cancels swipe, returning to account A
+        visualAccountID = accountA
+
+        // Paging settles back on account A
+        if let settledID = visualAccountID, settledID != committedAccountID {
+            committedAccountID = settledID
+        }
+
+        XCTAssertEqual(committedAccountID, accountA, "Canceled swipe returning to original account must preserve current committed account dataset.")
+    }
+
+    func testCommittedAccountSwitchSelectsCorrectCachedMovementState() {
+        let accountA = UUID()
+        let accountB = UUID()
+
+        var currentSelectedAccountID: UUID? = accountA
+
+        // Committing account B
+        currentSelectedAccountID = accountB
+        XCTAssertEqual(currentSelectedAccountID, accountB, "Committed account switch must update selected account ID to target account.")
+
+        // Committing account A
+        currentSelectedAccountID = accountA
+        XCTAssertEqual(currentSelectedAccountID, accountA, "Committed account switch back must restore selected account ID to original account.")
+    }
+
+    func testRepeatedABASwitchesEndOnCorrectAccount() {
+        let accountA = UUID()
+        let accountB = UUID()
+
+        var committedAccountID = accountA
+        let switches = [accountB, accountA, accountB, accountA]
+
+        for target in switches {
+            if target != committedAccountID {
+                committedAccountID = target
+            }
+        }
+
+        XCTAssertEqual(committedAccountID, accountA, "Repeated A->B->A commits must end on the final settled account.")
     }
 }

@@ -6,6 +6,23 @@ public struct RemoteCategoryBriefDTO: Codable, Equatable, Identifiable, Sendable
     public let income: Bool
     public let iconIdentifier: String
     public let color: String
+    public let presetKey: String?
+
+    public init(
+        id: UUID,
+        name: String,
+        income: Bool,
+        iconIdentifier: String,
+        color: String,
+        presetKey: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.income = income
+        self.iconIdentifier = iconIdentifier
+        self.color = color
+        self.presetKey = presetKey
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -13,6 +30,7 @@ public struct RemoteCategoryBriefDTO: Codable, Equatable, Identifiable, Sendable
         case income
         case iconIdentifier = "icon_identifier"
         case color
+        case presetKey = "preset_key"
     }
 }
 
@@ -24,6 +42,7 @@ public struct RemoteCategoryDTO: Codable, Equatable, Identifiable, Sendable {
     public let iconIdentifier: String
     public let color: String
     public let sortOrder: Int
+    public let presetKey: String?
     public let deletedAt: Date?
     public let createdAt: Date
     public let updatedAt: Date
@@ -36,6 +55,7 @@ public struct RemoteCategoryDTO: Codable, Equatable, Identifiable, Sendable {
         case iconIdentifier = "icon_identifier"
         case color
         case sortOrder = "sort_order"
+        case presetKey = "preset_key"
         case deletedAt = "deleted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -85,5 +105,23 @@ public struct RemoteCategoryUpdatePayload: Encodable, Sendable {
         case iconIdentifier = "icon_identifier"
         case color
         case sortOrder = "sort_order"
+    }
+}
+
+public struct RemoteCategoryPresetActivationPayload: Encodable, Sendable {
+    public let presetKey: String
+    public let income: Bool?
+    public let displayName: String?
+
+    public init(presetKey: String, income: Bool? = nil, displayName: String? = nil) {
+        self.presetKey = presetKey
+        self.income = income
+        self.displayName = displayName
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case presetKey = "preset_key"
+        case income
+        case displayName = "display_name"
     }
 }

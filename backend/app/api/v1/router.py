@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     budget,
     categories,
     movements,
+    profile,
     recurrences,
     subscriptions,
     transactions,
@@ -21,6 +22,7 @@ router.include_router(budget.router)
 router.include_router(categories.router)
 router.include_router(transactions.router)
 router.include_router(movements.router)
+router.include_router(profile.router)
 router.include_router(subscriptions.router)
 router.include_router(recurrences.router)
 router.include_router(upcoming.router)

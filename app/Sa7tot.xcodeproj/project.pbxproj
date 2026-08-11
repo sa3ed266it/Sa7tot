@@ -104,6 +104,9 @@
 		D70000000000000000000031 /* RemoteMovimentiSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000031 /* RemoteMovimentiSupport.swift */; };
 		D70000000000000000000032 /* BackgroundBlurView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000032 /* BackgroundBlurView.swift */; };
 		D70000000000000000000033 /* CalendarSettingsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000033 /* CalendarSettingsSupport.swift */; };
+		D70000000000000000000034 /* NativeTransactionContextMenuRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7E1A062026080300000001 /* NativeTransactionContextMenuRow.swift */; };
+		D70000000000000000000035 /* CategoryPresetCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000034 /* CategoryPresetCatalog.swift */; };
+		D70000000000000000000036 /* RemoteMovementCategoryPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000035 /* RemoteMovementCategoryPickerView.swift */; };
 		E70000000000000000000001 /* APIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000001 /* APIConfiguration.swift */; };
 		E70000000000000000000002 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000002 /* APIError.swift */; };
 		E70000000000000000000003 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000003 /* APIRequest.swift */; };
@@ -129,6 +132,7 @@
 		E70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift */; };
 		E70000000000000000000027 /* CategoryIconDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000029 /* CategoryIconDescriptor.swift */; };
 		E70000000000000000000028 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63B205B2D8728C300CAFB20 /* AppLocalization.swift */; };
+		E70000000000000000000035 /* CategoryPresetCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70000000000000000000034 /* CategoryPresetCatalog.swift */; };
 		F00300010000000000000001 /* ClashDisplay-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F00300040000000000000001 /* ClashDisplay-Bold.otf */; };
 		F00300020000000000000001 /* FFL-ClashDisplay.txt in Resources */ = {isa = PBXBuildFile; fileRef = F00300050000000000000001 /* FFL-ClashDisplay.txt */; };
 		F00300090000000000000001 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = F00300080000000000000001 /* Lottie */; };
@@ -254,6 +258,8 @@
 		C70000000000000000000031 /* RemoteMovimentiSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteMovimentiSupport.swift; sourceTree = "<group>"; };
 		C70000000000000000000032 /* BackgroundBlurView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundBlurView.swift; sourceTree = "<group>"; };
 		C70000000000000000000033 /* CalendarSettingsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSettingsSupport.swift; sourceTree = "<group>"; };
+		C70000000000000000000034 /* CategoryPresetCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryPresetCatalog.swift; sourceTree = "<group>"; };
+		C70000000000000000000035 /* RemoteMovementCategoryPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteMovementCategoryPickerView.swift; sourceTree = "<group>"; };
 		D63B20572D8728C300CAFB20 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		D63B20582D8728C300CAFB20 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		D63B205B2D8728C300CAFB20 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
@@ -367,6 +373,7 @@
 				B7A000000000000000000002 /* SubscriptionManagerView.swift */,
 				C7000000000000000000001C /* AuthRootView.swift */,
 				C70000000000000000000023 /* RemoteFinancialViews.swift */,
+				C70000000000000000000035 /* RemoteMovementCategoryPickerView.swift */,
 				C70000000000000000000027 /* RemoteBudgetView.swift */,
 				C70000000000000000000028 /* RemoteBudgetEditor.swift */,
 				C70000000000000000000031 /* RemoteMovimentiSupport.swift */,
@@ -389,6 +396,7 @@
 				C70000000000000000000025 /* RemoteSubscriptionSupport.swift */,
 				C70000000000000000000026 /* RemoteSubscriptionCreationSupport.swift */,
 				C70000000000000000000029 /* CategoryIconDescriptor.swift */,
+				C70000000000000000000034 /* CategoryPresetCatalog.swift */,
 				B7A000000000000000000004 /* MainTabConfiguration.swift */,
 				5327D2BE287C6B2500F76ADF /* TimeFrame.swift */,
 				5321E1DB291FE02B00D5A931 /* CategoryCreationErrors.swift */,
@@ -712,6 +720,9 @@
 				D70000000000000000000031 /* RemoteMovimentiSupport.swift in Sources */,
 				D70000000000000000000032 /* BackgroundBlurView.swift in Sources */,
 				D70000000000000000000033 /* CalendarSettingsSupport.swift in Sources */,
+				D70000000000000000000034 /* NativeTransactionContextMenuRow.swift in Sources */,
+				D70000000000000000000035 /* CategoryPresetCatalog.swift in Sources */,
+				D70000000000000000000036 /* RemoteMovementCategoryPickerView.swift in Sources */,
 				D63B205C2D8728C300CAFB20 /* AppLocalization.swift in Sources */,
 				B7A000000000000000000001 /* SubscriptionManagerView.swift in Sources */,
 				A7B000000000000000000022 /* SubscriptionServicePickerView.swift in Sources */,
@@ -814,6 +825,7 @@
 				F70000000000000000000007 /* SupabaseAuthService.swift in Sources */,
 				F70000000000000000000008 /* AppleAuthorizationCredentialBuilder.swift in Sources */,
 				E70000000000000000000028 /* AppLocalization.swift in Sources */,
+				E70000000000000000000035 /* CategoryPresetCatalog.swift in Sources */,
 				90B902323029995A00DD1A1B /* AppToast.swift in Sources */,
 				90B902333029995A00DD1A1B /* AppToastCoordinator.swift in Sources */,
 				F7000000000000000000000A /* SupabaseAuthTests.swift in Sources */,

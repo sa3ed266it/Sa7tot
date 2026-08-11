@@ -10,6 +10,25 @@ final class RemoteDTOTests: XCTestCase {
         XCTAssertEqual(createdAt.timeIntervalSince1970, 1786183200, accuracy: 1)
         XCTAssertEqual(bootstrap.categories.first?.iconIdentifier, "fork.knife")
         XCTAssertEqual(bootstrap.subscriptionSummary.nextBillingDate, try RemoteDateOnly(isoString: "2026-08-15"))
+        XCTAssertEqual(bootstrap.profile.monthStartDay, 1)
+        XCTAssertEqual(bootstrap.profile.weekStartDay, 1)
+    }
+
+    func testProfileCalendarPreferencesDefaultWhenOlderBootstrapOmitsThem() throws {
+        let json = """
+        {"user_id":"00000000-0000-0000-0000-000000000001","locale":"it-IT","timezone":"Europe/Rome","default_currency_code":"EUR"}
+        """
+        let profile = try RemoteJSON.decoder().decode(RemoteProfileDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(profile.monthStartDay, 1)
+        XCTAssertEqual(profile.weekStartDay, 1)
+    }
+
+    func testProfileCalendarPayloadEncodesOnlySelectedPreferences() throws {
+        let payload = RemoteProfileUpdatePayload(monthStartDay: 15, weekStartDay: 3)
+        let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any]
+        XCTAssertEqual(object?["month_start_day"] as? Int, 15)
+        XCTAssertEqual(object?["week_start_day"] as? Int, 3)
+        XCTAssertNil(object?["default_currency_code"])
     }
 
     func testMovimentiFixturePreservesTransferAndSubscriptionMetadata() throws {
@@ -39,6 +58,26 @@ final class RemoteDTOTests: XCTestCase {
         XCTAssertEqual(object?["amount_minor"] as? Int, 2500)
         XCTAssertEqual(object?["currency_exponent"] as? Int, 2)
         XCTAssertEqual(object?["currency_code"] as? String, "EUR")
+    }
+
+    func testTransferCreatePayloadEncodesNoteCorrectly() throws {
+        let sourceID = UUID()
+        let destinationID = UUID()
+        let payload = RemoteTransferCreatePayload(
+            sourceAccountID: sourceID,
+            destinationAccountID: destinationID,
+            amountMinor: 5000,
+            currencyCode: "EUR",
+            currencyExponent: 2,
+            occurredAt: Date(timeIntervalSince1970: 1_786_183_200),
+            note: "Savings transfer"
+        )
+        let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any]
+
+        XCTAssertEqual(object?["source_account_id"] as? String, sourceID.uuidString)
+        XCTAssertEqual(object?["destination_account_id"] as? String, destinationID.uuidString)
+        XCTAssertEqual(object?["amount_minor"] as? Int, 5000)
+        XCTAssertEqual(object?["note"] as? String, "Savings transfer")
     }
 
     func testRecurrenceContractsDecodeAndCreatePayloadUsesRemoteDateOnly() throws {
@@ -133,9 +172,60 @@ final class RemoteDTOTests: XCTestCase {
         XCTAssertEqual(summary.main?.periodType, .month)
     }
 
+    func testLargeMovimentiPageFixtureHandles70TransactionsAndHeaderMetrics() throws {
+        var days: [RemoteMovementDayDTO] = []
+        for dayOffset in 0..<10 {
+            let dayString = String(format: "2026-08-%02d", 10 - dayOffset)
+            let dateOnly = try RemoteDateOnly(isoString: dayString)
+            var movements: [RemoteTransactionDTO] = []
+            for item in 0..<7 {
+                let id = UUID()
+                let tx = RemoteTransactionDTO(
+                    id: id,
+                    userID: UUID(),
+                    kind: item % 2 == 0 ? .expense : .income,
+                    accountID: UUID(),
+                    destinationAccountID: nil,
+                    amountMinor: Int64((item + 1) * 500),
+                    currencyCode: "EUR",
+                    currencyExponent: 2,
+                    occurredAt: Date(),
+                    localDay: dateOnly,
+                    title: "Movement \(dayOffset)-\(item)",
+                    effectiveAmountMinor: Int64((item + 1) * 500),
+                    category: nil,
+                    transfer: nil,
+                    subscription: nil,
+                    recurrence: nil,
+                    note: nil,
+                    merchant: nil,
+                    origin: "manual",
+                    reviewStatus: "confirmed",
+                    externalReference: nil,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                )
+                movements.append(tx)
+            }
+            days.append(RemoteMovementDayDTO(day: dateOnly, subtotalMinor: 3500, movements: movements))
+        }
+
+        let page = RemoteMovimentiPageDTO(
+            account: RemoteAccountSnapshotDTO(id: UUID(), name: "Main", currencyCode: "EUR", currencyExponent: 2, balanceMinor: 100000),
+            summary: RemoteMovementSummaryDTO(incomeMinor: 50000, expensesMinor: 20000),
+            days: days,
+            nextCursor: "cursor_page_2"
+        )
+
+        XCTAssertEqual(page.days.count, 10)
+        let totalCount = page.days.reduce(0) { $0 + $1.movements.count }
+        XCTAssertEqual(totalCount, 70)
+        XCTAssertEqual(page.nextCursor, "cursor_page_2")
+    }
+
     private let bootstrapFixture = """
     {
-      "profile": {"user_id":"00000000-0000-0000-0000-000000000001","locale":"it-IT","timezone":"Europe/Rome","default_currency_code":"EUR"},
+      "profile": {"user_id":"00000000-0000-0000-0000-000000000001","locale":"it-IT","timezone":"Europe/Rome","default_currency_code":"EUR","month_start_day":1,"week_start_day":1},
       "accounts": [{"id":"00000000-0000-0000-0000-000000000010","user_id":"00000000-0000-0000-0000-000000000001","name":"Conto principale","type":"bank","currency_code":"EUR","currency_exponent":2,"opening_balance_minor":79800,"icon_name":"building.columns","color":"blue","wallet_label":null,"is_archived":false,"sort_order":0,"created_at":"2026-08-08T10:00:00Z","updated_at":"2026-08-08T10:00:00.123Z"}],
       "categories": [{"id":"00000000-0000-0000-0000-000000000020","user_id":"00000000-0000-0000-0000-000000000001","name":"Cibo","income":false,"icon_identifier":"fork.knife","color":"orange","sort_order":0,"deleted_at":null,"created_at":"2026-08-08T10:00:00Z","updated_at":"2026-08-08T10:00:00Z"}],
       "subscription_summary": {"active_count":1,"paused_count":0,"next_billing_date":"2026-08-15"}

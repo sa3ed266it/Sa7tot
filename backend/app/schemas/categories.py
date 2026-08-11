@@ -16,6 +16,12 @@ class CategoryCreate(APIModel):
     sort_order: int = 0
 
 
+class CategoryPresetActivation(APIModel):
+    preset_key: str = Field(min_length=1, max_length=100)
+    income: bool | None = None
+    display_name: str | None = Field(default=None, min_length=1, max_length=200)
+
+
 class CategoryUpdate(APIModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     income: bool | None = None
@@ -32,6 +38,7 @@ class CategoryOut(APIModel):
     icon_identifier: str
     color: str
     sort_order: int
+    preset_key: str | None
     deleted_at: datetime | None
     created_at: datetime
     updated_at: datetime

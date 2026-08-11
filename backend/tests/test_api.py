@@ -63,6 +63,96 @@ async def test_categories_are_unique_and_soft_deleted(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_category_preset_activation_is_idempotent_and_reactivates_same_uuid(client: AsyncClient):
+    first = await client.post(
+        "/v1/categories/presets/activate",
+        json={"preset_key": "expense.food", "income": False, "display_name": "Cibo"},
+    )
+    assert first.status_code == 200, first.text
+    category = first.json()
+    assert category["preset_key"] == "expense.food"
+    assert category["income"] is False
+
+    repeated = await client.post(
+        "/v1/categories/presets/activate",
+        json={"preset_key": "expense.food", "income": False, "display_name": "Cibo"},
+    )
+    assert repeated.status_code == 200
+    assert repeated.json()["id"] == category["id"]
+
+    deleted = await client.delete(f"/v1/categories/{category['id']}")
+    assert deleted.status_code == 200
+    assert deleted.json()["preset_key"] == "expense.food"
+
+    restored = await client.post(
+        "/v1/categories/presets/activate",
+        json={"preset_key": "expense.food", "income": False, "display_name": "Cibo"},
+    )
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["id"] == category["id"]
+    assert restored.json()["deleted_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_category_preset_validation_and_custom_name_conflict(client: AsyncClient):
+    unknown = await client.post("/v1/categories/presets/activate", json={"preset_key": "expense.subscriptions"})
+    assert unknown.status_code == 422
+    assert unknown.json()["error"]["code"] == "unknown_category_preset"
+
+    mismatch = await client.post(
+        "/v1/categories/presets/activate",
+        json={"preset_key": "expense.food", "income": True},
+    )
+    assert mismatch.status_code == 422
+    assert mismatch.json()["error"]["code"] == "preset_type_mismatch"
+
+    custom = await client.post("/v1/categories", json={"name": "Cibo", "income": False})
+    assert custom.status_code == 201
+    assert custom.json()["preset_key"] is None
+
+    conflict = await client.post(
+        "/v1/categories/presets/activate",
+        json={"preset_key": "expense.food", "income": False, "display_name": "Cibo"},
+    )
+    assert conflict.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_category_preset_is_user_scoped(client: AsyncClient, switch_user):
+    first = await client.post("/v1/categories/presets/activate", json={"preset_key": "income.paycheck"})
+    assert first.status_code == 200
+
+    switch_user()
+    second = await client.post("/v1/categories/presets/activate", json={"preset_key": "income.paycheck"})
+    assert second.status_code == 200
+    assert second.json()["id"] != first.json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_removed_preset_category_remains_available_to_historical_transactions(client: AsyncClient):
+    account = await create_account(client, "Principale")
+    category = await client.post("/v1/categories/presets/activate", json={"preset_key": "expense.food"})
+    assert category.status_code == 200
+    transaction = await client.post(
+        "/v1/transactions",
+        json={
+            "kind": "expense",
+            "account_id": account["id"],
+            "category_id": category.json()["id"],
+            "amount_minor": 100,
+            "currency_code": "EUR",
+            "currency_exponent": 2,
+            "occurred_at": datetime.now(UTC).isoformat(),
+        },
+    )
+    assert transaction.status_code == 201
+    assert (await client.delete(f"/v1/categories/{category.json()['id']}")).status_code == 200
+    historical = await client.get(f"/v1/transactions/{transaction.json()['id']}")
+    assert historical.status_code == 200
+    assert historical.json()["category"]["preset_key"] == "expense.food"
+
+
+@pytest.mark.asyncio
 async def test_category_soft_delete_preserves_historical_transaction(client: AsyncClient):
     account = await create_account(client, "Principale")
     category = await client.post("/v1/categories", json={"name": "Storico", "income": False})
