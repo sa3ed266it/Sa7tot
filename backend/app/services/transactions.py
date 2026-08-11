@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import select
@@ -8,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import DomainError
 from app.models.entities import Account, Category, RecurrenceOccurrence, Subscription, Transaction
 from app.schemas.common import CategoryBrief, RecurrenceBrief, SubscriptionBrief, TransactionKind, TransferBrief
-from app.schemas.transactions import TransactionCreate, TransactionUpdate, TransferCreate
+from app.schemas.transactions import TransactionCreate, TransactionOut, TransactionUpdate, TransferCreate
 from app.services.common import (
     display_subscription_name,
     ensure_utc,
@@ -147,21 +149,144 @@ async def create_transfer(session: AsyncSession, user_id: UUID, payload: Transfe
     return transaction
 
 
-async def transaction_out(session: AsyncSession, transaction: Transaction, perspective_account: Account | None = None):
-    source = await session.get(Account, transaction.account_id)
-    destination = (
-        await session.get(Account, transaction.destination_account_id) if transaction.destination_account_id else None
-    )
-    category = await session.get(Category, transaction.category_id) if transaction.category_id else None
-    subscription = await session.get(Subscription, transaction.subscription_id) if transaction.subscription_id else None
-    recurrence_occurrence = None
-    if transaction.recurrence_rule_id:
-        recurrence_occurrence = await session.scalar(
-            select(RecurrenceOccurrence).where(
-                RecurrenceOccurrence.transaction_id == transaction.id,
-                RecurrenceOccurrence.user_id == transaction.user_id,
-            )
+@dataclass(frozen=True, slots=True)
+class TransactionRelationMaps:
+    """User-scoped relation maps used by the pure transaction serializer."""
+
+    accounts_by_id: Mapping[UUID, Account]
+    categories_by_id: Mapping[UUID, Category]
+    subscriptions_by_id: Mapping[UUID, Subscription]
+    occurrences_by_transaction_id: Mapping[UUID, RecurrenceOccurrence]
+
+
+async def load_transaction_relation_maps(
+    session: AsyncSession,
+    user_id: UUID,
+    transactions: Sequence[Transaction],
+    perspective_account: Account | None = None,
+) -> TransactionRelationMaps:
+    """Load all optional transaction relations in bounded, user-scoped queries."""
+
+    account_ids = {
+        account_id
+        for transaction in transactions
+        for account_id in (transaction.account_id, transaction.destination_account_id)
+        if account_id is not None
+    }
+    category_ids = {transaction.category_id for transaction in transactions if transaction.category_id is not None}
+    subscription_ids = {
+        transaction.subscription_id for transaction in transactions if transaction.subscription_id is not None
+    }
+    recurrence_transaction_ids = {
+        transaction.id for transaction in transactions if transaction.recurrence_rule_id is not None
+    }
+
+    accounts_by_id: dict[UUID, Account] = {}
+    if perspective_account is not None:
+        accounts_by_id[perspective_account.id] = perspective_account
+    missing_account_ids = account_ids - accounts_by_id.keys()
+    if missing_account_ids:
+        accounts_by_id.update(
+            {
+                account.id: account
+                for account in (
+                    await session.scalars(
+                        select(Account).where(Account.user_id == user_id, Account.id.in_(missing_account_ids))
+                    )
+                ).all()
+            }
         )
+
+    categories_by_id: dict[UUID, Category] = {}
+    if category_ids:
+        categories_by_id.update(
+            {
+                category.id: category
+                for category in (
+                    await session.scalars(
+                        select(Category).where(Category.user_id == user_id, Category.id.in_(category_ids))
+                    )
+                ).all()
+            }
+        )
+
+    subscriptions_by_id: dict[UUID, Subscription] = {}
+    if subscription_ids:
+        subscriptions_by_id.update(
+            {
+                subscription.id: subscription
+                for subscription in (
+                    await session.scalars(
+                        select(Subscription).where(
+                            Subscription.user_id == user_id,
+                            Subscription.id.in_(subscription_ids),
+                        )
+                    )
+                ).all()
+            }
+        )
+
+    occurrences_by_transaction_id: dict[UUID, RecurrenceOccurrence] = {}
+    if recurrence_transaction_ids:
+        occurrences_by_transaction_id.update(
+            {
+                occurrence.transaction_id: occurrence
+                for occurrence in (
+                    await session.scalars(
+                        select(RecurrenceOccurrence).where(
+                            RecurrenceOccurrence.user_id == user_id,
+                            RecurrenceOccurrence.transaction_id.in_(recurrence_transaction_ids),
+                        )
+                    )
+                ).all()
+                if occurrence.transaction_id is not None
+            }
+        )
+
+    return TransactionRelationMaps(
+        accounts_by_id=accounts_by_id,
+        categories_by_id=categories_by_id,
+        subscriptions_by_id=subscriptions_by_id,
+        occurrences_by_transaction_id=occurrences_by_transaction_id,
+    )
+
+
+async def transactions_out(
+    session: AsyncSession,
+    transactions: Sequence[Transaction],
+    perspective_account: Account | None = None,
+    user_id: UUID | None = None,
+) -> list[TransactionOut]:
+    """Serialize a page after one bounded relation-loading pass."""
+
+    if not transactions:
+        return []
+    owner_id = user_id or transactions[0].user_id
+    relations = await load_transaction_relation_maps(session, owner_id, transactions, perspective_account)
+    return [_transaction_out(transaction, perspective_account, relations) for transaction in transactions]
+
+
+async def transaction_out(session: AsyncSession, transaction: Transaction, perspective_account: Account | None = None):
+    """Serialize one transaction, retaining the endpoint compatibility wrapper."""
+
+    relations = await load_transaction_relation_maps(session, transaction.user_id, [transaction], perspective_account)
+    return _transaction_out(transaction, perspective_account, relations)
+
+
+def _transaction_out(
+    transaction: Transaction,
+    perspective_account: Account | None,
+    relations: TransactionRelationMaps,
+) -> TransactionOut:
+    source = relations.accounts_by_id.get(transaction.account_id)
+    destination = (
+        relations.accounts_by_id.get(transaction.destination_account_id) if transaction.destination_account_id else None
+    )
+    category = relations.categories_by_id.get(transaction.category_id) if transaction.category_id else None
+    subscription = (
+        relations.subscriptions_by_id.get(transaction.subscription_id) if transaction.subscription_id else None
+    )
+    recurrence_occurrence = relations.occurrences_by_transaction_id.get(transaction.id)
 
     if transaction.kind == TransactionKind.transfer.value:
         title = "Trasferimento"
@@ -219,8 +344,6 @@ async def transaction_out(session: AsyncSession, transaction: Transaction, persp
         else None
     )
     effective = effective_amount_minor(transaction, perspective_account) if perspective_account is not None else None
-
-    from app.schemas.transactions import TransactionOut
 
     return TransactionOut(
         id=transaction.id,

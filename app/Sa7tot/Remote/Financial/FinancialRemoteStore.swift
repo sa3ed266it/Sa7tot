@@ -8,6 +8,7 @@ enum RemoteMovementFilter: String, CaseIterable, Identifiable, Sendable {
     case week
     case month
     case category
+    case subscription
     case recurring
     case upcoming
 
@@ -21,9 +22,123 @@ enum RemoteMovementFilter: String, CaseIterable, Identifiable, Sendable {
         case .week: return AppLocalization.string("filter.week")
         case .month: return AppLocalization.string("filter.month")
         case .category: return AppLocalization.string("filter.category")
+        case .subscription: return AppLocalization.string("subscription.title")
         case .recurring: return AppLocalization.string("filter.recurring")
         case .upcoming: return AppLocalization.string("filter.upcoming")
         }
+    }
+}
+
+struct FinancialPeriodWindow: Equatable {
+    let start: Date
+    let end: Date
+}
+
+enum FinancialPeriodNavigator {
+    static let fallbackTimeZone = "Europe/Rome"
+
+    static func calendar(timeZoneIdentifier: String) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone(identifier: fallbackTimeZone)!
+        calendar.locale = .current
+        return calendar
+    }
+
+    static func weekStart(for date: Date, weekStartDay: Int, timeZoneIdentifier: String) -> Date {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        let localDate = localDate(for: date, calendar: calendar)
+        let weekday = calendar.component(.weekday, from: localDate)
+        let isoWeekday = weekday == 1 ? 7 : weekday - 1
+        let offset = (isoWeekday - weekStartDay + 7) % 7
+        return calendar.date(byAdding: .day, value: -offset, to: localDate) ?? localDate
+    }
+
+    static func weekWindow(for date: Date, weekStartDay: Int, timeZoneIdentifier: String) -> FinancialPeriodWindow {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        let start = weekStart(for: date, weekStartDay: weekStartDay, timeZoneIdentifier: timeZoneIdentifier)
+        let end = calendar.date(byAdding: .day, value: 7, to: start) ?? start
+        return FinancialPeriodWindow(start: start, end: end)
+    }
+
+    static func shiftedWeek(from date: Date, by offset: Int, weekStartDay: Int, timeZoneIdentifier: String) -> Date {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        let start = weekStart(for: date, weekStartDay: weekStartDay, timeZoneIdentifier: timeZoneIdentifier)
+        return calendar.date(byAdding: .day, value: offset * 7, to: start) ?? start
+    }
+
+    static func monthStart(forDisplayYear year: Int, month: Int, monthStartDay: Int, timeZoneIdentifier: String) -> Date {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        let firstOfMonth = makeDate(year: year, month: month, day: 1, calendar: calendar)
+        let daysInMonth = calendar.range(of: .day, in: .month, for: firstOfMonth)?.count ?? monthStartDay
+        return makeDate(year: year, month: month, day: min(max(monthStartDay, 1), daysInMonth), calendar: calendar)
+    }
+
+    static func financialMonthStart(for date: Date, monthStartDay: Int, timeZoneIdentifier: String) -> Date {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        let localDate = localDate(for: date, calendar: calendar)
+        let components = calendar.dateComponents([.year, .month, .day], from: localDate)
+        guard let year = components.year, let month = components.month, let day = components.day else { return localDate }
+        let currentStart = monthStart(forDisplayYear: year, month: month, monthStartDay: monthStartDay, timeZoneIdentifier: timeZoneIdentifier)
+        if day >= calendar.component(.day, from: currentStart) { return currentStart }
+
+        let previousDate = calendar.date(byAdding: .month, value: -1, to: makeDate(year: year, month: month, day: 1, calendar: calendar)) ?? localDate
+        let previous = calendar.dateComponents([.year, .month], from: previousDate)
+        return monthStart(
+            forDisplayYear: previous.year ?? year,
+            month: previous.month ?? month,
+            monthStartDay: monthStartDay,
+            timeZoneIdentifier: timeZoneIdentifier
+        )
+    }
+
+    static func monthWindow(for date: Date, monthStartDay: Int, timeZoneIdentifier: String) -> FinancialPeriodWindow {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        let start = financialMonthStart(for: date, monthStartDay: monthStartDay, timeZoneIdentifier: timeZoneIdentifier)
+        let components = calendar.dateComponents([.year, .month], from: start)
+        let nextDate = calendar.date(byAdding: .month, value: 1, to: makeDate(year: components.year ?? 2000, month: components.month ?? 1, day: 1, calendar: calendar)) ?? start
+        let next = calendar.dateComponents([.year, .month], from: nextDate)
+        let end = monthStart(
+            forDisplayYear: next.year ?? 2000,
+            month: next.month ?? 1,
+            monthStartDay: monthStartDay,
+            timeZoneIdentifier: timeZoneIdentifier
+        )
+        return FinancialPeriodWindow(start: start, end: end)
+    }
+
+    static func shiftedMonth(from date: Date, by offset: Int, monthStartDay: Int, timeZoneIdentifier: String) -> Date {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        let start = financialMonthStart(for: date, monthStartDay: monthStartDay, timeZoneIdentifier: timeZoneIdentifier)
+        let components = calendar.dateComponents([.year, .month], from: start)
+        let shiftedDate = calendar.date(byAdding: .month, value: offset, to: makeDate(year: components.year ?? 2000, month: components.month ?? 1, day: 1, calendar: calendar)) ?? start
+        let shifted = calendar.dateComponents([.year, .month], from: shiftedDate)
+        return monthStart(
+            forDisplayYear: shifted.year ?? 2000,
+            month: shifted.month ?? 1,
+            monthStartDay: monthStartDay,
+            timeZoneIdentifier: timeZoneIdentifier
+        )
+    }
+
+    static func displayMonthComponents(for date: Date, monthStartDay: Int, timeZoneIdentifier: String) -> DateComponents {
+        let calendar = calendar(timeZoneIdentifier: timeZoneIdentifier)
+        return calendar.dateComponents(
+            [.year, .month],
+            from: financialMonthStart(for: date, monthStartDay: monthStartDay, timeZoneIdentifier: timeZoneIdentifier)
+        )
+    }
+
+    private static func localDate(for date: Date, calendar: Calendar) -> Date {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return calendar.date(from: components) ?? date
+    }
+
+    private static func makeDate(year: Int, month: Int, day: Int, calendar: Calendar) -> Date {
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        return calendar.date(from: components) ?? Date(timeIntervalSince1970: 0)
     }
 }
 
@@ -92,6 +207,8 @@ enum RemoteBootstrapStatus: Equatable {
 
 @MainActor
 final class FinancialRemoteStore: ObservableObject {
+    static let lastKnownAccountIDDefaultsKey = "remote.lastKnownAccountID"
+
     let isRemoteOnly: Bool
 
     @Published private(set) var profile: RemoteProfileDTO?
@@ -139,6 +256,15 @@ final class FinancialRemoteStore: ObservableObject {
     private var bootstrapTask: Task<Bool, Never>?
     private var secondaryBootstrapTask: Task<Void, Never>?
     private var movementTask: Task<Void, Never>?
+    private var movementTaskAccountID: UUID?
+    private var movementTaskIsSpeculative = false
+    private var hasAuthoritativeAccountSet = false
+    private var hasSelectedWeekPeriod = false
+    private var hasSelectedMonthPeriod = false
+    private var pendingSpeculativePage: RemoteMovimentiPageDTO?
+    private var pendingSpeculativePageGeneration: Int?
+    private var pendingSpeculativeUpcoming: RemoteUpcomingResponseDTO?
+    private var pendingSpeculativeUpcomingGeneration: Int?
     private var loadedMovementIDs = Set<UUID>()
     private var loadGeneration = 0
 
@@ -165,6 +291,7 @@ final class FinancialRemoteStore: ObservableObject {
             upcomingRepository = nil
             budgetRepository = nil
         }
+        selectedAccountID = Self.loadLastKnownAccountID()
     }
 
     var activeAccounts: [RemoteAccountDTO] {
@@ -211,23 +338,45 @@ final class FinancialRemoteStore: ObservableObject {
             return false
         }
         movementTask?.cancel()
+        movementTask = nil
+        movementTaskAccountID = nil
+        movementTaskIsSpeculative = false
+        hasAuthoritativeAccountSet = false
+        pendingSpeculativePage = nil
+        pendingSpeculativePageGeneration = nil
+        pendingSpeculativeUpcoming = nil
+        pendingSpeculativeUpcomingGeneration = nil
         secondaryBootstrapTask?.cancel()
         secondaryBootstrapTask = nil
+        loadGeneration += 1
+        let startupGeneration = loadGeneration
+        let lastKnownAccountID = selectedAccountID
         bootstrapStatus = .loading
         isLoading = true
         errorMessage = nil
         selectedSnapshot = nil
         clearMovementPageOnly()
+
+        if let lastKnownAccountID, !hasFreshMovementCache(for: lastKnownAccountID) {
+            startFirstPageLoad(accountID: lastKnownAccountID, generation: startupGeneration, isSpeculative: true)
+        }
+
+        async let bootstrapResponse = bootstrapRepository.load()
         do {
-            let response = try await bootstrapRepository.load()
+            let response = try await bootstrapResponse
             try Task.checkCancellation()
             profile = response.profile
             accounts = response.accounts
             categories = response.categories
+            hasAuthoritativeAccountSet = true
             normalizeSelectedAccount()
             if let selectedAccountID {
-                await fetchFirstPage(accountID: selectedAccountID)
+                await resolveInitialMovementPage(accountID: selectedAccountID)
             } else {
+                pendingSpeculativePage = nil
+                pendingSpeculativePageGeneration = nil
+                pendingSpeculativeUpcoming = nil
+                pendingSpeculativeUpcomingGeneration = nil
                 clearMovements()
             }
 
@@ -243,10 +392,26 @@ final class FinancialRemoteStore: ObservableObject {
             startSecondaryBootstrap()
             return true
         } catch is CancellationError {
+            movementTask?.cancel()
+            movementTask = nil
+            movementTaskAccountID = nil
+            movementTaskIsSpeculative = false
+            pendingSpeculativePage = nil
+            pendingSpeculativePageGeneration = nil
+            pendingSpeculativeUpcoming = nil
+            pendingSpeculativeUpcomingGeneration = nil
             bootstrapStatus = .idle
             isLoading = false
             return false
         } catch {
+            movementTask?.cancel()
+            movementTask = nil
+            movementTaskAccountID = nil
+            movementTaskIsSpeculative = false
+            pendingSpeculativePage = nil
+            pendingSpeculativePageGeneration = nil
+            pendingSpeculativeUpcoming = nil
+            pendingSpeculativeUpcomingGeneration = nil
             errorMessage = userFacingMessage(for: error)
             bootstrapStatus = .failed
             isLoading = false
@@ -313,6 +478,17 @@ final class FinancialRemoteStore: ObservableObject {
         guard activeAccounts.contains(where: { $0.id == accountID }) else { return }
         guard selectedAccountID != accountID || selectedSnapshot == nil else { return }
         selectedAccountID = accountID
+        persistLastKnownAccountID(accountID)
+
+        loadGeneration += 1
+        movementTask?.cancel()
+        movementTask = nil
+        movementTaskAccountID = nil
+        movementTaskIsSpeculative = false
+        pendingSpeculativePage = nil
+        pendingSpeculativePageGeneration = nil
+        pendingSpeculativeUpcoming = nil
+        pendingSpeculativeUpcomingGeneration = nil
 
         let key = cacheKey(for: accountID)
         if let cached = accountCache[key] {
@@ -330,14 +506,8 @@ final class FinancialRemoteStore: ObservableObject {
         } else {
             clearMovements()
         }
-
-loadGeneration += 1
         let generation = loadGeneration
-        movementTask?.cancel()
-        movementTask = Task { [weak self] in
-            guard let self else { return }
-            await self.fetchFirstPage(accountID: accountID, generation: generation)
-        }
+        startFirstPageLoad(accountID: accountID, generation: generation)
     }
 
     func invalidateAccountCache(for accountID: UUID? = nil) {
@@ -349,13 +519,16 @@ loadGeneration += 1
     }
 
     func cacheKey(for accountID: UUID) -> AccountMovementCacheKey {
-        AccountMovementCacheKey(
+        let timeZoneIdentifier = profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+        let weekStartDay = profile?.weekStartDay ?? 1
+        let monthStartDay = profile?.monthStartDay ?? 1
+        return AccountMovementCacheKey(
             accountID: accountID,
             filter: filter,
             typeIsIncome: typeIsIncome,
             selectedDayComponents: filter == .day ? Calendar.current.dateComponents([.year, .month, .day], from: selectedDay) : nil,
-            selectedWeekComponents: filter == .week ? Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedWeek) : nil,
-            selectedMonthComponents: filter == .month ? Calendar.current.dateComponents([.year, .month], from: selectedMonth) : nil,
+            selectedWeekComponents: filter == .week ? Calendar.current.dateComponents([.year, .month, .day], from: FinancialPeriodNavigator.weekStart(for: selectedWeek, weekStartDay: weekStartDay, timeZoneIdentifier: timeZoneIdentifier)) : nil,
+            selectedMonthComponents: filter == .month ? FinancialPeriodNavigator.displayMonthComponents(for: selectedMonth, monthStartDay: monthStartDay, timeZoneIdentifier: timeZoneIdentifier) : nil,
             selectedCategoryID: filter == .category ? selectedCategoryID : nil
         )
     }
@@ -404,6 +577,7 @@ loadGeneration += 1
         let cursor = nextCursor
         let generation = loadGeneration
         movementTask?.cancel()
+        movementTaskAccountID = selectedAccountID
         movementTask = Task { [weak self] in
             guard let self, let movementsRepository = self.movementsRepository else { return }
             do {
@@ -414,8 +588,8 @@ loadGeneration += 1
                     filter: self.filter.rawValue,
                     income: self.filter == .type ? self.typeIsIncome : nil,
                     day: self.filter == .day ? self.remoteDateOnly(self.selectedDay) : nil,
-                    weekStart: self.filter == .week ? self.remoteDateOnly(self.selectedWeek) : nil,
-                    month: self.filter == .month ? self.remoteMonth(self.selectedMonth) : nil,
+                    weekStart: self.filter == .week ? self.remoteFinancialDateOnly(self.canonicalWeekStart(self.selectedWeek)) : nil,
+                    month: self.filter == .month ? self.remoteFinancialMonth(self.canonicalMonthStart(self.selectedMonth)) : nil,
                     categoryID: self.filter == .category ? self.selectedCategoryID : nil
                 )
                 try Task.checkCancellation()
@@ -430,8 +604,71 @@ loadGeneration += 1
     }
 
     func setFilter(_ newFilter: RemoteMovementFilter) {
+        if newFilter == .all {
+            typeIsIncome = false
+            selectedDay = .now
+            selectedWeek = .now
+            selectedMonth = .now
+            selectedCategoryID = nil
+            hasSelectedWeekPeriod = false
+            hasSelectedMonthPeriod = false
+        } else if newFilter == .week && filter != .week && !hasSelectedWeekPeriod {
+            selectedWeek = FinancialPeriodNavigator.weekStart(
+                for: .now,
+                weekStartDay: profile?.weekStartDay ?? 1,
+                timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+            )
+            hasSelectedWeekPeriod = true
+        } else if newFilter == .month && filter != .month && !hasSelectedMonthPeriod {
+            selectedMonth = FinancialPeriodNavigator.financialMonthStart(
+                for: .now,
+                monthStartDay: profile?.monthStartDay ?? 1,
+                timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+            )
+            hasSelectedMonthPeriod = true
+        }
         filter = newFilter
         resetAndReload()
+    }
+
+    func moveWeek(by offset: Int) {
+        selectedWeek = FinancialPeriodNavigator.shiftedWeek(
+            from: hasSelectedWeekPeriod ? selectedWeek : .now,
+            by: offset,
+            weekStartDay: profile?.weekStartDay ?? 1,
+            timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+        )
+        hasSelectedWeekPeriod = true
+        filter = .week
+        resetAndReload()
+    }
+
+    func moveMonth(by offset: Int) {
+        selectedMonth = FinancialPeriodNavigator.shiftedMonth(
+            from: hasSelectedMonthPeriod ? selectedMonth : .now,
+            by: offset,
+            monthStartDay: profile?.monthStartDay ?? 1,
+            timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+        )
+        hasSelectedMonthPeriod = true
+        filter = .month
+        resetAndReload()
+    }
+
+    func selectMonth(_ date: Date) {
+        selectedMonth = FinancialPeriodNavigator.financialMonthStart(
+            for: date,
+            monthStartDay: profile?.monthStartDay ?? 1,
+            timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+        )
+        hasSelectedMonthPeriod = true
+        filter = .month
+        resetAndReload()
+    }
+
+    func setCategoryFilter(_ categoryID: UUID?) {
+        selectedCategoryID = categoryID
+        setFilter(.category)
     }
 
     func createAccount(_ payload: RemoteAccountCreatePayload) async throws {
@@ -628,6 +865,12 @@ loadGeneration += 1
     func resetRemoteState() {
         movementTask?.cancel()
         movementTask = nil
+        movementTaskAccountID = nil
+        movementTaskIsSpeculative = false
+        pendingSpeculativePage = nil
+        pendingSpeculativePageGeneration = nil
+        pendingSpeculativeUpcoming = nil
+        pendingSpeculativeUpcomingGeneration = nil
         bootstrapTask?.cancel()
         bootstrapTask = nil
         secondaryBootstrapTask?.cancel()
@@ -643,6 +886,7 @@ loadGeneration += 1
         budgetSummary = nil
         budgetErrorMessage = nil
         selectedAccountID = nil
+        clearLastKnownAccountID()
         selectedSnapshot = nil
         clearMovements()
         accountCache.removeAll()
@@ -666,6 +910,130 @@ loadGeneration += 1
         }
     }
 
+    private func resolveInitialMovementPage(accountID: UUID) async {
+        guard selectedAccountID == accountID else { return }
+
+        if let pendingPage = pendingSpeculativePage,
+           pendingSpeculativePageGeneration == loadGeneration,
+           pendingPage.account.id == accountID {
+            pendingSpeculativePage = nil
+            pendingSpeculativePageGeneration = nil
+            publish(pendingPage, for: accountID)
+            return
+        }
+        if filter == .upcoming,
+           let pendingUpcoming = pendingSpeculativeUpcoming,
+           pendingSpeculativeUpcomingGeneration == loadGeneration,
+           pendingUpcoming.account.id == accountID {
+            pendingSpeculativeUpcoming = nil
+            pendingSpeculativeUpcomingGeneration = nil
+            publish(pendingUpcoming, for: accountID)
+            return
+        }
+
+        let decision = RemoteStartupFastPathDecision.resolve(
+            lastKnownAccountID: selectedAccountID,
+            authoritativeAccountID: accountID,
+            speculativePageAccountID: movementTaskAccountID,
+            hasFreshCache: hasFreshMovementCache(for: accountID),
+            hasInFlightPage: movementTask != nil
+        )
+        switch decision {
+        case .useFreshCache:
+            if let cached = freshMovementCache(for: accountID) {
+                publish(cached, for: accountID)
+            }
+            return
+        case .awaitSpeculativePage:
+            guard let movementTask else { return }
+            await movementTask.value
+        case .fetchAuthoritativePage:
+            startFirstPageLoad(accountID: accountID, generation: loadGeneration)
+            await movementTask?.value
+        }
+
+        guard selectedAccountID == accountID else { return }
+        guard selectedSnapshot?.id != accountID else { return }
+
+        // A speculative request is optional. If it failed, retry through the
+        // normal authoritative path before bootstrap completes.
+        errorMessage = nil
+        startFirstPageLoad(accountID: accountID, generation: loadGeneration)
+        await movementTask?.value
+    }
+
+    private func startFirstPageLoad(accountID: UUID, generation: Int, isSpeculative: Bool = false) {
+        movementTask?.cancel()
+        movementTaskAccountID = accountID
+        movementTaskIsSpeculative = isSpeculative
+        if !isSpeculative {
+            pendingSpeculativePage = nil
+            pendingSpeculativePageGeneration = nil
+            pendingSpeculativeUpcoming = nil
+            pendingSpeculativeUpcomingGeneration = nil
+        }
+        movementTask = Task { [weak self] in
+            guard let self else { return }
+            await self.fetchFirstPage(accountID: accountID, generation: generation)
+        }
+    }
+
+    private func freshMovementCache(for accountID: UUID) -> AccountMovementCacheEntry? {
+        let key = cacheKey(for: accountID)
+        guard let cached = accountCache[key], Date().timeIntervalSince(cached.lastLoadedAt) < 60 else { return nil }
+        return cached
+    }
+
+    private func hasFreshMovementCache(for accountID: UUID) -> Bool {
+        freshMovementCache(for: accountID) != nil
+    }
+
+    private func publish(_ cached: AccountMovementCacheEntry, for accountID: UUID) {
+        guard cached.selectedSnapshot?.id == accountID, selectedAccountID == accountID else { return }
+        selectedSnapshot = cached.selectedSnapshot
+        summary = cached.summary
+        days = cached.days
+        upcomingItems = cached.upcomingItems
+        nextCursor = cached.nextCursor
+        loadedMovementIDs = cached.loadedMovementIDs
+        errorMessage = nil
+    }
+
+    private func publish(_ page: RemoteMovimentiPageDTO, for accountID: UUID) {
+        guard selectedAccountID == accountID else { return }
+        selectedSnapshot = page.account
+        summary = page.summary
+        days = page.days
+        nextCursor = page.nextCursor
+        loadedMovementIDs = Set(page.days.flatMap(\.movements).map(\.id))
+        errorMessage = nil
+
+        accountCache[cacheKey(for: accountID)] = AccountMovementCacheEntry(
+            selectedSnapshot: selectedSnapshot,
+            summary: summary,
+            days: days,
+            upcomingItems: upcomingItems,
+            nextCursor: nextCursor,
+            loadedMovementIDs: loadedMovementIDs
+        )
+    }
+
+    private func publish(_ response: RemoteUpcomingResponseDTO, for accountID: UUID) {
+        guard selectedAccountID == accountID else { return }
+        upcomingItems = response.items
+        clearMovementPageOnly()
+        errorMessage = nil
+
+        accountCache[cacheKey(for: accountID)] = AccountMovementCacheEntry(
+            selectedSnapshot: selectedSnapshot,
+            summary: summary,
+            days: days,
+            upcomingItems: upcomingItems,
+            nextCursor: nextCursor,
+            loadedMovementIDs: loadedMovementIDs
+        )
+    }
+
     private func fetchFirstPage(accountID: UUID, generation: Int? = nil) async {
         if filter == .upcoming {
             await fetchUpcoming(accountID: accountID, generation: generation)
@@ -681,28 +1049,27 @@ loadGeneration += 1
                 filter: filter.rawValue,
                 income: filter == .type ? typeIsIncome : nil,
                 day: filter == .day ? remoteDateOnly(selectedDay) : nil,
-                weekStart: filter == .week ? remoteDateOnly(selectedWeek) : nil,
-                month: filter == .month ? remoteMonth(selectedMonth) : nil,
+                weekStart: filter == .week ? remoteFinancialDateOnly(canonicalWeekStart(selectedWeek)) : nil,
+                month: filter == .month ? remoteFinancialMonth(canonicalMonthStart(selectedMonth)) : nil,
                 categoryID: filter == .category ? selectedCategoryID : nil
             )
             try Task.checkCancellation()
-            guard expectedGeneration == loadGeneration, selectedAccountID == accountID else { return }
-            selectedSnapshot = page.account
-            summary = page.summary
-            days = page.days
-            nextCursor = page.nextCursor
-            loadedMovementIDs = Set(page.days.flatMap(\.movements).map(\.id))
-            errorMessage = nil
-
-            let key = cacheKey(for: accountID)
-            accountCache[key] = AccountMovementCacheEntry(
-                selectedSnapshot: selectedSnapshot,
-                summary: summary,
-                days: days,
-                upcomingItems: upcomingItems,
-                nextCursor: nextCursor,
-                loadedMovementIDs: loadedMovementIDs
-            )
+            guard RemoteStartupFastPathDecision.canPublish(
+                pageAccountID: page.account.id,
+                intendedAccountID: accountID,
+                expectedGeneration: expectedGeneration,
+                currentGeneration: loadGeneration,
+                hasAuthoritativeAccountSet: true
+            ), selectedAccountID == accountID else { return }
+            if RemoteStartupFastPathDecision.shouldDeferSpeculativePage(
+                isSpeculative: movementTaskIsSpeculative,
+                hasAuthoritativeAccountSet: hasAuthoritativeAccountSet
+            ) {
+                pendingSpeculativePage = page
+                pendingSpeculativePageGeneration = expectedGeneration
+                return
+            }
+            publish(page, for: accountID)
         } catch is CancellationError {
         } catch {
             guard expectedGeneration == loadGeneration else { return }
@@ -717,20 +1084,22 @@ loadGeneration += 1
             _ = try await recurrencesRepository?.materialize()
             let response = try await upcomingRepository.list(accountID: accountID, limit: 50)
             try Task.checkCancellation()
-            guard expectedGeneration == loadGeneration, selectedAccountID == accountID else { return }
-            upcomingItems = response.items
-            clearMovementPageOnly()
-            errorMessage = nil
-
-            let key = cacheKey(for: accountID)
-            accountCache[key] = AccountMovementCacheEntry(
-                selectedSnapshot: selectedSnapshot,
-                summary: summary,
-                days: days,
-                upcomingItems: upcomingItems,
-                nextCursor: nextCursor,
-                loadedMovementIDs: loadedMovementIDs
-            )
+            guard RemoteStartupFastPathDecision.canPublish(
+                pageAccountID: response.account.id,
+                intendedAccountID: accountID,
+                expectedGeneration: expectedGeneration,
+                currentGeneration: loadGeneration,
+                hasAuthoritativeAccountSet: true
+            ), selectedAccountID == accountID else { return }
+            if RemoteStartupFastPathDecision.shouldDeferSpeculativePage(
+                isSpeculative: movementTaskIsSpeculative,
+                hasAuthoritativeAccountSet: hasAuthoritativeAccountSet
+            ) {
+                pendingSpeculativeUpcoming = response
+                pendingSpeculativeUpcomingGeneration = expectedGeneration
+                return
+            }
+            publish(response, for: accountID)
         } catch is CancellationError {
         } catch {
             guard expectedGeneration == loadGeneration else { return }
@@ -770,12 +1139,16 @@ loadGeneration += 1
     private func resetAndReload() {
         loadGeneration += 1
         movementTask?.cancel()
+        movementTask = nil
+        movementTaskAccountID = nil
+        movementTaskIsSpeculative = false
+        pendingSpeculativePage = nil
+        pendingSpeculativePageGeneration = nil
+        pendingSpeculativeUpcoming = nil
+        pendingSpeculativeUpcomingGeneration = nil
         guard let selectedAccountID else { clearMovements(); return }
         let generation = loadGeneration
-        movementTask = Task { [weak self] in
-            guard let self else { return }
-            await self.fetchFirstPage(accountID: selectedAccountID, generation: generation)
-        }
+        startFirstPageLoad(accountID: selectedAccountID, generation: generation)
     }
 
     private func normalizeSelectedAccount() {
@@ -785,6 +1158,27 @@ loadGeneration += 1
             selectedAccountID = normalized
             loadGeneration += 1
         }
+        if let normalized {
+            persistLastKnownAccountID(normalized)
+        } else {
+            clearLastKnownAccountID()
+        }
+    }
+
+    private static func loadLastKnownAccountID() -> UUID? {
+        let defaults = UserDefaults(suiteName: "group.com.saied.sa7tot") ?? .standard
+        guard let rawValue = defaults.string(forKey: lastKnownAccountIDDefaultsKey) else { return nil }
+        return UUID(uuidString: rawValue)
+    }
+
+    private func persistLastKnownAccountID(_ accountID: UUID) {
+        let defaults = UserDefaults(suiteName: "group.com.saied.sa7tot") ?? .standard
+        defaults.set(accountID.uuidString, forKey: Self.lastKnownAccountIDDefaultsKey)
+    }
+
+    private func clearLastKnownAccountID() {
+        let defaults = UserDefaults(suiteName: "group.com.saied.sa7tot") ?? .standard
+        defaults.removeObject(forKey: Self.lastKnownAccountIDDefaultsKey)
     }
 
     private func replaceAccount(_ account: RemoteAccountDTO) {
@@ -809,6 +1203,40 @@ loadGeneration += 1
         let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
         guard let year = components.year, let month = components.month, let day = components.day else { return nil }
         return try? RemoteDateOnly(year: year, month: month, day: day)
+    }
+
+    private func remoteFinancialDateOnly(_ date: Date) -> RemoteDateOnly? {
+        let calendar = FinancialPeriodNavigator.calendar(timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone)
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        guard let year = components.year, let month = components.month, let day = components.day else { return nil }
+        return try? RemoteDateOnly(year: year, month: month, day: day)
+    }
+
+    private func remoteFinancialMonth(_ date: Date) -> String {
+        let calendar = FinancialPeriodNavigator.calendar(timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone)
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 2000,
+            components.month ?? 1,
+            components.day ?? 1
+        )
+    }
+
+    private func canonicalWeekStart(_ date: Date) -> Date {
+        FinancialPeriodNavigator.weekStart(
+            for: date,
+            weekStartDay: profile?.weekStartDay ?? 1,
+            timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+        )
+    }
+
+    private func canonicalMonthStart(_ date: Date) -> Date {
+        FinancialPeriodNavigator.financialMonthStart(
+            for: date,
+            monthStartDay: profile?.monthStartDay ?? 1,
+            timeZoneIdentifier: profile?.timezone ?? FinancialPeriodNavigator.fallbackTimeZone
+        )
     }
 
     private func remoteMonth(_ date: Date) -> String {

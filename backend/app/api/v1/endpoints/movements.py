@@ -20,7 +20,7 @@ async def get_movements(
     account_id: UUID,
     limit: int | None = Query(default=None, ge=1),
     cursor: str | None = Query(default=None),
-    filter: str = Query(default="all", pattern="^(all|type|day|week|month|category|recurring)$"),
+    filter: str = Query(default="all", pattern="^(all|type|day|week|month|category|subscription|recurring)$"),
     income: bool | None = Query(default=None),
     day: date | None = Query(default=None),
     week_start: date | None = Query(default=None),

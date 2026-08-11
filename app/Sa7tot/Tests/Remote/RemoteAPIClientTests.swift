@@ -31,6 +31,71 @@ final class RemoteAPIClientTests: XCTestCase {
         XCTAssertEqual(response, expected)
     }
 
+    func testMovimentiRepositoryBuildsSubscriptionFilterRequest() async throws {
+        let client = try makeClient(token: "subscription-token")
+        let accountID = UUID()
+
+        TestURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/v1/accounts/\(accountID.uuidString)/movements")
+            XCTAssertEqual(request.url?.query, "limit=50&filter=subscription")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer subscription-token")
+            return .json(statusCode: 200, object: [
+                "account": [
+                    "id": accountID.uuidString,
+                    "name": "Principale",
+                    "currency_code": "EUR",
+                    "currency_exponent": 2,
+                    "balance_minor": 0
+                ],
+                "summary": ["income_minor": 0, "expenses_minor": 0],
+                "days": [],
+                "next_cursor": NSNull()
+            ])
+        }
+
+        let page = try await RemoteMovimentiRepository(client: client).page(
+            accountID: accountID,
+            limit: 50,
+            filter: "subscription"
+        )
+        XCTAssertEqual(page.account.id, accountID)
+        XCTAssertTrue(page.days.isEmpty)
+    }
+
+    func testMovimentiRepositoryPreservesWeekAndMonthPeriodQueryShape() async throws {
+        let client = try makeClient(token: "period-token")
+        let accountID = UUID()
+        let weekStart = try RemoteDateOnly(isoString: "2026-08-10")
+
+        TestURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/v1/accounts/\(accountID.uuidString)/movements")
+            XCTAssertEqual(request.url?.query, "limit=50&filter=week&week_start=2026-08-10&month=2026-08-01")
+            return .json(statusCode: 200, object: [
+                "account": [
+                    "id": accountID.uuidString,
+                    "name": "Principale",
+                    "currency_code": "EUR",
+                    "currency_exponent": 2,
+                    "balance_minor": 0
+                ],
+                "summary": ["income_minor": 0, "expenses_minor": 0],
+                "days": [],
+                "next_cursor": NSNull()
+            ])
+        }
+
+        let page = try await RemoteMovimentiRepository(client: client).page(
+            accountID: accountID,
+            limit: 50,
+            filter: "week",
+            weekStart: weekStart,
+            month: "2026-08-01"
+        )
+        XCTAssertEqual(page.account.id, accountID)
+    }
+
     func testPublicHealthRequestDoesNotIncludeAuthorization() async throws {
         let client = try makeClient(token: nil)
 

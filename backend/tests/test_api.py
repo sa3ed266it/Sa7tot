@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+
+from app.models.entities import Transaction
 
 
 async def create_account(client: AsyncClient, name: str, opening_balance_minor: int = 0):
@@ -292,6 +295,81 @@ async def test_transfer_and_movimenti_account_relative_signs(client: AsyncClient
     )
     assert destination_movements.json()["account"]["balance_minor"] == 500
     assert destination_row["effective_amount_minor"] == 500
+
+
+@pytest.mark.asyncio
+async def test_subscription_movements_filter_uses_subscription_identity_and_account_scope(
+    client: AsyncClient, session
+):
+    account = await create_account(client, "Principale")
+    other_account = await create_account(client, "Altro")
+    category = await client.post("/v1/categories", json={"name": "Servizi", "income": False})
+    assert category.status_code == 201, category.text
+
+    today = datetime.now(UTC).date().isoformat()
+    subscription = await client.post(
+        "/v1/subscriptions",
+        json={
+            "account_id": account["id"],
+            "category_id": category.json()["id"],
+            "service_id": "streaming-service",
+            "amount_minor": 999,
+            "currency_code": "EUR",
+            "currency_exponent": 2,
+            "cadence": "monthly",
+            "billing_anchor": today,
+            "next_billing_date": today,
+        },
+    )
+    assert subscription.status_code == 201, subscription.text
+    subscription_id = subscription.json()["id"]
+    materialized = await client.post("/v1/subscriptions/materialize")
+    assert materialized.status_code == 200, materialized.text
+    assert materialized.json()["generated_count"] == 1
+
+    ordinary = await client.post(
+        "/v1/transactions",
+        json={
+            "kind": "expense",
+            "account_id": account["id"],
+            "amount_minor": 100,
+            "currency_code": "EUR",
+            "currency_exponent": 2,
+            "occurred_at": datetime.now(UTC).isoformat(),
+        },
+    )
+    assert ordinary.status_code == 201, ordinary.text
+
+    wrong_account = Transaction(
+        user_id=UUID(subscription.json()["user_id"]),
+        kind="expense",
+        account_id=UUID(other_account["id"]),
+        amount_minor=500,
+        currency_code="EUR",
+        currency_exponent=2,
+        occurred_at=datetime.now(UTC),
+        local_day=datetime.now(UTC).date(),
+        origin="subscription",
+        subscription_id=UUID(subscription_id),
+        subscription_service_id="streaming-service",
+    )
+    session.add(wrong_account)
+    await session.commit()
+
+    filtered = await client.get(f"/v1/accounts/{account['id']}/movements", params={"filter": "subscription"})
+    assert filtered.status_code == 200, filtered.text
+    rows = [row for day in filtered.json()["days"] for row in day["movements"]]
+    assert len(rows) == 1
+    assert rows[0]["subscription"]["id"] == subscription_id
+    assert rows[0]["category"]["id"] == category.json()["id"]
+
+    category_filtered = await client.get(
+        f"/v1/accounts/{account['id']}/movements",
+        params={"filter": "category", "category_id": category.json()["id"]},
+    )
+    assert category_filtered.status_code == 200
+    category_rows = [row for day in category_filtered.json()["days"] for row in day["movements"]]
+    assert [row["id"] for row in category_rows] == [rows[0]["id"]]
 
 
 @pytest.mark.asyncio

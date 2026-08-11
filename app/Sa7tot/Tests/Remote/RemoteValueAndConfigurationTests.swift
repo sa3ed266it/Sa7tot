@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import XCTest
 @testable import Sa7tot
 
@@ -62,10 +63,16 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
         XCTAssertEqual(
             CategoryPresetCatalog.incomes.map(\.symbolName),
             [
-                "arrow.down.circle.fill", "wallet.pass.fill", "briefcase.fill",
+                "creditcard.fill", "wallet.pass.fill", "briefcase.fill",
                 "chart.line.uptrend.xyaxis", "gift.fill", "hand.thumbsup.fill"
             ]
         )
+    }
+
+    func testCategoryPresetSymbolsResolveOnCurrentRuntime() {
+        for preset in CategoryPresetCatalog.all {
+            XCTAssertNotNil(UIImage(systemName: preset.symbolName), "Missing SF Symbol: \(preset.symbolName)")
+        }
     }
 
     func testCategoryPresetDisplayUsesLocalizedCatalogKey() {
@@ -483,4 +490,115 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
 
         XCTAssertEqual(committedAccountID, accountA, "Repeated A->B->A commits must end on the final settled account.")
     }
+
+    func testStartupFastPathReusesOnlyMatchingFreshAccountPage() {
+        let accountID = UUID()
+
+        XCTAssertEqual(
+            RemoteStartupFastPathDecision.resolve(
+                lastKnownAccountID: accountID,
+                authoritativeAccountID: accountID,
+                speculativePageAccountID: nil,
+                hasFreshCache: true,
+                hasInFlightPage: false
+            ),
+            .useFreshCache
+        )
+        XCTAssertEqual(
+            RemoteStartupFastPathDecision.resolve(
+                lastKnownAccountID: accountID,
+                authoritativeAccountID: accountID,
+                speculativePageAccountID: accountID,
+                hasFreshCache: false,
+                hasInFlightPage: true
+            ),
+            .awaitSpeculativePage
+        )
+    }
+
+    func testStartupFastPathFallsBackWhenLastKnownAccountOrPageDoesNotMatch() {
+        let accountA = UUID()
+        let accountB = UUID()
+
+        XCTAssertEqual(
+            RemoteStartupFastPathDecision.resolve(
+                lastKnownAccountID: accountA,
+                authoritativeAccountID: accountB,
+                speculativePageAccountID: accountA,
+                hasFreshCache: false,
+                hasInFlightPage: true
+            ),
+            .fetchAuthoritativePage
+        )
+        XCTAssertEqual(
+            RemoteStartupFastPathDecision.resolve(
+                lastKnownAccountID: accountA,
+                authoritativeAccountID: accountA,
+                speculativePageAccountID: accountB,
+                hasFreshCache: false,
+                hasInFlightPage: true
+            ),
+            .fetchAuthoritativePage
+        )
+    }
+
+    func testStartupFastPathRejectsLateWrongAccountOrGeneration() {
+        let accountA = UUID()
+        let accountB = UUID()
+
+        XCTAssertFalse(
+            RemoteStartupFastPathDecision.canPublish(
+                pageAccountID: accountA,
+                intendedAccountID: accountB,
+                expectedGeneration: 1,
+                currentGeneration: 2
+            )
+        )
+        XCTAssertTrue(
+            RemoteStartupFastPathDecision.canPublish(
+                pageAccountID: accountB,
+                intendedAccountID: accountB,
+                expectedGeneration: 2,
+                currentGeneration: 2
+            )
+        )
+        XCTAssertFalse(
+            RemoteStartupFastPathDecision.canPublish(
+                pageAccountID: accountB,
+                intendedAccountID: accountB,
+                expectedGeneration: 2,
+                currentGeneration: 2,
+                hasAuthoritativeAccountSet: false,
+                isSpeculative: true
+            )
+        )
+        XCTAssertTrue(
+            RemoteStartupFastPathDecision.shouldDeferSpeculativePage(
+                isSpeculative: true,
+                hasAuthoritativeAccountSet: false
+            )
+        )
+    }
+
+    func testAccountCardGradientPresetsCatalogAndMatching() {
+        XCTAssertEqual(AccountCardGradientPreset.all.count, 8, "Must contain exactly 8 gradient presets.")
+
+        let names = AccountCardGradientPreset.all.map(\.displayName)
+        XCTAssertEqual(names, ["Graphite", "Midnight", "Royal Blue", "Violet", "Emerald", "Forest", "Burgundy", "Champagne"])
+
+        XCTAssertEqual(AccountCardGradientPreset.all[0].primaryHex, "#34363D")
+        XCTAssertEqual(AccountCardGradientPreset.all[0].secondaryHex, "#111318")
+
+        XCTAssertEqual(AccountCardGradientPreset.all[2].primaryHex, "#5E7CE2")
+        XCTAssertEqual(AccountCardGradientPreset.all[2].secondaryHex, "#3346A8")
+
+        XCTAssertEqual(AccountCardGradientPreset.match(hex: "#5E7CE2")?.displayName, "Royal Blue")
+        XCTAssertEqual(AccountCardGradientPreset.match(hex: "5e7ce2")?.displayName, "Royal Blue")
+        XCTAssertEqual(AccountCardGradientPreset.match(hex: "#19A77B")?.displayName, "Emerald")
+
+        // Legacy non-preset color test
+        XCTAssertNil(AccountCardGradientPreset.match(hex: "#FF5733"), "Non-preset hex must return nil match.")
+        XCTAssertNil(AccountCardGradientPreset.match(hex: nil), "Nil hex must return nil match.")
+    }
 }
+

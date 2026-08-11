@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.models.entities import Transaction
 from app.schemas.movements import AccountSnapshot, DayGroup, MovementsResponse, MovementSummary
 from app.services.accounts import get_account
-from app.services.financial import effective_amount_minor
-from app.services.financial_calendar import financial_month_window, financial_week_window
 from app.services.common import get_or_create_profile
-from app.services.transactions import transaction_out
+from app.services.financial_calendar import financial_month_window, financial_week_window
+from app.services.transactions import transactions_out
 
 
 async def get_account_movements(
@@ -39,28 +38,43 @@ async def get_account_movements(
         Transaction.account_id == account.id,
         Transaction.destination_account_id == account.id,
     )
-    base_query = select(Transaction).where(
+    base_where = [
         Transaction.user_id == user_id,
         ownership,
         Transaction.occurred_at <= now,
-    )
-    all_current = list((await session.scalars(base_query.order_by(Transaction.occurred_at.asc()))).all())
-    balance = account.opening_balance_minor + sum(
-        effective_amount_minor(transaction, account) for transaction in all_current
-    )
-    income_total = sum(transaction.amount_minor for transaction in all_current if transaction.kind == "income")
-    expenses_total = sum(transaction.amount_minor for transaction in all_current if transaction.kind == "expense")
+    ]
+    effective_expression = _effective_amount_expression(account.id, account.type)
+    summary_row = (
+        await session.execute(
+            select(
+                func.coalesce(func.sum(effective_expression), 0).label("effective_total"),
+                func.coalesce(
+                    func.sum(case((Transaction.kind == "income", Transaction.amount_minor), else_=0)),
+                    0,
+                ).label("income_total"),
+                func.coalesce(
+                    func.sum(case((Transaction.kind == "expense", Transaction.amount_minor), else_=0)),
+                    0,
+                ).label("expenses_total"),
+            ).where(*base_where)
+        )
+    ).one()
+    balance = account.opening_balance_minor + int(summary_row.effective_total or 0)
+    income_total = int(summary_row.income_total or 0)
+    expenses_total = int(summary_row.expenses_total or 0)
 
-    filtered_query = base_query
+    filtered_where = list(base_where)
     if filter == "type":
-        filtered_query = filtered_query.where(Transaction.kind == ("income" if income else "expense"))
+        filtered_where.append(Transaction.kind == ("income" if income else "expense"))
     elif filter == "day" and day is not None:
-        filtered_query = filtered_query.where(Transaction.local_day == day)
+        filtered_where.append(Transaction.local_day == day)
     elif filter == "week" and week_start is not None:
         period = financial_week_window(week_start, profile.week_start_day, profile.timezone)
-        filtered_query = filtered_query.where(
-            Transaction.occurred_at >= period.utc_start,
-            Transaction.occurred_at < period.utc_end,
+        filtered_where.extend(
+            (
+                Transaction.occurred_at >= period.utc_start,
+                Transaction.occurred_at < period.utc_end,
+            )
         )
     elif filter == "month" and month is not None:
         try:
@@ -74,39 +88,60 @@ async def get_account_movements(
             period = financial_month_window(anchor, profile.month_start_day, profile.timezone)
         except (ValueError, TypeError):
             raise DomainError(422, "month is invalid", "invalid_month") from None
-        filtered_query = filtered_query.where(
-            Transaction.occurred_at >= period.utc_start,
-            Transaction.occurred_at < period.utc_end,
+        filtered_where.extend(
+            (
+                Transaction.occurred_at >= period.utc_start,
+                Transaction.occurred_at < period.utc_end,
+            )
         )
     elif filter == "category" and category_id is not None:
-        filtered_query = filtered_query.where(Transaction.category_id == category_id)
+        filtered_where.append(Transaction.category_id == category_id)
+    elif filter == "subscription":
+        filtered_where.append(
+            or_(
+                Transaction.subscription_id.is_not(None),
+                Transaction.subscription_service_id.is_not(None),
+                Transaction.origin == "subscription",
+            )
+        )
     elif filter == "recurring":
-        filtered_query = filtered_query.where(
-            Transaction.origin == "recurrence",
-            Transaction.recurrence_rule_id.is_not(None),
+        filtered_where.extend(
+            (
+                Transaction.origin == "recurrence",
+                Transaction.recurrence_rule_id.is_not(None),
+            )
         )
 
-    filtered_transactions = list(
-        (await session.scalars(filtered_query.order_by(Transaction.occurred_at.desc(), Transaction.id.desc()))).all()
-    )
-    subtotals: dict[str, int] = {}
-    for transaction in filtered_transactions:
-        key = transaction.local_day.isoformat()
-        subtotals[key] = subtotals.get(key, 0) + effective_amount_minor(transaction, account)
+    subtotal_rows = (
+        await session.execute(
+            select(
+                Transaction.local_day,
+                func.coalesce(func.sum(effective_expression), 0).label("subtotal_minor"),
+            )
+            .where(*filtered_where)
+            .group_by(Transaction.local_day)
+        )
+    ).all()
+    subtotals = {row.local_day.isoformat(): int(row.subtotal_minor or 0) for row in subtotal_rows}
 
-    page_query = filtered_query
+    page_where = list(filtered_where)
     if cursor:
         cursor_time, cursor_id = decode_cursor(cursor)
-        page_query = page_query.where(
+        page_where.append(
             or_(
                 Transaction.occurred_at < cursor_time,
                 and_(Transaction.occurred_at == cursor_time, Transaction.id < cursor_id),
             )
         )
-    page_query = page_query.order_by(Transaction.occurred_at.desc(), Transaction.id.desc()).limit(limit)
+    page_query = (
+        select(Transaction)
+        .where(*page_where)
+        .order_by(Transaction.occurred_at.desc(), Transaction.id.desc())
+        .limit(limit)
+    )
     page = list((await session.scalars(page_query)).all())
 
-    outputs = [await transaction_out(session, transaction, account) for transaction in page]
+    outputs = await transactions_out(session, page, account, user_id)
     grouped: dict[str, list] = {}
     for transaction, output in zip(page, outputs, strict=True):
         key = transaction.local_day.isoformat()
@@ -129,6 +164,16 @@ async def get_account_movements(
         days=days,
         next_cursor=next_cursor,
     )
+
+
+def _effective_amount_expression(account_id: UUID, account_type: str):
+    expression = case(
+        (Transaction.kind == "income", Transaction.amount_minor),
+        (Transaction.kind == "expense", -Transaction.amount_minor),
+        (Transaction.account_id == account_id, -Transaction.amount_minor),
+        else_=Transaction.amount_minor,
+    )
+    return -expression if account_type == "creditCard" else expression
 
 
 def encode_cursor(occurred_at: datetime, transaction_id: UUID) -> str:

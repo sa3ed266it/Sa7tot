@@ -5,6 +5,7 @@
 
     },
     "-%@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -37,6 +38,7 @@
       }
     },
     "%@ — %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -95,6 +97,7 @@
       }
     },
     "+%@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -432,6 +435,23 @@
         }
       }
     },
+    "account.legacyIcon" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy Icon"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icona legacy"
+          }
+        }
+      }
+    },
     "account.new" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -462,6 +482,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anteprima"
+          }
+        }
+      }
+    },
+    "account.providerPicker" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Bank"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli banca"
+          }
+        }
+      }
+    },
+    "account.providerRow" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provider"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fornitore"
           }
         }
       }
@@ -751,6 +805,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elimina"
+          }
+        }
+      }
+    },
+    "action.done" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine"
           }
         }
       }
@@ -2614,13 +2685,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By category"
+            "value" : "Category"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per categoria"
+            "value" : "Categoria"
           }
         }
       }
@@ -2631,13 +2702,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By day"
+            "value" : "Day"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per giorno"
+            "value" : "Giorno"
           }
         }
       }
@@ -2648,13 +2719,81 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By month"
+            "value" : "Month"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per mese"
+            "value" : "Mese"
+          }
+        }
+      }
+    },
+    "filter.nextMonth" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mese successivo"
+          }
+        }
+      }
+    },
+    "filter.nextWeek" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next week"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settimana successiva"
+          }
+        }
+      }
+    },
+    "filter.previousMonth" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mese precedente"
+          }
+        }
+      }
+    },
+    "filter.previousWeek" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous week"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settimana precedente"
           }
         }
       }
@@ -2672,6 +2811,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ricorrenti"
+          }
+        }
+      }
+    },
+    "filter.selectMonth" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleziona mese"
           }
         }
       }
@@ -2716,13 +2872,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By week"
+            "value" : "Week"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per settimana"
+            "value" : "Settimana"
           }
         }
       }
@@ -3287,6 +3443,9 @@
         }
       }
     },
+    "SA7TOT" : {
+
+    },
     "Saldo nascosto" : {
       "localizations" : {
         "en" : {
@@ -3367,6 +3526,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DATI"
+          }
+        }
+      }
+    },
+    "settings.defaultCurrency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Currency"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuta predefinita"
           }
         }
       }
@@ -3456,23 +3632,6 @@
         }
       }
     },
-    "settings.monthStartDay" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Month starts on"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il mese inizia il"
-          }
-        }
-      }
-    },
     "settings.manageAccounts" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3541,6 +3700,23 @@
         }
       }
     },
+    "settings.monthStartDay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month starts on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il mese inizia il"
+          }
+        }
+      }
+    },
     "settings.notifications" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3588,40 +3764,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abilita le notifiche nelle Impostazioni per ricevere promemoria."
-          }
-        }
-      }
-    },
-    "settings.weekStartDay" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Week starts on"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La settimana inizia di"
-          }
-        }
-      }
-    },
-    "settings.defaultCurrency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default Currency"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Valuta predefinita"
           }
         }
       }
@@ -3792,6 +3934,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impostazioni"
+          }
+        }
+      }
+    },
+    "settings.weekStartDay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Week starts on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La settimana inizia di"
           }
         }
       }

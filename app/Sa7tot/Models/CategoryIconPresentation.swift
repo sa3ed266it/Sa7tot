@@ -86,6 +86,26 @@ enum CategoryIconPresentation {
         if case .sfSymbol(let symbol) = parsed, UIImage(systemName: symbol) == nil { return .fallback }
         return parsed
     }
+
+    static func descriptor(for category: RemoteCategoryDTO) -> CategoryIconDescriptor {
+        if let presetKey = category.presetKey,
+           let preset = CategoryPresetCatalog.all.first(where: { $0.key == presetKey }),
+           UIImage(systemName: preset.symbolName) != nil {
+            return .sfSymbol(preset.symbolName)
+        }
+
+        return descriptor(for: category.iconIdentifier)
+    }
+
+    static func menuImage(for category: RemoteCategoryDTO) -> UIImage? {
+        switch descriptor(for: category) {
+        case .sfSymbol(let symbol):
+            return UIImage(systemName: symbol)
+        case .asset(let name), .appLogo(let name):
+            return UIImage(named: name)
+        }
+    }
+
     static func foreground(for storedColour: String) -> Color { .primary }
 }
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from uuid import UUID
@@ -35,8 +38,22 @@ class JWTKeyFetchError(RuntimeError):
 
 
 class SupabaseJWTValidator:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        jwks_ttl_seconds: float = 600.0,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self.settings = settings
+        self._jwks_ttl_seconds = jwks_ttl_seconds
+        self._clock = clock
+        self._jwks_by_kid: dict[str, dict[str, object]] = {}
+        self._jwks_expires_at = 0.0
+        self._jwks_generation = 0
+        self._jwks_lock = asyncio.Lock()
+        self._jwks_refresh_task: asyncio.Task[dict[str, object]] | None = None
+        self._http_client: httpx.AsyncClient | None = None
 
     async def validate(self, token: str) -> CurrentUser:
         if not self.settings.supabase_jwks_url or not self.settings.supabase_issuer:
@@ -45,13 +62,10 @@ class SupabaseJWTValidator:
         try:
             header = jwt.get_unverified_header(token)
             unverified_claims = jwt.decode(token, options={"verify_signature": False})
-            jwks = await self._fetch_jwks()
-            jwk = next(
-                (key for key in jwks.get("keys", []) if key.get("kid") == header.get("kid")),
-                None,
-            )
-            if jwk is None:
-                raise JWTValidationError("No matching Supabase signing key was found")
+            kid = header.get("kid")
+            if not isinstance(kid, str) or not kid:
+                raise JWTValidationError("The Supabase access token has no signing key identifier")
+            jwk = await self._jwk_for_kid(kid)
 
             key = _key_from_jwk(jwk)
             claims = jwt.decode(
@@ -71,14 +85,69 @@ class SupabaseJWTValidator:
             raise JWTValidationError("The Supabase access token subject changed during validation")
         return CurrentUser(id=user_id, claims=claims)
 
+    async def _jwk_for_kid(self, kid: str) -> dict[str, object]:
+        now = self._clock()
+        observed_generation = self._jwks_generation
+        if now < self._jwks_expires_at and kid in self._jwks_by_kid:
+            return self._jwks_by_kid[kid]
+
+        await self._refresh_jwks(observed_generation)
+        jwk = self._jwks_by_kid.get(kid)
+        if jwk is None:
+            raise JWTValidationError("No matching Supabase signing key was found")
+        return jwk
+
+    async def _refresh_jwks(self, observed_generation: int) -> None:
+        async with self._jwks_lock:
+            if self._jwks_generation != observed_generation:
+                return
+            refresh_task = self._jwks_refresh_task
+            if refresh_task is None:
+                refresh_task = asyncio.create_task(self._fetch_jwks())
+                self._jwks_refresh_task = refresh_task
+
+        try:
+            jwks = await refresh_task
+            raw_keys = jwks.get("keys")
+            if not isinstance(raw_keys, list):
+                raise JWTKeyFetchError("Supabase signing keys response is malformed")
+            keys = {
+                str(key["kid"]): key for key in raw_keys if isinstance(key, dict) and isinstance(key.get("kid"), str)
+            }
+            async with self._jwks_lock:
+                if self._jwks_generation == observed_generation:
+                    self._jwks_by_kid = keys
+                    self._jwks_expires_at = self._clock() + self._jwks_ttl_seconds
+                    self._jwks_generation += 1
+        finally:
+            async with self._jwks_lock:
+                if self._jwks_refresh_task is refresh_task:
+                    self._jwks_refresh_task = None
+
     async def _fetch_jwks(self) -> dict[str, object]:
         try:
-            async with httpx.AsyncClient(timeout=5) as client:
-                response = await client.get(self.settings.supabase_jwks_url)
-                response.raise_for_status()
-                return response.json()
-        except httpx.HTTPError as exc:
+            client = await self._get_http_client()
+            response = await client.get(self.settings.supabase_jwks_url)
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise ValueError("JWKS response must be an object")
+            return payload
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
             raise JWTKeyFetchError("Supabase signing keys could not be loaded") from exc
+
+    async def _get_http_client(self) -> httpx.AsyncClient:
+        async with self._jwks_lock:
+            if self._http_client is None:
+                self._http_client = httpx.AsyncClient(timeout=5)
+            return self._http_client
+
+    async def aclose(self) -> None:
+        async with self._jwks_lock:
+            client = self._http_client
+            self._http_client = None
+        if client is not None:
+            await client.aclose()
 
 
 def _key_from_jwk(jwk: dict[str, object]):

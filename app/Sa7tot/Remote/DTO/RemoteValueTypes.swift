@@ -111,6 +111,48 @@ public enum RemoteJSON {
     }
 }
 
+enum RemoteStartupFastPathDecision: Equatable {
+    case useFreshCache
+    case awaitSpeculativePage
+    case fetchAuthoritativePage
+
+    static func resolve(
+        lastKnownAccountID: UUID?,
+        authoritativeAccountID: UUID,
+        speculativePageAccountID: UUID?,
+        hasFreshCache: Bool,
+        hasInFlightPage: Bool
+    ) -> Self {
+        guard lastKnownAccountID == authoritativeAccountID else {
+            return .fetchAuthoritativePage
+        }
+        if hasFreshCache {
+            return .useFreshCache
+        }
+        if hasInFlightPage, speculativePageAccountID == authoritativeAccountID {
+            return .awaitSpeculativePage
+        }
+        return .fetchAuthoritativePage
+    }
+
+    static func canPublish(
+        pageAccountID: UUID,
+        intendedAccountID: UUID,
+        expectedGeneration: Int,
+        currentGeneration: Int,
+        hasAuthoritativeAccountSet: Bool = true,
+        isSpeculative: Bool = false
+    ) -> Bool {
+        pageAccountID == intendedAccountID
+            && expectedGeneration == currentGeneration
+            && (!isSpeculative || hasAuthoritativeAccountSet)
+    }
+
+    static func shouldDeferSpeculativePage(isSpeculative: Bool, hasAuthoritativeAccountSet: Bool) -> Bool {
+        isSpeculative && !hasAuthoritativeAccountSet
+    }
+}
+
 public enum RemoteBudgetPeriod: String, Codable, CaseIterable, Identifiable, Sendable {
     case day, week, month, year
     public var id: String { rawValue }

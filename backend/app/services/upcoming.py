@@ -13,7 +13,7 @@ from app.schemas.common import AccountBrief, CategoryBrief, RecurrenceStatus
 from app.schemas.upcoming import UpcomingRecurrenceItem, UpcomingResponse, UpcomingTransactionItem
 from app.services.accounts import get_account
 from app.services.recurrences import materialize_due_recurrences
-from app.services.transactions import transaction_out
+from app.services.transactions import transactions_out
 
 ROME = ZoneInfo("Europe/Rome")
 
@@ -60,13 +60,14 @@ async def get_upcoming(
             )
         ).all()
     )
+    transaction_outputs = await transactions_out(session, future_transactions, account, user_id)
     transaction_items = [
         UpcomingTransactionItem(
             kind="transaction",
             effective_date=transaction.local_day,
-            transaction=await transaction_out(session, transaction, account),
+            transaction=output,
         )
-        for transaction in future_transactions
+        for transaction, output in zip(future_transactions, transaction_outputs, strict=True)
     ]
 
     rule_query = select(RecurrenceRule).where(

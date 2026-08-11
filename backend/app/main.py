@@ -8,11 +8,13 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import router as v1_router
 from app.core.database import dispose_engine
 from app.core.errors import DomainError
+from app.core.security import get_jwt_validator
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     yield
+    await get_jwt_validator().aclose()
     await dispose_engine()
 
 
