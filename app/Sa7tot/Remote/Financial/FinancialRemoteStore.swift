@@ -701,6 +701,30 @@ final class FinancialRemoteStore: ObservableObject {
         resetAndReload()
     }
 
+    func awaitCurrentMovementLoad() async {
+        await movementTask?.value
+    }
+
+    func moveWeekAndWait(by offset: Int) async {
+        moveWeek(by: offset)
+        await movementTask?.value
+    }
+
+    func moveMonthAndWait(by offset: Int) async {
+        moveMonth(by: offset)
+        await movementTask?.value
+    }
+
+    func selectMonthAndWait(_ date: Date) async {
+        selectMonth(date)
+        await movementTask?.value
+    }
+
+    func setDayFilterAndWait(previousDay: Date) async {
+        setDayFilter(previousDay: previousDay)
+        await movementTask?.value
+    }
+
     func setDayFilter(previousDay: Date) {
         let calendar = Calendar.current
         guard filter != .day || !calendar.isDate(previousDay, inSameDayAs: selectedDay) else { return }

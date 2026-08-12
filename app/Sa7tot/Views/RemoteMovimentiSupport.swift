@@ -88,42 +88,21 @@ struct EmptyStatePreferenceKey: PreferenceKey {
 }
 
 struct NoResultsView: View {
-    let fullscreen: Bool
-
     var body: some View {
-        Group {
-            if fullscreen {
-                VStack(spacing: 12) {
-                    Spacer()
-                    Image(systemName: "tray.full.fill")
-                        .font(.system(.largeTitle, design: .rounded))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(Color.SubtitleText)
-                    Text(AppLocalization.key("movement.empty.title"))
-                        .font(.system(.title3, design: .rounded).weight(.medium))
-                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                        .foregroundColor(Color.SubtitleText)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .frame(height: UIScreen.main.bounds.height * 0.7)
-                .opacity(0.7)
-            } else {
-                VStack(spacing: 12) {
-                    Spacer()
-                    Image(systemName: "tray.full.fill")
-                        .font(.system(size: 38, weight: .regular, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
-                    Text(AppLocalization.key("movement.empty.title"))
-                        .font(.system(size: 21, weight: .medium, design: .rounded))
-                        .foregroundColor(Color.SubtitleText)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .opacity(0.7)
-                .padding(.top, 50)
-            }
+        VStack(spacing: 12) {
+            Image(systemName: "tray.full.fill")
+                .font(.system(.largeTitle, design: .rounded))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .foregroundColor(Color.SubtitleText)
+            Text(AppLocalization.key("movement.empty.title"))
+                .font(.system(.title3, design: .rounded).weight(.medium))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .foregroundColor(Color.SubtitleText)
         }
+        .padding(.top, 48)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .opacity(0.7)
         .preference(key: EmptyStatePreferenceKey.self, value: true)
     }
 }

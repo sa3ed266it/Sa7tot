@@ -11,6 +11,15 @@ private let remotePrivacyBlurRadius: CGFloat = 16
 private let remoteSubheaderBlurRadius: CGFloat = 6
 private let remotePrivacyTransition = Animation.easeInOut(duration: 0.22)
 
+private enum RemoteFilterMotion {
+    static let chipSpring = Animation.spring(response: 0.32, dampingFraction: 0.84)
+    static let navigatorFade = Animation.easeOut(duration: 0.18)
+    static let datasetExitDuration: Double = 0.10
+    static let datasetEnterDuration: Double = 0.15
+    static let debugOffset: CGFloat = -7
+    static let debugScale: CGFloat = 0.95
+}
+
 private func remoteAmount(_ minor: Int64, currencyCode: String, exponent: Int, showCents: Bool = true) -> String {
     FinancialFormatting.currency(minorUnits: minor, currencyCode: currencyCode, exponent: exponent, showCents: showCents)
 }
@@ -223,6 +232,8 @@ struct RemoteMovimentiView: View {
     @State private var periodContentOffset: CGFloat = 0
     @State private var isPeriodTransitioning = false
     @State private var periodTransitionGeneration = 0
+    @State private var presentedFilter: RemoteMovementFilter? = nil
+    @State private var isFilterVisible = false
 
     private let compactBalanceHeaderHeight: CGFloat = 54
 
@@ -266,16 +277,17 @@ struct RemoteMovimentiView: View {
                 categories: store.categories,
                 collapseProgress: balanceCollapseProgress,
                 onFilter: { filter in
-                    cancelPeriodTransition()
-                    store.setFilter(filter)
+                    transitionFilter(to: filter)
                 },
-                onCategory: { store.setCategoryFilter($0) },
+                onCategory: { categoryID in
+                    transitionFilter(to: .category, categoryID: categoryID)
+                },
                 onTransfer: onTransfer
             )
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
-                if store.filter == .all, let account = store.selectedAccount {
+                if let account = store.selectedAccount {
                     RemoteCompactBalanceToolbarTitle(
                         accountName: account.name,
                         showCents: showCents,
@@ -334,6 +346,24 @@ struct RemoteMovimentiView: View {
         } message: {
             Text(verbatim: store.deferredFeatureMessage ?? AppLocalization.string("movement.deferredError"))
         }
+        .onAppear {
+            if store.filter != .all {
+                presentedFilter = store.filter
+                isFilterVisible = true
+            } else {
+                presentedFilter = nil
+                isFilterVisible = false
+            }
+        }
+        .onChange(of: store.filter) { _, newFilter in
+            if newFilter != .all && presentedFilter == nil {
+                presentedFilter = newFilter
+                isFilterVisible = true
+            } else if newFilter == .all && presentedFilter != nil && !isPeriodTransitioning {
+                presentedFilter = nil
+                isFilterVisible = false
+            }
+        }
     }
 
     private var movementContent: some View {
@@ -344,28 +374,26 @@ struct RemoteMovimentiView: View {
                         VStack(spacing: 0) {
                             Color.clear.frame(height: 0).id("remote-movements-top")
 
-                            if store.filter == .all {
-                                RemoteAccountPager(
-                                    visualAccountID: visualBinding,
-                                    hideBalances: hideBalances,
-                                    showCents: showCents,
-                                    collapseProgress: balanceCollapseProgress,
-                                    handoff: balanceHandoff,
-                                    onCommitAccount: { accountID in
-                                        performAccountSwitchHandoff(to: accountID, proxy: proxy)
-                                    },
-                                    reduceMotion: reduceMotion
-                                )
-                                .opacity(1 - balanceHandoff)
-                                .overlay(alignment: .top) {
-                                    GeometryReader { proxy in
-                                        Color.clear.preference(
-                                            key: RemoteBalanceHeaderMetricsKey.self,
-                                            value: RemoteBalanceHeaderMetrics(minY: proxy.frame(in: .named("RemoteHomeScroll")).minY, height: proxy.size.height)
-                                        )
-                                    }
-                                    .allowsHitTesting(false)
+                            RemoteAccountPager(
+                                visualAccountID: visualBinding,
+                                hideBalances: hideBalances,
+                                showCents: showCents,
+                                collapseProgress: balanceCollapseProgress,
+                                handoff: balanceHandoff,
+                                onCommitAccount: { accountID in
+                                    performAccountSwitchHandoff(to: accountID, proxy: proxy)
+                                },
+                                reduceMotion: reduceMotion
+                            )
+                            .opacity(1 - balanceHandoff)
+                            .overlay(alignment: .top) {
+                                GeometryReader { proxy in
+                                    Color.clear.preference(
+                                        key: RemoteBalanceHeaderMetricsKey.self,
+                                        value: RemoteBalanceHeaderMetrics(minY: proxy.frame(in: .named("RemoteHomeScroll")).minY, height: proxy.size.height)
+                                    )
                                 }
+                                .allowsHitTesting(false)
                             }
 
                             LazyVStack(spacing: 0) {
@@ -379,28 +407,36 @@ struct RemoteMovimentiView: View {
 
                                         Menu {
                                             Section {
-                                                Button(RemoteMovementFilter.day.title) { store.setFilter(.day) }
-                                                Button(RemoteMovementFilter.week.title) { store.setFilter(.week) }
-                                                Button(RemoteMovementFilter.month.title) { store.setFilter(.month) }
+                                                Button(action: { transitionFilter(to: .day) }) {
+                                                    Label(RemoteMovementFilter.day.title, systemImage: store.filter == .day ? "checkmark" : "")
+                                                }
+                                                Button(action: { transitionFilter(to: .week) }) {
+                                                    Label(RemoteMovementFilter.week.title, systemImage: store.filter == .week ? "checkmark" : "")
+                                                }
+                                                Button(action: { transitionFilter(to: .month) }) {
+                                                    Label(RemoteMovementFilter.month.title, systemImage: store.filter == .month ? "checkmark" : "")
+                                                }
                                             }
 
-                                            Menu(AppLocalization.string("filter.category")) {
+                                            Menu {
                                                 ForEach(store.categories.filter { $0.deletedAt == nil }) { category in
-                                                    Button(category.name) {
-                                                        store.setCategoryFilter(category.id)
+                                                    Button(action: { transitionFilter(to: .category, categoryID: category.id) }) {
+                                                        Label(category.name, systemImage: (store.filter == .category && store.selectedCategoryID == category.id) ? "checkmark" : "")
                                                     }
                                                 }
-                                                Button(AppLocalization.string("subscription.title")) {
-                                                    store.setFilter(.subscription)
+                                                Button(action: { transitionFilter(to: .subscription) }) {
+                                                    Label(AppLocalization.string("subscription.title"), systemImage: store.filter == .subscription ? "checkmark" : "")
                                                 }
+                                            } label: {
+                                                Label(AppLocalization.string("filter.category"), systemImage: (store.filter == .category || store.filter == .subscription) ? "checkmark" : "")
                                             }
                                         } label: {
                                             ZStack {
                                                 Circle()
-                                                    .fill(store.filter == .all ? Color.AppSecondarySurface.opacity(0.8) : Color.PrimaryText.opacity(0.15))
+                                                    .fill(store.filter == .all ? Color.AppSecondarySurface.opacity(0.8) : Color.PrimaryText.opacity(0.20))
                                                     .frame(width: 36, height: 36)
 
-                                                Image(systemName: store.filter == .all ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.fill")
+                                                Image(systemName: "line.3.horizontal.decrease")
                                                     .font(.system(size: 15, weight: .semibold))
                                                     .foregroundStyle(store.filter == .all ? Color.PrimaryText.opacity(0.8) : Color.PrimaryText)
                                             }
@@ -413,65 +449,94 @@ struct RemoteMovimentiView: View {
                                     .padding(.top, 22)
                                     .padding(.bottom, 14)
 
-                                    if store.filter == .week {
-                                        RemoteFinancialPeriodNavigator(
-                                            label: remoteWeekLabel,
-                                            previousAccessibilityLabel: AppLocalization.string("filter.previousWeek"),
-                                            nextAccessibilityLabel: AppLocalization.string("filter.nextWeek"),
-                                            onPrevious: { navigateWeek(by: -1) },
-                                            onNext: { navigateWeek(by: 1) },
-                                            isNavigationDisabled: isPeriodTransitioning,
-                                            contentOpacity: periodContentOpacity,
-                                            contentOffset: periodContentOffset
-                                        )
-                                        .padding(.horizontal, 20)
-                                        .padding(.bottom, 12)
-                                    } else if store.filter == .month {
-                                        RemoteFinancialPeriodNavigator(
-                                            label: remoteMonthLabel,
-                                            previousAccessibilityLabel: AppLocalization.string("filter.previousMonth"),
-                                            nextAccessibilityLabel: AppLocalization.string("filter.nextMonth"),
-                                            onPrevious: { navigateMonth(by: -1) },
-                                            onNext: { navigateMonth(by: 1) },
-                                            onLabelTap: { if !isPeriodTransitioning { isMonthPickerPresented = true } },
-                                            isNavigationDisabled: isPeriodTransitioning,
-                                            contentOpacity: periodContentOpacity,
-                                            contentOffset: periodContentOffset
-                                        )
-                                        .padding(.horizontal, 20)
-                                        .padding(.bottom, 12)
-                                    } else if store.filter == .day {
-                                        DatePicker(AppLocalization.key("filter.day"), selection: $store.selectedDay, displayedComponents: .date)
-                                            .datePickerStyle(.compact)
-                                            .onChange(of: store.selectedDay) { oldValue, _ in store.setDayFilter(previousDay: oldValue) }
-                                            .padding(.horizontal, 20)
-                                            .padding(.bottom, 12)
-                                    } else if store.filter == .type {
-                                        Picker(AppLocalization.key("common.type"), selection: $store.typeIsIncome) {
-                                            Text(AppLocalization.key("movement.expenses")).tag(false)
-                                            Text(AppLocalization.key("movement.incomes")).tag(true)
+                                    if let activeFilter = presentedFilter {
+                                        VStack(spacing: 12) {
+                                            HStack {
+                                                Spacer()
+                                                Button {
+                                                    transitionFilter(to: .all)
+                                                } label: {
+                                                    HStack(spacing: 6) {
+                                                        Text(activeFilterChipTitle(for: activeFilter))
+                                                            .contentTransition(.opacity)
+                                                        Image(systemName: "xmark")
+                                                            .font(.system(size: 11, weight: .semibold))
+                                                    }
+                                                }
+                                                .font(.system(.subheadline, design: .rounded).weight(.medium))
+                                                .buttonStyle(.glass)
+                                                .buttonBorderShape(.capsule)
+                                                .controlSize(.small)
+                                                .accessibilityLabel(AppLocalization.key("movement.removeFilter"))
+                                                .accessibilityValue(activeFilterChipTitle(for: activeFilter))
+                                                Spacer()
+                                            }
+
+                                            if activeFilter == .week {
+                                                RemoteFinancialPeriodNavigator(
+                                                    label: remoteWeekLabel,
+                                                    previousAccessibilityLabel: AppLocalization.string("filter.previousWeek"),
+                                                    nextAccessibilityLabel: AppLocalization.string("filter.nextWeek"),
+                                                    onPrevious: { navigateWeek(by: -1) },
+                                                    onNext: { navigateWeek(by: 1) },
+                                                    isNavigationDisabled: isPeriodTransitioning,
+                                                    contentOpacity: periodContentOpacity,
+                                                    contentOffset: periodContentOffset
+                                                )
+                                            } else if activeFilter == .month {
+                                                RemoteFinancialPeriodNavigator(
+                                                    label: remoteMonthLabel,
+                                                    previousAccessibilityLabel: AppLocalization.string("filter.previousMonth"),
+                                                    nextAccessibilityLabel: AppLocalization.string("filter.nextMonth"),
+                                                    onPrevious: { navigateMonth(by: -1) },
+                                                    onNext: { navigateMonth(by: 1) },
+                                                    onLabelTap: { if !isPeriodTransitioning { isMonthPickerPresented = true } },
+                                                    isNavigationDisabled: isPeriodTransitioning,
+                                                    contentOpacity: periodContentOpacity,
+                                                    contentOffset: periodContentOffset
+                                                )
+                                            } else if activeFilter == .day {
+                                                DatePicker(AppLocalization.key("filter.day"), selection: $store.selectedDay, displayedComponents: .date)
+                                                    .datePickerStyle(.compact)
+                                                    .onChange(of: store.selectedDay) { oldValue, newValue in
+                                                        performSerialPeriodTransition(direction: newValue > oldValue ? .next : .previous) {
+                                                            store.setDayFilter(previousDay: oldValue)
+                                                        }
+                                                    }
+                                            } else if activeFilter == .type {
+                                                Picker(AppLocalization.key("common.type"), selection: $store.typeIsIncome) {
+                                                    Text(AppLocalization.key("movement.expenses")).tag(false)
+                                                    Text(AppLocalization.key("movement.incomes")).tag(true)
+                                                }
+                                                .pickerStyle(.segmented)
+                                                .onChange(of: store.typeIsIncome) { oldValue, _ in store.setTypeFilter(previousValue: oldValue) }
+                                            }
                                         }
-                                        .pickerStyle(.segmented)
-                                        .onChange(of: store.typeIsIncome) { oldValue, _ in store.setTypeFilter(previousValue: oldValue) }
                                         .padding(.horizontal, 20)
                                         .padding(.bottom, 12)
+                                        .opacity(isFilterVisible ? 1 : 0)
+                                        .scaleEffect(isFilterVisible ? 1.0 : RemoteFilterMotion.debugScale)
+                                        .offset(y: isFilterVisible ? 0 : RemoteFilterMotion.debugOffset)
+                                        .transition(
+                                            .asymmetric(
+                                                insertion: reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)),
+                                                removal: reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top))
+                                            )
+                                        )
                                     }
 
                                     remoteMovementContainer
                                         .opacity(periodContentOpacity)
                                         .offset(x: periodContentOffset)
+                                        .padding(.bottom, 20)
                                 }
                                 .background {
-                                    UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous)
+                                    UnevenRoundedRectangle(topLeadingRadius: 28, bottomLeadingRadius: 28, bottomTrailingRadius: 28, topTrailingRadius: 28, style: .continuous)
                                         .fill(Color.AppSecondarySurface)
                                         .ignoresSafeArea(edges: .bottom)
                                 }
 
-                                if store.filter == .all {
-                                    Color.clear.frame(height: 180).allowsHitTesting(false)
-                                } else {
-                                    Color.clear.frame(height: 80).allowsHitTesting(false)
-                                }
+                                Color.clear.frame(height: 180).allowsHitTesting(false)
                             }
                         }
                     }
@@ -583,7 +648,7 @@ struct RemoteMovimentiView: View {
             if store.filter == .upcoming {
                 remoteUpcomingList
             } else if days.isEmpty && !store.isLoading {
-                NoResultsView(fullscreen: true)
+                NoResultsView()
             } else {
                 remoteHistoryList(for: days)
             }
@@ -592,41 +657,9 @@ struct RemoteMovimentiView: View {
 
     @ViewBuilder
     private func remoteHistoryList(for days: [RemoteMovementDayDTO]) -> some View {
-        Group {
+        LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
             ForEach(days, id: \.day) { day in
-                VStack(spacing: 0) {
-                    HStack(alignment: .center) {
-                        Text(remoteDateLabel(day.day).uppercased())
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .tracking(1.0)
-                            .foregroundStyle(Color.SubtitleText)
-
-                        Spacer()
-
-                        RemoteSplitFinancialAmount(
-                            minorUnits: day.subtotalMinor,
-                            currencyCode: store.selectedCurrencyCode,
-                            exponent: store.selectedCurrencyExponent,
-                            showCents: showCents,
-                            prefixFontSize: 13,
-                            digitsFontSize: 16,
-                            color: day.subtotalMinor < 0 ? Color.AlertRed : day.subtotalMinor > 0 ? Color.IncomeGreen : Color.SubtitleText,
-                            minimumScaleFactor: 0.7,
-                            zeroSign: nil,
-                            showSign: false
-                        )
-                        .layoutPriority(1)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    .padding(.bottom, 8)
-
-                    Rectangle()
-                        .fill(Color.PrimaryText.opacity(0.14))
-                        .frame(height: 1.0)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 4)
-
+                Section {
                     ForEach(Array(day.movements.enumerated()), id: \.element.id) { index, transaction in
                         let categoryChanged = index > 0 && movementPresentationIdentity(transaction) != movementPresentationIdentity(day.movements[index - 1])
 
@@ -655,8 +688,15 @@ struct RemoteMovimentiView: View {
                             .onAppear { store.loadNextPageIfNeeded(after: transaction.id) }
                         }
                     }
+                } header: {
+                    RemoteMovementDayHeaderView(
+                        day: day,
+                        showCents: showCents,
+                        currencyCode: store.selectedCurrencyCode,
+                        currencyExponent: store.selectedCurrencyExponent
+                    )
                 }
-                .padding(.bottom, 18)
+                .padding(.bottom, 14)
             }
 
             if store.isLoadingNextPage {
@@ -681,7 +721,7 @@ struct RemoteMovimentiView: View {
     @ViewBuilder
     private var remoteUpcomingList: some View {
         if store.upcomingItems.isEmpty && !store.isLoading {
-            NoResultsView(fullscreen: true)
+            NoResultsView()
         } else if !store.upcomingItems.isEmpty {
             VStack(spacing: 0) {
                 VStack(spacing: 4) {
@@ -716,6 +756,13 @@ struct RemoteMovimentiView: View {
             case let .recurrence(value): return total + (value.transactionKind == .income ? value.amountMinor : -value.amountMinor)
             }
         }
+    }
+
+    private func activeFilterChipTitle(for filter: RemoteMovementFilter) -> String {
+        if filter == .category, let categoryID = store.selectedCategoryID, let category = store.categories.first(where: { $0.id == categoryID }) {
+            return category.name
+        }
+        return filter.title
     }
 
     private var remoteFilterHeader: some View {
@@ -830,14 +877,14 @@ struct RemoteMovimentiView: View {
     private func navigateWeek(by offset: Int) {
         guard !isPeriodTransitioning else { return }
         performSerialPeriodTransition(direction: offset < 0 ? .previous : .next) {
-            store.moveWeek(by: offset)
+            await store.moveWeekAndWait(by: offset)
         }
     }
 
     private func navigateMonth(by offset: Int) {
         guard !isPeriodTransitioning else { return }
         performSerialPeriodTransition(direction: offset < 0 ? .previous : .next) {
-            store.moveMonth(by: offset)
+            await store.moveMonthAndWait(by: offset)
         }
     }
 
@@ -859,19 +906,19 @@ struct RemoteMovimentiView: View {
         let nextIndex = (nextComponents.year ?? 0) * 12 + (nextComponents.month ?? 0)
         guard nextIndex != currentIndex, !isPeriodTransitioning else {
             if !isPeriodTransitioning {
-                store.selectMonth(selectedMonth)
+                Task { await store.selectMonthAndWait(selectedMonth) }
             }
             return
         }
 
         performSerialPeriodTransition(direction: nextIndex > currentIndex ? .next : .previous) {
-            store.selectMonth(selectedMonth)
+            await store.selectMonthAndWait(selectedMonth)
         }
     }
 
     private func performSerialPeriodTransition(
         direction: RemotePeriodTransitionDirection,
-        commit: @escaping () -> Void
+        commit: @escaping @MainActor () async -> Void
     ) {
         guard !isPeriodTransitioning else { return }
 
@@ -890,10 +937,12 @@ struct RemoteMovimentiView: View {
             try? await Task.sleep(nanoseconds: UInt64(periodExitDuration * 1_000_000_000))
             guard generation == periodTransitionGeneration else { return }
 
+            await commit()
+            guard generation == periodTransitionGeneration else { return }
+
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {
-                commit()
                 periodContentOffset = enterOffset
                 periodContentOpacity = 0
             }
@@ -906,6 +955,117 @@ struct RemoteMovimentiView: View {
             try? await Task.sleep(nanoseconds: UInt64(periodEnterDuration * 1_000_000_000))
             guard generation == periodTransitionGeneration else { return }
             isPeriodTransitioning = false
+        }
+    }
+
+    private func transitionFilter(to newFilter: RemoteMovementFilter, categoryID: UUID? = nil) {
+        guard !isPeriodTransitioning else { return }
+
+        if reduceMotion {
+            cancelPeriodTransition()
+            store.setFilter(newFilter)
+            if let categoryID { store.setCategoryFilter(categoryID) }
+            presentedFilter = (newFilter == .all ? nil : newFilter)
+            isFilterVisible = (newFilter != .all)
+            return
+        }
+
+        isPeriodTransitioning = true
+        periodTransitionGeneration += 1
+        let generation = periodTransitionGeneration
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 30_000_000)
+            guard generation == periodTransitionGeneration else { return }
+
+            if newFilter == .all {
+                withAnimation(RemoteFilterMotion.chipSpring) {
+                    isFilterVisible = false
+                }
+
+                withAnimation(.easeIn(duration: RemoteFilterMotion.datasetExitDuration)) {
+                    periodContentOpacity = 0
+                }
+
+                try? await Task.sleep(nanoseconds: 220_000_000)
+                guard generation == periodTransitionGeneration else { return }
+
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    store.setFilter(.all)
+                    presentedFilter = nil
+                    periodContentOffset = 0
+                }
+
+                withAnimation(.easeOut(duration: RemoteFilterMotion.datasetEnterDuration)) {
+                    periodContentOpacity = 1
+                }
+
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                guard generation == periodTransitionGeneration else { return }
+                isPeriodTransitioning = false
+            } else if store.filter == .all {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    presentedFilter = newFilter
+                    isFilterVisible = false
+                }
+
+                withAnimation(.easeIn(duration: RemoteFilterMotion.datasetExitDuration)) {
+                    periodContentOpacity = 0
+                }
+
+                try? await Task.sleep(nanoseconds: 80_000_000)
+                guard generation == periodTransitionGeneration else { return }
+
+                withTransaction(transaction) {
+                    store.setFilter(newFilter)
+                    if let categoryID { store.setCategoryFilter(categoryID) }
+                    periodContentOffset = 0
+                }
+
+                withAnimation(RemoteFilterMotion.chipSpring) {
+                    isFilterVisible = true
+                }
+
+                withAnimation(.easeOut(duration: RemoteFilterMotion.datasetEnterDuration)) {
+                    periodContentOpacity = 1
+                }
+
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                guard generation == periodTransitionGeneration else { return }
+                isPeriodTransitioning = false
+            } else {
+                withAnimation(.easeIn(duration: RemoteFilterMotion.datasetExitDuration)) {
+                    periodContentOpacity = 0
+                }
+
+                try? await Task.sleep(nanoseconds: 80_000_000)
+                guard generation == periodTransitionGeneration else { return }
+
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    store.setFilter(newFilter)
+                    if let categoryID { store.setCategoryFilter(categoryID) }
+                    presentedFilter = newFilter
+                    periodContentOffset = 0
+                }
+
+                withAnimation(RemoteFilterMotion.navigatorFade) {
+                    isFilterVisible = true
+                }
+
+                withAnimation(.easeOut(duration: RemoteFilterMotion.datasetEnterDuration)) {
+                    periodContentOpacity = 1
+                }
+
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                guard generation == periodTransitionGeneration else { return }
+                isPeriodTransitioning = false
+            }
         }
     }
 
@@ -1308,8 +1468,10 @@ private final class RemoteFilterMenuViewController: UIViewController {
             self?.onFilter(.subscription)
         }
 
+        let isCategoryOrSubActive = (filter.wrappedValue == .category || filter.wrappedValue == .subscription)
         return UIMenu(
             title: AppLocalization.string("filter.category"),
+            image: isCategoryOrSubActive ? UIImage(systemName: "checkmark") : nil,
             options: [],
             children: categoryActions + [subscriptionAction]
         )
@@ -1481,6 +1643,54 @@ private struct RemoteAccountHeaderPage: View {
         )
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
+    }
+}
+
+@available(iOS 26.0, *)
+private struct RemoteMovementDayHeaderView: View {
+    let day: RemoteMovementDayDTO
+    let showCents: Bool
+    let currencyCode: String
+    let currencyExponent: Int
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                Text(remoteDateLabel(day.day).uppercased())
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.SubtitleText)
+
+                Spacer()
+
+                RemoteSplitFinancialAmount(
+                    minorUnits: day.subtotalMinor,
+                    currencyCode: currencyCode,
+                    exponent: currencyExponent,
+                    showCents: showCents,
+                    prefixFontSize: 13,
+                    digitsFontSize: 16,
+                    color: day.subtotalMinor < 0 ? Color.AlertRed : day.subtotalMinor > 0 ? Color.IncomeGreen : Color.SubtitleText,
+                    minimumScaleFactor: 0.7,
+                    zeroSign: nil,
+                    showSign: false
+                )
+                .layoutPriority(1)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 8)
+
+            Rectangle()
+                .fill(Color.PrimaryText.opacity(0.14))
+                .frame(height: 1.0)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 4)
+        }
+        .background(Color.AppSecondarySurface)
+        .zIndex(1)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -1952,19 +2162,10 @@ struct RemoteTransactionDetailView: View {
 
             Spacer(minLength: 12)
 
-            HStack(spacing: 6) {
-                if let account {
-                    Image(systemName: Sa7totSymbolResolver.resolved(account.iconName, fallback: "building.columns.fill"))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color(hex: account.color))
-                        .accessibilityHidden(true)
-                }
-
-                Text(name)
-                    .foregroundStyle(Color.PrimaryText)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
+            Text(name)
+                .foregroundStyle(Color.PrimaryText)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
         .padding(.vertical, 12)
         .overlay(alignment: .bottom) { Divider() }
@@ -2964,14 +3165,12 @@ private struct RemoteHorizontalAccountPicker: View {
                             Button {
                                 selection = account.id
                             } label: {
-                                HStack(spacing: compact ? 5 : 7) {
-                                    Image(systemName: Sa7totSymbolResolver.resolved(account.iconName))
-                                        .font(.system(size: compact ? 13 : 14, weight: .medium))
-                                        .foregroundStyle(accountDisplayColor(account.color))
+                                HStack(spacing: compact ? 4 : 6) {
                                     Text(account.name)
                                         .foregroundStyle(.primary)
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.8)
+
                                     if isSelected {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: compact ? 10 : 11, weight: .bold))
@@ -3027,13 +3226,11 @@ private struct RemoteAccountMenu: View {
         Menu {
             ForEach(accounts) { account in
                 Button { selection = account.id } label: {
-                    Label(account.name, systemImage: Sa7totSymbolResolver.resolved(account.iconName))
+                    Text(account.name)
                 }
             }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: Sa7totSymbolResolver.resolved(selectedAccount?.iconName ?? "building.columns.fill"))
-                    .foregroundStyle(accountDisplayColor(selectedAccount?.color))
                 Text(selectedAccount?.name ?? AppLocalization.string("action.select"))
                     .lineLimit(singleLine ? 1 : nil)
                     .truncationMode(.tail)
@@ -3111,6 +3308,86 @@ private func accountDisplayColor(_ hex: String?) -> Color {
 }
 
 @available(iOS 26.0, *)
+private struct AccountManagementCard: View {
+    let account: RemoteAccountDTO
+    let snapshot: RemoteAccountSnapshotDTO?
+
+    private var liveBalanceMinor: Int64 {
+        snapshot?.balanceMinor ?? account.openingBalanceMinor
+    }
+
+    private var liveCurrencyCode: String {
+        snapshot?.currencyCode ?? account.currencyCode
+    }
+
+    private var liveExponent: Int {
+        snapshot?.currencyExponent ?? account.currencyExponent
+    }
+
+    private var typeTag: String {
+        if account.isArchived {
+            return AppLocalization.string("account.archived").uppercased()
+        }
+        return localizedAccountType(account.type).uppercased()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center) {
+                Image("Sa7totCardIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                Spacer()
+
+                Text("SA7TOT")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .tracking(2.0)
+                    .foregroundStyle(Color.white.opacity(0.6))
+            }
+
+            Spacer(minLength: 8)
+
+            Text(account.name)
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 8)
+
+            HStack(alignment: .lastTextBaseline) {
+                Text(remoteAmount(liveBalanceMinor, currencyCode: liveCurrencyCode, exponent: liveExponent))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.white)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer(minLength: 12)
+
+                Text(typeTag)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.white.opacity(0.65))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .frame(height: 116)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(AccountCardGradientPreset.gradient(forPrimaryHex: account.color))
+        }
+        .opacity(account.isArchived ? 0.6 : 1.0)
+    }
+}
+
+@available(iOS 26.0, *)
 struct RemoteAccountListView: View {
     @EnvironmentObject private var store: FinancialRemoteStore
     @State private var showingNewAccount = false
@@ -3121,28 +3398,22 @@ struct RemoteAccountListView: View {
         List {
             if store.accounts.isEmpty {
                 ContentUnavailableView(AppLocalization.key("account.empty"), systemImage: "building.columns", description: Text(AppLocalization.key("account.emptyDescription")))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             } else {
                 ForEach(store.accounts) { account in
-                    Button { editingAccount = account } label: {
-                            HStack(spacing: 12) {
-                            Image(systemName: Sa7totSymbolResolver.resolved(account.iconName))
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundStyle(accountDisplayColor(account.color))
-                                .frame(width: 44, height: 44)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(account.name)
-                                Text(verbatim: account.isArchived ? AppLocalization.string("account.archived") : localizedAccountType(account.type))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(remoteAmount(account.openingBalanceMinor, currencyCode: account.currencyCode, exponent: account.currencyExponent))
-                                .font(.subheadline.weight(.semibold))
-                                .monospacedDigit()
-                        }
-                        .opacity(account.isArchived ? 0.5 : 1)
+                    Button {
+                        editingAccount = account
+                    } label: {
+                        AccountManagementCard(
+                            account: account,
+                            snapshot: store.cachedSnapshot(for: account.id)
+                        )
                     }
                     .buttonStyle(.plain)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         if !account.isArchived {
                             Button {
@@ -3159,7 +3430,9 @@ struct RemoteAccountListView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color.black.ignoresSafeArea())
         .navigationTitle(AppLocalization.key("account.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -3284,6 +3557,7 @@ private struct AccountCardPreviewView: View {
     var hideBalances: Bool = false
     var showCents: Bool = true
     var handoff: CGFloat = 0.0
+    var compact: Bool = false
 
     private var trimmedName: String {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3307,32 +3581,32 @@ private struct AccountCardPreviewView: View {
                 Image("Sa7totCardIcon")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 40, height: 40)
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .frame(width: compact ? 34 : 40, height: compact ? 34 : 40)
+                    .clipShape(RoundedRectangle(cornerRadius: compact ? 7.5 : 9, style: .continuous))
                     .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1.5)
 
                 Spacer()
 
                 Text("SA7TOT")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .font(.system(size: compact ? 9 : 10, weight: .bold, design: .rounded))
                     .tracking(2.2)
                     .foregroundStyle(.white.opacity(0.45))
             }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: compact ? 8 : 12)
 
             // Account Name
             Text(displayName)
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .font(.system(size: compact ? 16 : 17, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.92))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: compact ? 4 : 8)
 
             // Balance
             Text(remoteAmount(balanceMinor ?? 0, currencyCode: currencyCode, exponent: currencyExponent, showCents: showCents))
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(.system(size: compact ? 24 : 28, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .lineLimit(1)
@@ -3341,7 +3615,7 @@ private struct AccountCardPreviewView: View {
                 .opacity(hideBalances ? 0.72 : 1)
                 .animation(remotePrivacyTransition, value: hideBalances)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: compact ? 4 : 8)
 
             // Sub-Bottom Row: Income / Expense summary (if provided) + Account Type Tag
             HStack(alignment: .center, spacing: 10) {
@@ -3380,27 +3654,36 @@ private struct AccountCardPreviewView: View {
                     .foregroundStyle(.white.opacity(0.65))
             }
         }
-        .padding(20)
+        .padding(compact ? 16 : 20)
         .aspectRatio(1.6, contentMode: .fit)
         .frame(maxWidth: .infinity)
         .background {
             ZStack {
                 AccountCardGradientPreset.gradient(forPrimaryHex: colorHex)
 
-                // Subtle top-left luminosity highlight
-                LinearGradient(
-                    colors: [.white.opacity(0.12), .clear],
-                    startPoint: .topLeading,
-                    endPoint: .center
-                )
+                if compact {
+                    Color.white.opacity(0.08)
+
+                    LinearGradient(
+                        colors: [.white.opacity(0.22), .white.opacity(0.05), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                } else {
+                    LinearGradient(
+                        colors: [.white.opacity(0.12), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .center
+                    )
+                }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: compact ? 20 : 24, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: compact ? 20 : 24, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [.white.opacity(0.22), .white.opacity(0.04)],
+                        colors: compact ? [.white.opacity(0.35), .white.opacity(0.10)] : [.white.opacity(0.22), .white.opacity(0.04)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -3423,7 +3706,7 @@ private struct AccountCardGradientPickerView: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 14) {
+            LazyHStack(spacing: 12) {
                 ForEach(AccountCardGradientPreset.all) { preset in
                     let isSelected = matchedPreset?.id == preset.id
 
@@ -3433,28 +3716,28 @@ private struct AccountCardGradientPickerView: View {
                         ZStack {
                             Circle()
                                 .fill(preset.gradient)
-                                .frame(width: 48, height: 48)
-                                .shadow(color: preset.primaryColor.opacity(0.3), radius: 4, x: 0, y: 2)
+                                .frame(width: 38, height: 38)
+                                .shadow(color: preset.primaryColor.opacity(0.3), radius: 3, x: 0, y: 1.5)
 
                             if isSelected {
                                 Circle()
-                                    .stroke(Color.primary, lineWidth: 2.5)
-                                    .frame(width: 56, height: 56)
+                                    .stroke(Color.white, lineWidth: 2.5)
+                                    .frame(width: 44, height: 44)
 
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                     .foregroundStyle(.white)
                             }
                         }
-                        .frame(width: 58, height: 58)
+                        .frame(width: 46, height: 46)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(preset.displayName)
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 2)
         }
     }
 }
@@ -3475,6 +3758,8 @@ struct RemoteAccountEditorView: View {
     @State private var color: String
     @State private var errorMessage: String?
     @State private var isSaving = false
+    @State private var isArmedForReplacement = false
+    @FocusState private var isBalanceFocused: Bool
 
     init(account: RemoteAccountDTO?, defaultCurrencyCode: String = "EUR") {
         self.account = account
@@ -3489,51 +3774,113 @@ struct RemoteAccountEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section(AppLocalization.key("account.information")) {
-                    TextField(AppLocalization.key("common.name"), text: $name)
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled()
-                    Picker(AppLocalization.key("common.type"), selection: $type) {
-                        ForEach(RemoteAccountTypeOption.allCases) { option in
-                            Text(AppLocalization.key(option.titleKey)).tag(option.rawValue)
-                        }
-                    }
-                }
-
-                Section(AppLocalization.key("account.balance")) {
-                    HStack {
-                        Text(AppLocalization.key("account.initialBalance"))
-                        Spacer(minLength: 12)
-                        Text(remoteCurrencySymbol(for: currencyCode))
-                            .foregroundStyle(.secondary)
-                        TextField("0,00", text: $openingBalance)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(minWidth: 100)
-                            .monospacedDigit()
-                            .accessibilityLabel(AppLocalization.key("account.initialBalance"))
-                    }
-                }
-
-                Section(AppLocalization.key("account.appearance")) {
-                    AccountCardGradientPickerView(selectedColorHex: $color)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8))
-                }
-
-                Section(AppLocalization.key("account.preview")) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 18) {
                     AccountCardPreviewView(
                         name: name,
                         type: type,
                         currencyCode: currencyCode,
-                        balanceMinor: parsedOpeningBalance,
+                        balanceMinor: parsedOpeningBalance ?? 0,
                         iconName: iconName,
-                        colorHex: color
+                        colorHex: color,
+                        compact: true
                     )
-                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-                    .listRowBackground(Color.clear)
+                    .frame(maxWidth: 295)
+                    .padding(.top, 4)
+
+                    AccountCardGradientPickerView(selectedColorHex: $color)
+
+                    VStack(spacing: 6) {
+                        Text(AppLocalization.string("common.name").uppercased())
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .tracking(1.2)
+                            .foregroundStyle(Color.SubtitleText)
+
+                        VStack(spacing: 6) {
+                            TextField(AppLocalization.string("common.name"), text: $name)
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .multilineTextAlignment(.center)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+
+                            Rectangle()
+                                .fill(Color.PrimaryText.opacity(0.18))
+                                .frame(height: 1)
+                        }
+                        .frame(maxWidth: 260)
+                    }
+                    .padding(.horizontal, 20)
+
+                    VStack(alignment: .center, spacing: 8) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(RemoteAccountTypeOption.allCases) { option in
+                                    let isSelected = type == option.rawValue
+                                    Button {
+                                        type = option.rawValue
+                                    } label: {
+                                        Text(AppLocalization.key(option.titleKey))
+                                            .font(.system(size: 13, weight: isSelected ? .bold : .medium, design: .rounded))
+                                            .foregroundStyle(isSelected ? Color.black : Color.PrimaryText.opacity(0.8))
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 8)
+                                            .background(
+                                                isSelected ? Color.white : Color.AppSecondarySurface,
+                                                in: Capsule()
+                                            )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                    }
+
+                    VStack(spacing: 6) {
+                        Text(AppLocalization.string("account.initialBalance").uppercased())
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .tracking(1.2)
+                            .foregroundStyle(Color.SubtitleText)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(remoteCurrencySymbol(for: currencyCode))
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.SubtitleText)
+
+                            TextField("0,00", text: $openingBalance)
+                                .font(RemoteClashDisplayFont.font(size: 28))
+                                .monospacedDigit()
+                                .keyboardType(.decimalPad)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .focused($isBalanceFocused)
+                                .onChange(of: isBalanceFocused) { _, isFocused in
+                                    if isFocused {
+                                        isArmedForReplacement = true
+                                    } else {
+                                        if openingBalance.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                            openingBalance = "0,00"
+                                        }
+                                        isArmedForReplacement = false
+                                    }
+                                }
+                                .onChange(of: openingBalance) { oldValue, newValue in
+                                    if isBalanceFocused && isArmedForReplacement && !newValue.isEmpty && newValue != oldValue {
+                                        isArmedForReplacement = false
+                                        if newValue.count >= oldValue.count {
+                                            if let lastChar = newValue.last, (lastChar.isNumber || lastChar == "," || lastChar == ".") {
+                                                openingBalance = String(lastChar)
+                                            }
+                                        }
+                                    }
+                                }
+                                .accessibilityLabel(AppLocalization.key("account.initialBalance"))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle(AppLocalization.key(account == nil ? "account.new" : "account.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -3559,6 +3906,11 @@ struct RemoteAccountEditorView: View {
                 Button(AppLocalization.key("action.ok"), role: .cancel) {}
             } message: { Text(verbatim: errorMessage ?? AppLocalization.string("account.saveError")) }
         }
+        .presentationDetents([.height(590), .fraction(0.92)])
+        .presentationCornerRadius(28)
+        .presentationBackground(AnyShapeStyle(Color.AppPageBackground.opacity(0.14)))
+        .presentationDragIndicator(.visible)
+        .presentationContentInteraction(.scrolls)
     }
 
     private var trimmedName: String {

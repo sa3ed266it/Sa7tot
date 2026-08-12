@@ -182,6 +182,97 @@ final class FinancialRemoteStoreFilterCacheTests: XCTestCase {
         ]
         return try decode(RemoteMovimentiPageDTO.self, object)
     }
+
+    func testCompactAccountIdentityPresetGradientResolution() {
+        let presetMatch = AccountCardGradientPreset.match(hex: "#5E7CE2")
+        XCTAssertEqual(presetMatch?.id, "royalBlue")
+
+        let customGradient = AccountCardGradientPreset.gradient(forPrimaryHex: "#FF5733")
+        XCTAssertNotNil(customGradient)
+
+        let nilGradient = AccountCardGradientPreset.gradient(forPrimaryHex: nil)
+        XCTAssertNotNil(nilGradient)
+    }
+
+    @MainActor
+    func testAsyncPeriodNavigationAwaitsMovementCompletion() async throws {
+        let accountID = UUID()
+        let profile = try decode(
+            RemoteProfileDTO.self,
+            [
+                "user_id": UUID().uuidString,
+                "locale": "en-US",
+                "timezone": "Europe/Rome",
+                "default_currency_code": "EUR",
+                "month_start_day": 1,
+                "week_start_day": 1
+            ]
+        )
+        let account = try decode(
+            RemoteAccountDTO.self,
+            [
+                "id": accountID.uuidString,
+                "user_id": profile.userID.uuidString,
+                "name": "Main",
+                "type": "bank",
+                "currency_code": "EUR",
+                "currency_exponent": 2,
+                "opening_balance_minor": 0,
+                "icon_name": "building.columns.fill",
+                "color": "#5E7CE2",
+                "is_archived": false,
+                "sort_order": 0,
+                "created_at": "2026-08-11T00:00:00Z",
+                "updated_at": "2026-08-11T00:00:00Z"
+            ]
+        )
+        let repository = DelayedMovementsRepository(page: try decodePage(accountID: accountID), delayNanoseconds: 50_000_000)
+        let store = FinancialRemoteStore(
+            client: nil,
+            movementsRepository: repository,
+            initialAccounts: [account],
+            initialProfile: profile
+        )
+
+        store.selectAccount(accountID)
+        await store.awaitCurrentMovementLoad()
+
+        let initialMonth = store.selectedMonth
+
+        await store.moveMonthAndWait(by: -1)
+
+        XCTAssertEqual(store.filter, .month)
+        XCTAssertNotEqual(store.selectedMonth, initialMonth)
+        let count = await repository.requestCount
+        XCTAssertGreaterThanOrEqual(count, 2, "async period navigation must await the delayed movement request")
+    }
+}
+
+private actor DelayedMovementsRepository: RemoteMovimentiPageProviding {
+    let pageResult: RemoteMovimentiPageDTO
+    let delayNanoseconds: UInt64
+    private(set) var requestCount = 0
+
+    init(page: RemoteMovimentiPageDTO, delayNanoseconds: UInt64) {
+        self.pageResult = page
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    func page(
+        accountID: UUID,
+        limit: Int?,
+        cursor: String?,
+        filter: String?,
+        income: Bool?,
+        day: RemoteDateOnly?,
+        weekStart: RemoteDateOnly?,
+        month: String?,
+        categoryID: UUID?
+    ) async throws -> RemoteMovimentiPageDTO {
+        requestCount += 1
+        try await Task.sleep(nanoseconds: delayNanoseconds)
+        return pageResult
+    }
 }
 
 private actor CountingMovementsRepository: RemoteMovimentiPageProviding {
