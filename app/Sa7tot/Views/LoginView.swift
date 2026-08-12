@@ -81,9 +81,7 @@ struct LoginView: View {
                     }
 
                     if isAuthenticating {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(Color.PrimaryText)
+                        Sa7totLoader(size: .compact)
                             .frame(height: 50)
                             .accessibilityLabel(AppLocalization.key("auth.login.signIn"))
                             .padding(.bottom, max(20, proxy.safeAreaInsets.bottom))

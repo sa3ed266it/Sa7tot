@@ -250,8 +250,8 @@ struct RemoteMovimentiView: View {
 
     var body: some View {
         Group {
-            if store.isLoading && store.accounts.isEmpty {
-                ProgressView()
+            if shouldShowColdLoader {
+                Sa7totLoader()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if store.activeAccounts.isEmpty {
                 ContentUnavailableView {
@@ -267,6 +267,7 @@ struct RemoteMovimentiView: View {
                 movementContent
             }
         }
+        .animation(.easeInOut(duration: 0.22), value: shouldShowColdLoader)
         .background(Color.AppPageBackground)
         .background {
             RemoteNativeFilterMenuBridge(
@@ -364,6 +365,28 @@ struct RemoteMovimentiView: View {
                 isFilterVisible = false
             }
         }
+    }
+
+    private var shouldShowColdLoader: Bool {
+        realColdLoaderCondition
+    }
+
+    private var realColdLoaderCondition: Bool {
+        store.isLoading && !hasUsableAccountHeaderContent && !hasUsableMovementRows
+    }
+
+    private var hasUsableAccountHeaderContent: Bool {
+        !store.activeAccounts.isEmpty
+    }
+
+    private var hasUsableMovementRows: Bool {
+        if store.filter == .upcoming {
+            return !store.upcomingItems.isEmpty
+        }
+
+        let accountID = store.selectedAccount?.id
+        let days = accountID.map { store.cachedDays(for: $0) } ?? store.days
+        return !days.isEmpty
     }
 
     private var movementContent: some View {
@@ -700,7 +723,7 @@ struct RemoteMovimentiView: View {
             }
 
             if store.isLoadingNextPage {
-                ProgressView().padding(.vertical, 14)
+                Sa7totLoader(size: .compact).padding(.vertical, 14)
             }
         }
     }
@@ -2379,8 +2402,7 @@ private struct RemoteMovementEditorSurface: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button(action: save) {
                     if isSaving {
-                        ProgressView()
-                            .controlSize(.regular)
+                        Sa7totLoader(size: .compact)
                     } else {
                         Text(AppLocalization.key("action.save"))
                     }
@@ -3893,7 +3915,7 @@ struct RemoteAccountEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(action: save) {
                         if isSaving {
-                            ProgressView().controlSize(.regular)
+                            Sa7totLoader(size: .compact)
                         } else {
                             Text(AppLocalization.key("action.save"))
                         }
@@ -4033,8 +4055,7 @@ struct RemoteCategoryListView: View {
 
                                 Spacer(minLength: 8)
                                 if activatingPresetKeys.contains(preset.key) {
-                                    ProgressView()
-                                        .controlSize(.small)
+                                    Sa7totLoader(size: .compact)
                                 } else {
                                     Image(systemName: "plus")
                                         .font(.body.weight(.semibold))
@@ -4248,8 +4269,7 @@ struct RemoteCategoryEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(action: save) {
                         if isSaving {
-                            ProgressView()
-                                .controlSize(.regular)
+                            Sa7totLoader(size: .compact)
                         } else {
                             Text(AppLocalization.key("action.save"))
                         }

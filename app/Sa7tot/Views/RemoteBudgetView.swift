@@ -49,7 +49,7 @@ private struct RemoteBudgetContent: View {
                         .padding(.bottom, 70)
                     }
                 } else if store.isBudgetLoading {
-                    ProgressView()
+                    Sa7totLoader()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     BudgetEmptyState()
@@ -57,6 +57,7 @@ private struct RemoteBudgetContent: View {
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.22), value: store.isBudgetLoading && !hasUsableBudgetContent)
         .navigationTitle(AppLocalization.key("budget.title"))
         .navigationBarTitleDisplayMode(.inline)
         .budgetNavigationBackground()
@@ -106,6 +107,11 @@ private struct RemoteBudgetContent: View {
         } message: {
             Text(verbatim: store.budgetErrorMessage ?? AppLocalization.string("budget.loadError"))
         }
+    }
+
+    private var hasUsableBudgetContent: Bool {
+        guard let summary = store.budgetSummary else { return false }
+        return summary.main != nil || !summary.categories.isEmpty
     }
 
     private func categoryCard(_ category: RemoteCategoryBudgetDTO) -> some View {

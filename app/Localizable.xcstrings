@@ -2886,6 +2886,22 @@
         }
       }
     },
+    "loader.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento"
+          }
+        }
+      }
+    },
     "movement.balanceHidden" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4379,6 +4395,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiungi un abbonamento per tenere sotto controllo i pagamenti ricorrenti."
+          }
+        }
+      }
+    },
+    "subscription.loadError" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscriptions could not be loaded."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare gli abbonamenti."
+          }
+        }
+      }
+    },
+    "subscription.loadErrorTitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to load subscriptions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare gli abbonamenti"
           }
         }
       }

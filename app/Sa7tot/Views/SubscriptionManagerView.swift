@@ -18,6 +18,7 @@ struct SubscriptionManagerView: View {
             }
         }
         .background(Color.AppPageBackground)
+        .animation(.easeInOut(duration: 0.22), value: remoteStore.subscriptionLoadState)
         .navigationTitle(AppLocalization.key("subscription.title"))
         .navigationBarTitleDisplayMode(.large)
         .task {
@@ -60,13 +61,49 @@ struct SubscriptionManagerView: View {
     @ViewBuilder
     private var remoteBody: some View {
         let visible = remoteStore.subscriptions.filter { $0.status == .active || $0.status == .paused }
-        if visible.isEmpty {
-            emptyState
+        if shouldShowSubscriptionLoader {
+            Sa7totLoader()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if visible.isEmpty {
+            if remoteStore.subscriptionLoadState == .failed {
+                subscriptionErrorState
+            } else {
+                emptyState
+            }
         } else {
             List(visible, id: \.id) { subscription in
                 remoteSubscriptionRow(subscription)
             }
             .listStyle(.insetGrouped)
+        }
+    }
+
+    private var shouldShowSubscriptionLoader: Bool {
+        return !remoteStore.hasLoadedSubscriptions && remoteStore.subscriptionLoadState != .failed
+    }
+
+    @ViewBuilder
+    private var subscriptionErrorState: some View {
+        if #available(iOS 17.0, *) {
+            ContentUnavailableView {
+                Label(AppLocalization.key("subscription.loadErrorTitle"), systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(verbatim: remoteStore.subscriptionErrorMessage ?? AppLocalization.string("subscription.loadError"))
+            }
+        } else {
+            VStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.secondary)
+                Text(AppLocalization.key("subscription.loadErrorTitle"))
+                    .font(.headline)
+                Text(verbatim: remoteStore.subscriptionErrorMessage ?? AppLocalization.string("subscription.loadError"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 24)
         }
     }
 

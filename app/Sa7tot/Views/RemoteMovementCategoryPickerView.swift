@@ -170,8 +170,7 @@ struct RemoteMovementCategoryPickerView: View {
                 activate(preset)
             } label: {
                 if activatingPresetKeys.contains(preset.key) {
-                    ProgressView()
-                        .controlSize(.small)
+                    Sa7totLoader(size: .compact)
                         .frame(width: 32, height: 32)
                 } else {
                     Image(systemName: "plus")

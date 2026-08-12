@@ -4,6 +4,24 @@ import XCTest
 @testable import Sa7tot
 
 final class RemoteValueAndConfigurationTests: XCTestCase {
+    func testSubscriptionLoadStateDistinguishesLoadingEmptyAndFailure() {
+        var state: RemoteSubscriptionLoadState = .idle
+        XCTAssertFalse(state.hasLoaded)
+        XCTAssertFalse(state.isLoading)
+
+        state = .loading
+        XCTAssertFalse(state.hasLoaded)
+        XCTAssertTrue(state.isLoading)
+
+        state = .loaded
+        XCTAssertTrue(state.hasLoaded)
+        XCTAssertFalse(state.isLoading)
+
+        state = .failed
+        XCTAssertFalse(state.hasLoaded)
+        XCTAssertFalse(state.isLoading)
+    }
+
     func testDateOnlyNeverUsesMidnightUTCConversion() throws {
         let date = try RemoteDateOnly(isoString: "2026-02-28")
         XCTAssertEqual(date.isoString, "2026-02-28")
@@ -601,4 +619,3 @@ final class RemoteValueAndConfigurationTests: XCTestCase {
         XCTAssertNil(AccountCardGradientPreset.match(hex: nil), "Nil hex must return nil match.")
     }
 }
-

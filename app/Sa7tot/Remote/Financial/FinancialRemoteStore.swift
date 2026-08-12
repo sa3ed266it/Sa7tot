@@ -211,6 +211,16 @@ enum RemoteBootstrapStatus: Equatable {
     case failed
 }
 
+enum RemoteSubscriptionLoadState: Equatable {
+    case idle
+    case loading
+    case loaded
+    case failed
+
+    var hasLoaded: Bool { self == .loaded }
+    var isLoading: Bool { self == .loading }
+}
+
 @MainActor
 final class FinancialRemoteStore: ObservableObject {
     static let lastKnownAccountIDDefaultsKey = "remote.lastKnownAccountID"
@@ -245,6 +255,8 @@ final class FinancialRemoteStore: ObservableObject {
     @Published var errorMessage: String?
     @Published var deferredFeatureMessage: String?
     @Published private(set) var subscriptionErrorMessage: String?
+    @Published private(set) var subscriptionLoadState: RemoteSubscriptionLoadState = .idle
+    @Published private(set) var hasLoadedSubscriptions = false
     @Published private(set) var bootstrapStatus: RemoteBootstrapStatus = .idle
     @Published private(set) var isUpdatingDefaultCurrency = false
     @Published private(set) var isUpdatingFinancialCalendar = false
@@ -263,6 +275,7 @@ final class FinancialRemoteStore: ObservableObject {
     private var didBootstrap = false
     private var bootstrapTask: Task<Bool, Never>?
     private var secondaryBootstrapTask: Task<Void, Never>?
+    private var subscriptionsLoadTask: Task<Void, Error>?
     private var movementTask: Task<Void, Never>?
     private var movementTaskAccountID: UUID?
     private var movementTaskIsSpeculative = false
@@ -888,15 +901,36 @@ final class FinancialRemoteStore: ObservableObject {
 
     func loadSubscriptions() async throws {
         guard let subscriptionsRepository else { return }
-        subscriptionErrorMessage = nil
-        do {
-            _ = try await subscriptionsRepository.materialize()
-            subscriptions = try await subscriptionsRepository.list()
-            invalidateAccountCaches(for: Set(subscriptions.map(\.accountID)))
-        } catch {
-            subscriptionErrorMessage = userFacingMessage(for: error)
-            throw error
+        if let subscriptionsLoadTask {
+            try await subscriptionsLoadTask.value
+            return
         }
+
+        let hadLoadedSubscriptions = hasLoadedSubscriptions
+        subscriptionErrorMessage = nil
+        subscriptionLoadState = .loading
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await subscriptionsRepository.materialize()
+                let loadedSubscriptions = try await subscriptionsRepository.list()
+                self.subscriptions = loadedSubscriptions
+                self.invalidateAccountCaches(for: Set(loadedSubscriptions.map(\.accountID)))
+                self.hasLoadedSubscriptions = true
+                self.subscriptionLoadState = .loaded
+            } catch is CancellationError {
+                self.subscriptionLoadState = hadLoadedSubscriptions ? .loaded : .idle
+                throw CancellationError()
+            } catch {
+                self.subscriptionErrorMessage = self.userFacingMessage(for: error)
+                self.subscriptionLoadState = .failed
+                throw error
+            }
+        }
+        subscriptionsLoadTask = task
+        defer { subscriptionsLoadTask = nil }
+        try await task.value
     }
 
     @discardableResult
@@ -960,6 +994,8 @@ final class FinancialRemoteStore: ObservableObject {
         bootstrapTask = nil
         secondaryBootstrapTask?.cancel()
         secondaryBootstrapTask = nil
+        subscriptionsLoadTask?.cancel()
+        subscriptionsLoadTask = nil
         didBootstrap = false
         bootstrapStatus = .idle
         profile = nil
@@ -976,6 +1012,8 @@ final class FinancialRemoteStore: ObservableObject {
         clearMovements()
         accountCache.removeAll()
         subscriptionErrorMessage = nil
+        subscriptionLoadState = .idle
+        hasLoadedSubscriptions = false
         errorMessage = nil
     }
 
@@ -986,8 +1024,7 @@ final class FinancialRemoteStore: ObservableObject {
             do {
                 _ = try await self.recurrencesRepository?.materialize()
                 self.recurrenceRules = try await self.recurrencesRepository?.list() ?? []
-                _ = try await self.subscriptionsRepository?.materialize()
-                self.subscriptions = try await self.subscriptionsRepository?.list() ?? []
+                try await self.loadSubscriptions()
             } catch is CancellationError {
             } catch {
                 // Secondary tab data must not prevent the essential Movimenti UI from opening.
