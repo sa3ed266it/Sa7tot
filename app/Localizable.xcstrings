@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "it",
   "strings" : {
+    "" : {
+
+    },
     "-%@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -47,6 +50,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@, saldo %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@, saldo %3$@"
           }
         }
       }
