@@ -9,11 +9,11 @@ import SwiftUI
 
 @main
 struct Sa7totApp: App {
-    @StateObject var unlockManager: UnlockManager
     @StateObject var appLockVM = AppLockViewModel()
     @StateObject var authService: SupabaseAuthService
     @StateObject var remoteFinancialStore: FinancialRemoteStore
     @StateObject var appToastCoordinator = AppToastCoordinator()
+    @StateObject var pushTokenCoordinator: PushTokenCoordinator
 
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
@@ -21,15 +21,14 @@ struct Sa7totApp: App {
         WindowGroup {
             AuthRootView()
                 .environmentObject(appLockVM)
-                .environmentObject(unlockManager)
                 .environmentObject(authService)
                 .environmentObject(remoteFinancialStore)
                 .environmentObject(appToastCoordinator)
+                .environmentObject(pushTokenCoordinator)
         }
     }
 
     init() {
-        let unlockManager = UnlockManager()
         let authService = SupabaseAuthService.current()
         let apiClient: APIClient?
         if let configuration = try? APIConfiguration.current() {
@@ -38,9 +37,14 @@ struct Sa7totApp: App {
             apiClient = nil
         }
 
-        _unlockManager = StateObject(wrappedValue: unlockManager)
         _authService = StateObject(wrappedValue: authService)
         _remoteFinancialStore = StateObject(wrappedValue: FinancialRemoteStore(client: apiClient))
+        _pushTokenCoordinator = StateObject(
+            wrappedValue: PushTokenCoordinator(
+                client: apiClient,
+                tokenProvider: authService.tokenProvider
+            )
+        )
 
         UITableView.appearance().backgroundColor = .clear
     }

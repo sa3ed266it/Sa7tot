@@ -44,7 +44,7 @@ async def clean_database() -> AsyncIterator[None]:
         await connection.execute(
             text(
                 "TRUNCATE TABLE recurrence_occurrences, recurrence_rules, subscription_occurrences, transactions, "
-                "subscriptions, "
+                "subscriptions, push_device_tokens, "
                 "budgets, main_budgets, categories, accounts, profiles RESTART IDENTITY CASCADE"
             )
         )
@@ -78,7 +78,7 @@ async def switch_user() -> AsyncIterator[Callable[[], None]]:
 
     def switch() -> None:
         global current_user_id
-        current_user_id = OTHER_USER_ID
+        current_user_id = OTHER_USER_ID if current_user_id == original else original
 
     yield switch
     current_user_id = original

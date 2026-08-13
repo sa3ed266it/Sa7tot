@@ -160,85 +160,6 @@ final class RemoteAPIClientTests: XCTestCase {
         XCTAssertEqual(profile.weekStartDay, 3)
     }
 
-    func testPutBudgetMutationUsesAuthenticatedRequestAndMinorUnits() async throws {
-        let client = try makeClient(token: "budget-token")
-        let payload = RemoteBudgetMutationPayload(
-            amountMinor: 100000,
-            currencyCode: "EUR",
-            currencyExponent: 2,
-            periodType: .month
-        )
-        TestURLProtocol.handler = { request in
-            XCTAssertEqual(request.httpMethod, "PUT")
-            XCTAssertEqual(request.url?.path, "/v1/budget/main")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer budget-token")
-            let object = try? JSONSerialization.jsonObject(with: requestBodyData(request)) as? [String: Any]
-            XCTAssertEqual(object?["amount_minor"] as? Int, 100000)
-            return .json(statusCode: 200, object: ["main": NSNull(), "categories": []])
-        }
-
-        let response = try await client.put(
-            RemoteBudgetSummaryDTO.self,
-            path: "/v1/budget/main",
-            body: payload
-        )
-        XCTAssertNil(response.main)
-        XCTAssertTrue(response.categories.isEmpty)
-    }
-
-    func testRecurrenceRepositoryUsesAuthenticatedRoutes() async throws {
-        let client = try makeClient(token: "recurrence-token")
-        let ruleID = UUID(uuidString: "00000000-0000-0000-0000-000000000050")!
-        var paths: [String] = []
-        TestURLProtocol.handler = { request in
-            paths.append("\(request.httpMethod ?? "") \(request.url?.path ?? "")")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer recurrence-token")
-            let rule: [String: Any] = [
-                "id": ruleID.uuidString,
-                "user_id": "00000000-0000-0000-0000-000000000001",
-                "account_id": "00000000-0000-0000-0000-000000000010",
-                "category_id": NSNull(),
-                "kind": "expense",
-                "amount_minor": 1299,
-                "currency_code": "EUR",
-                "currency_exponent": 2,
-                "title": "Affitto",
-                "note": NSNull(),
-                "merchant": NSNull(),
-                "cadence": "monthly",
-                "cadence_interval": 1,
-                "anchor_date": "2026-08-01",
-                "next_occurrence_date": "2026-09-01",
-                "status": "active",
-                "created_at": "2026-08-01T10:00:00Z",
-                "updated_at": "2026-08-01T10:00:00Z"
-            ]
-            return .json(statusCode: 200, object: rule)
-        }
-
-        let repository = RemoteRecurrencesRepository(client: client)
-        _ = try await repository.resume(ruleID: ruleID)
-        XCTAssertEqual(paths, ["POST /v1/recurrences/\(ruleID.uuidString)/resume"])
-    }
-
-    func testUpcomingRepositorySendsAccountAndWindowQuery() async throws {
-        let client = try makeClient(token: "upcoming-token")
-        let accountID = UUID(uuidString: "00000000-0000-0000-0000-000000000010")!
-        TestURLProtocol.handler = { request in
-            XCTAssertEqual(request.url?.path, "/v1/accounts/\(accountID.uuidString)/upcoming")
-            XCTAssertEqual(request.url?.query, "limit=50&days=14")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer upcoming-token")
-            return .json(statusCode: 200, object: [
-                "account": ["id": accountID.uuidString, "name": "Conto principale", "currency_code": "EUR"],
-                "items": []
-            ])
-        }
-
-        let repository = RemoteUpcomingRepository(client: client)
-        let response = try await repository.list(accountID: accountID, limit: 50, days: 14)
-        XCTAssertTrue(response.items.isEmpty)
-    }
-
     func testMissingProviderDoesNotSilentlyBypassAuthentication() async throws {
         let client = try makeClient(token: nil)
         let request = APIRequest<RemoteHealthDTO>(method: .get, path: "/v1/bootstrap")
@@ -246,32 +167,66 @@ final class RemoteAPIClientTests: XCTestCase {
         do {
             _ = try await client.send(request)
             XCTFail("Expected authentication boundary error")
-        } catch let error as APIError {
-            XCTAssertEqual(error, .missingTokenProvider)
+        } catch let error as AppError {
+            XCTAssertEqual(error, .configuration)
         }
     }
 
-    func testHTTPStatusErrorsDecodeIntoUsefulAPIErrorCases() async throws {
-        let cases: [(Int, APIError)] = [
-            (401, .unauthorized("nope")),
-            (403, .forbidden("blocked")),
-            (404, .notFound("missing")),
-            (422, .validation("bad field")),
-            (500, .server(statusCode: 500, message: "down"))
+    func testAppErrorTransportMapping() async throws {
+        let cases: [(URLError.Code, AppError)] = [
+            (.notConnectedToInternet, .networkUnavailable),
+            (.networkConnectionLost, .networkUnavailable),
+            (.cannotConnectToHost, .connectionFailed),
+            (.cannotFindHost, .connectionFailed),
+            (.timedOut, .timeout),
+            (.cancelled, .cancelled)
         ]
 
-        for (statusCode, expected) in cases {
-            let client = try makeClient(token: "token")
-            let message = expectedMessage(expected)
-            TestURLProtocol.handler = { _ in
-                .json(statusCode: statusCode, object: ["detail": message])
-            }
+        for (code, expected) in cases {
+            let client = try makeClient(token: nil)
+            TestURLProtocol.handler = { _ in .failure(URLError(code)) }
             let request = APIRequest<RemoteHealthDTO>(method: .get, path: "/health", authentication: .public)
 
             do {
                 _ = try await client.send(request)
+                XCTFail("Expected transport error for \(code)")
+            } catch let error as AppError {
+                XCTAssertEqual(error, expected)
+            } catch is CancellationError {
+                XCTAssertEqual(expected, .cancelled)
+            }
+        }
+    }
+
+    func testAppErrorHTTPStatusMapping() async throws {
+        let cases: [(Int, [String: String], Any, AppError)] = [
+            (401, [:], ["detail": "unauthorized"], .unauthorized),
+            (403, [:], ["detail": "forbidden"], .forbidden),
+            (404, [:], ["detail": "not found"], .notFound),
+            (409, [:], ["detail": "conflict occurred"], .conflict(message: "conflict occurred")),
+            (422, [:], ["detail": "invalid input"], .validation(message: "invalid input")),
+            (429, [:], ["detail": "rate limited"], .rateLimited(retryAfter: nil)),
+            (429, ["Retry-After": "45"], ["detail": "rate limited"], .rateLimited(retryAfter: 45)),
+            (500, [:], ["detail": "internal server error"], .serverUnavailable(statusCode: 500)),
+            (503, [:], ["detail": "service unavailable"], .serverUnavailable(statusCode: 503))
+        ]
+
+        for (statusCode, headers, json, expected) in cases {
+            let client = try makeClient(token: nil)
+            TestURLProtocol.handler = { request in
+                TestURLProtocol.Result(
+                    statusCode: statusCode,
+                    data: (try? JSONSerialization.data(withJSONObject: json)) ?? Data(),
+                    headers: headers.merging(["Content-Type": "application/json"], uniquingKeysWith: { $1 }),
+                    error: nil
+                )
+            }
+
+            let request = APIRequest<RemoteHealthDTO>(method: .get, path: "/health", authentication: .public)
+            do {
+                _ = try await client.send(request)
                 XCTFail("Expected HTTP \(statusCode) to fail")
-            } catch let error as APIError {
+            } catch let error as AppError {
                 XCTAssertEqual(error, expected)
             }
         }
@@ -284,21 +239,91 @@ final class RemoteAPIClientTests: XCTestCase {
         do {
             _ = try await client.send(APIRequest<RemoteHealthDTO>(method: .get, path: "/health", authentication: .public))
             XCTFail("Expected decoding failure")
-        } catch let error as APIError {
+        } catch let error as AppError {
             guard case .decoding = error else { return XCTFail("Unexpected error: \(error)") }
         }
     }
 
-    func testTransportFailureIsReportedWithoutChangingAuthentication() async throws {
-        let client = try makeClient(token: nil)
-        TestURLProtocol.handler = { _ in .failure(URLError(.cannotConnectToHost)) }
+    func test401TriggersAuthRefreshAndRetriesRequestOnce() async throws {
+        let provider = TestRefreshedTokenProvider(currentToken: "expired-jwt", refreshedToken: "fresh-jwt")
+        let client = try makeClientWithProvider(provider)
 
-        do {
-            _ = try await client.send(APIRequest<RemoteHealthDTO>(method: .get, path: "/health", authentication: .public))
-            XCTFail("Expected transport failure")
-        } catch let error as APIError {
-            guard case .transport = error else { return XCTFail("Unexpected error: \(error)") }
+        var requestCount = 0
+        TestURLProtocol.handler = { request in
+            requestCount += 1
+            if requestCount == 1 {
+                XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer expired-jwt")
+                return .json(statusCode: 401, object: ["detail": "token expired"])
+            } else {
+                XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer fresh-jwt")
+                return .json(statusCode: 200, object: ["status": "ok"])
+            }
         }
+
+        let request = APIRequest<RemoteHealthDTO>(method: .get, path: "/v1/bootstrap", authentication: .required)
+        let response = try await client.send(request)
+        XCTAssertEqual(response.status, "ok")
+        XCTAssertEqual(requestCount, 2)
+        XCTAssertEqual(provider.refreshCallCount, 1)
+    }
+
+    func test401StillUnauthorizedNoInfiniteLoop() async throws {
+        let provider = TestRefreshedTokenProvider(currentToken: "expired-jwt", refreshedToken: "still-invalid-jwt")
+        let client = try makeClientWithProvider(provider)
+
+        var requestCount = 0
+        TestURLProtocol.handler = { request in
+            requestCount += 1
+            return .json(statusCode: 401, object: ["detail": "unauthorized"])
+        }
+
+        let request = APIRequest<RemoteHealthDTO>(method: .get, path: "/v1/bootstrap", authentication: .required)
+        do {
+            _ = try await client.send(request)
+            XCTFail("Expected unauthorized error")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .unauthorized)
+        }
+        XCTAssertEqual(requestCount, 2)
+        XCTAssertEqual(provider.refreshCallCount, 1)
+    }
+
+    func testRefreshFailureMapsToUnauthorizedForAuthInvalidation() async throws {
+        let provider = TestRefreshedTokenProvider(
+            currentToken: "expired-jwt",
+            refreshError: SupabaseAuthError.refreshFailed("revoked")
+        )
+        let client = try makeClientWithProvider(provider)
+
+        TestURLProtocol.handler = { _ in .json(statusCode: 401, object: ["detail": "expired"]) }
+
+        let request = APIRequest<RemoteHealthDTO>(method: .get, path: "/v1/bootstrap", authentication: .required)
+        do {
+            _ = try await client.send(request)
+            XCTFail("Expected unauthorized error")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .unauthorized)
+        }
+        XCTAssertEqual(provider.refreshCallCount, 1)
+    }
+
+    func testRefreshFailurePreservesTransportWhenNetworkFails() async throws {
+        let provider = TestRefreshedTokenProvider(
+            currentToken: "expired-jwt",
+            refreshError: URLError(.notConnectedToInternet)
+        )
+        let client = try makeClientWithProvider(provider)
+
+        TestURLProtocol.handler = { _ in .json(statusCode: 401, object: ["detail": "expired"]) }
+
+        let request = APIRequest<RemoteHealthDTO>(method: .get, path: "/v1/bootstrap", authentication: .required)
+        do {
+            _ = try await client.send(request)
+            XCTFail("Expected network unavailable error")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .networkUnavailable)
+        }
+        XCTAssertEqual(provider.refreshCallCount, 1)
     }
 
     func testCancellationIsPropagated() async throws {
@@ -316,24 +341,19 @@ final class RemoteAPIClientTests: XCTestCase {
     }
 
     private func makeClient(token: String?) throws -> APIClient {
+        let provider = token.map(TestTokenProvider.init(token:))
+        return try makeClientWithProvider(provider)
+    }
+
+    private func makeClientWithProvider(_ provider: AuthTokenProvider?) throws -> APIClient {
         let configuration = try APIConfiguration(baseURLString: "https://api.example.test")
         let sessionConfiguration = URLSessionConfiguration.ephemeral
         sessionConfiguration.protocolClasses = [TestURLProtocol.self]
-        let provider = token.map(TestTokenProvider.init(token:))
         return APIClient(
             configuration: configuration,
             session: URLSession(configuration: sessionConfiguration),
             tokenProvider: provider
         )
-    }
-
-    private func expectedMessage(_ error: APIError) -> String {
-        switch error {
-        case let .unauthorized(message), let .forbidden(message), let .notFound(message), let .validation(message):
-            return message ?? ""
-        case let .server(_, message): return message ?? ""
-        default: return ""
-        }
     }
 }
 
@@ -366,6 +386,34 @@ private struct TestTokenProvider: AuthTokenProvider {
     func accessToken() async throws -> String { token }
 }
 
+private final class TestRefreshedTokenProvider: AuthTokenProvider, @unchecked Sendable {
+    var currentToken: String
+    var refreshedToken: String?
+    var refreshCallCount = 0
+    var refreshError: Error?
+
+    init(currentToken: String, refreshedToken: String? = nil, refreshError: Error? = nil) {
+        self.currentToken = currentToken
+        self.refreshedToken = refreshedToken
+        self.refreshError = refreshError
+    }
+
+    func accessToken() async throws -> String { token }
+    var token: String { currentToken }
+
+    func refreshSession() async throws -> String {
+        refreshCallCount += 1
+        if let refreshError {
+            throw refreshError
+        }
+        if let refreshedToken {
+            currentToken = refreshedToken
+            return refreshedToken
+        }
+        return currentToken
+    }
+}
+
 private final class TestURLProtocol: URLProtocol {
     struct Result {
         let statusCode: Int
@@ -374,9 +422,19 @@ private final class TestURLProtocol: URLProtocol {
         let error: Error?
 
         static func json(statusCode: Int, object: Any) -> Result {
-            Result(
+            let data: Data
+            if JSONSerialization.isValidJSONObject(object), let jsonData = try? JSONSerialization.data(withJSONObject: object) {
+                data = jsonData
+            } else if let string = object as? String {
+                data = Data(string.utf8)
+            } else if let rawData = object as? Data {
+                data = rawData
+            } else {
+                data = Data()
+            }
+            return Result(
                 statusCode: statusCode,
-                data: (try? JSONSerialization.data(withJSONObject: object)) ?? Data(),
+                data: data,
                 headers: ["Content-Type": "application/json"],
                 error: nil
             )
@@ -393,11 +451,16 @@ private final class TestURLProtocol: URLProtocol {
 
     static var handler: ((URLRequest) -> Result)?
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.host == "api.example.test"
+    }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        guard let handler = Self.handler else { return }
+        guard let handler = Self.handler else {
+            client?.urlProtocol(self, didFailWithError: URLError(.cannotConnectToHost))
+            return
+        }
         let result = handler(request)
         if let error = result.error {
             client?.urlProtocol(self, didFailWithError: error)

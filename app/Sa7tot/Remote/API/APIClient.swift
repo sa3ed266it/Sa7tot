@@ -19,14 +19,17 @@ public final class APIClient: @unchecked Sendable {
     }
 
     public func send<Response: Decodable>(_ request: APIRequest<Response>) async throws -> Response {
-        try Task.checkCancellation()
+        try await sendInternal(request, allowAuthRetry: true)
+    }
 
+    private func sendInternal<Response: Decodable>(_ request: APIRequest<Response>, allowAuthRetry: Bool) async throws -> Response {
+        try Task.checkCancellation()
 
         let url: URL
         do {
             url = try configuration.url(path: request.path, queryItems: request.queryItems)
-        } catch let error as APIConfigurationError {
-            throw APIError.invalidURL(String(describing: error))
+        } catch {
+            throw AppError.configuration
         }
 
         var urlRequest = URLRequest(url: url)
@@ -39,11 +42,22 @@ public final class APIClient: @unchecked Sendable {
 
         if request.authentication == .required {
             guard let tokenProvider else {
-                throw APIError.missingTokenProvider
+                throw AppError.configuration
             }
-            let token = try await tokenProvider.accessToken()
+            let token: String
+            do {
+                token = try await tokenProvider.accessToken()
+            } catch {
+                let mapped = AppError.from(error)
+                switch mapped {
+                case .networkUnavailable, .connectionFailed, .timeout:
+                    throw mapped
+                default:
+                    throw AppError.unauthorized
+                }
+            }
             guard !token.isEmpty else {
-                throw APIError.unauthorized("The access token provider returned an empty token.")
+                throw AppError.unauthorized
             }
             urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -54,10 +68,54 @@ public final class APIClient: @unchecked Sendable {
             try Task.checkCancellation()
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw APIError.invalidResponse
+                throw AppError.invalidResponse
             }
+
+            if httpResponse.statusCode == 401, request.authentication == .required, allowAuthRetry, let tokenProvider {
+                let newToken: String
+                do {
+                    newToken = try await tokenProvider.refreshSession()
+                } catch {
+                    let mapped = AppError.from(error)
+                    switch mapped {
+                    case .networkUnavailable, .connectionFailed, .timeout:
+                        throw mapped
+                    default:
+                        throw AppError.unauthorized
+                    }
+                }
+
+                guard !newToken.isEmpty else {
+                    throw AppError.unauthorized
+                }
+
+                var retryUrlRequest = urlRequest
+                retryUrlRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+
+                let (retryData, retryResponse) = try await session.data(for: retryUrlRequest)
+                try Task.checkCancellation()
+
+                guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
+                    throw AppError.invalidResponse
+                }
+
+                guard (200..<300).contains(retryHttpResponse.statusCode) else {
+                    throw AppError.from(statusCode: retryHttpResponse.statusCode, body: retryData, response: retryHttpResponse)
+                }
+
+                if Response.self == EmptyResponse.self, retryData.isEmpty {
+                    return EmptyResponse() as! Response
+                }
+
+                do {
+                    return try decoder.decode(Response.self, from: retryData)
+                } catch {
+                    throw AppError.decoding(details: error.localizedDescription)
+                }
+            }
+
             guard (200..<300).contains(httpResponse.statusCode) else {
-                throw apiError(statusCode: httpResponse.statusCode, body: data)
+                throw AppError.from(statusCode: httpResponse.statusCode, body: data, response: httpResponse)
             }
 
             if Response.self == EmptyResponse.self, data.isEmpty {
@@ -67,16 +125,18 @@ public final class APIClient: @unchecked Sendable {
             do {
                 return try decoder.decode(Response.self, from: data)
             } catch {
-                throw APIError.decoding(error.localizedDescription)
+                throw AppError.decoding(details: error.localizedDescription)
             }
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
-        } catch let error as APIError {
+        } catch let error as AppError {
             throw error
+        } catch let error as URLError {
+            throw AppError.from(urlError: error)
         } catch {
-            throw APIError.transport(error.localizedDescription)
+            throw AppError.unknown(message: error.localizedDescription)
         }
     }
 
@@ -164,35 +224,6 @@ public final class APIClient: @unchecked Sendable {
                 authentication: authentication
             )
         )
-    }
-
-    private func apiError(statusCode: Int, body: Data) -> APIError {
-        let message = Self.serverMessage(from: body)
-        switch statusCode {
-        case 401: return .unauthorized(message)
-        case 403: return .forbidden(message)
-        case 404: return .notFound(message)
-        case 422: return .validation(message)
-        default: return .server(statusCode: statusCode, message: message)
-        }
-    }
-
-    private static func serverMessage(from data: Data) -> String? {
-        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-
-        if let error = object["error"] as? [String: Any], let detail = error["detail"] as? String {
-            return detail
-        }
-        if let detail = object["detail"] as? String {
-            return detail
-        }
-        if let details = object["detail"] as? [[String: Any]] {
-            let messages = details.compactMap { $0["msg"] as? String }
-            return messages.isEmpty ? nil : messages.joined(separator: "; ")
-        }
-        return nil
     }
 }
 

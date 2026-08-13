@@ -137,6 +137,8 @@ public final class SupabaseAuthClient: SupabaseAuthClientProtocol, @unchecked Se
             throw SupabaseAuthError.userCancelled
         } catch let error as SupabaseAuthError {
             throw error
+        } catch let error as URLError {
+            throw error
         } catch {
             throw SupabaseAuthError.network(error.localizedDescription)
         }

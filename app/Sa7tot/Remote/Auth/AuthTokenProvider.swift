@@ -7,4 +7,11 @@ import Foundation
 /// JWT here without changing APIClient or the repositories.
 public protocol AuthTokenProvider: Sendable {
     func accessToken() async throws -> String
+    func refreshSession() async throws -> String
+}
+
+public extension AuthTokenProvider {
+    func refreshSession() async throws -> String {
+        try await accessToken()
+    }
 }

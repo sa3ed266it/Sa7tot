@@ -34,10 +34,12 @@ struct SettingsView: View {
   @State private var notificationPermission: UNAuthorizationStatus = .notDetermined
   @State private var showingNotificationPermissionAlert = false
   @State private var financialCalendarErrorMessage: String?
+  @State private var signOutErrorMessage: String?
 
   @EnvironmentObject var appLockVM: AppLockViewModel
   @EnvironmentObject private var authService: SupabaseAuthService
   @EnvironmentObject private var remoteStore: FinancialRemoteStore
+  @EnvironmentObject private var pushTokenCoordinator: PushTokenCoordinator
 
   @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
   var showCents: Bool = true
@@ -228,11 +230,36 @@ struct SettingsView: View {
       isPresented: $showingSignOutConfirmation
     ) {
       Button(AppLocalization.key("settings.signout.confirm.action"), role: .destructive) {
-        Task { await authService.signOut() }
+        Task {
+          let didSignOut = await PushSignOutLifecycle.run(
+            deactivate: {
+              try await pushTokenCoordinator.deactivateCurrentRegistration()
+            },
+            signOut: {
+              await authService.signOut()
+            }
+          )
+          if !didSignOut {
+            signOutErrorMessage = AppLocalization.string("error.generic")
+          }
+        }
       }
       Button(AppLocalization.key("action.cancel"), role: .cancel) {}
     } message: {
       Text(AppLocalization.key("settings.signout.confirm.message"))
+    }
+    .alert(
+      AppLocalization.key("error.generic"),
+      isPresented: Binding(
+        get: { signOutErrorMessage != nil },
+        set: { if !$0 { signOutErrorMessage = nil } }
+      )
+    ) {
+      Button(AppLocalization.key("action.ok"), role: .cancel) {
+        signOutErrorMessage = nil
+      }
+    } message: {
+      Text(signOutErrorMessage ?? AppLocalization.string("error.generic"))
     }
     .alert(
       AppLocalization.key("error.generic"),
@@ -276,6 +303,7 @@ struct SettingsView: View {
                 notificationPermission = .authorized
                 showNotifications = true
                 notificationsEnabled = true
+                pushTokenCoordinator.registerIfAuthorized()
                 newNotification()
               } else {
                 notificationPermission = .denied
@@ -287,6 +315,7 @@ struct SettingsView: View {
         case .authorized, .provisional, .ephemeral:
           showNotifications = true
           notificationsEnabled = true
+          pushTokenCoordinator.registerIfAuthorized()
           newNotification()
         case .denied:
           showNotifications = false

@@ -67,7 +67,7 @@ provide offline financial writes.
 - PostgreSQL and Supabase
 - Alembic migrations
 - Sign in with Apple and Supabase Auth
-- Lottie, CrookedText, and ConfettiSwiftUI
+- Lottie and CrookedText
 - XCTest, pytest, and Ruff
 
 ## Project Structure

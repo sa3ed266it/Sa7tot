@@ -191,10 +191,12 @@ final class SupabaseAuthTests: XCTestCase {
         do {
             _ = try await apiClient.get(RemoteHealthDTO.self, path: "/v1/bootstrap")
             XCTFail("Expected unauthorized response")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .unauthorized)
         } catch let error as APIError {
             XCTAssertEqual(error, .unauthorized("expired"))
         }
-        XCTAssertEqual(requestCount, 1)
+        XCTAssertEqual(requestCount, 2)
     }
 
     @MainActor
@@ -292,7 +294,9 @@ private actor MockSupabaseAuthClient: SupabaseAuthClientProtocol {
 }
 
 private func requestBodyData(_ request: URLRequest) -> Data {
-    if let body = request.httpBody { return body }
+    if let body = request.httpBody {
+        return body
+    }
     guard let stream = request.httpBodyStream else { return Data() }
     stream.open()
     defer { stream.close() }
@@ -326,11 +330,16 @@ private final class AuthTestURLProtocol: URLProtocol {
 
     static var handler: ((URLRequest) -> Result)?
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.host == "api.example.test" || request.url?.host == "project.supabase.co"
+    }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        guard let handler = Self.handler else { return }
+        guard let handler = Self.handler else {
+            client?.urlProtocol(self, didFailWithError: URLError(.cannotConnectToHost))
+            return
+        }
         let result = handler(request)
         if let error = result.error {
             client?.urlProtocol(self, didFailWithError: error)

@@ -11,6 +11,7 @@ enum AppBootstrapState: Equatable {
 struct AuthRootView: View {
     @EnvironmentObject private var authService: SupabaseAuthService
     @EnvironmentObject private var remoteFinancialStore: FinancialRemoteStore
+    @EnvironmentObject private var pushTokenCoordinator: PushTokenCoordinator
 
     @State private var hasResolvedInitialAuth = false
     @State private var isSigningIn = false
@@ -29,8 +30,6 @@ struct AuthRootView: View {
 
                 if !hasCompletedInitialSplash {
                     BootstrapSplashView(
-                        showFailure: initialSplashShowsFailure,
-                        retry: retryBootstrap,
                         canExit: $initialSplashCanExit,
                         containerSize: proxy.size,
                         onDestinationReveal: revealInitialDestination,
@@ -42,9 +41,11 @@ struct AuthRootView: View {
             .coordinateSpace(name: SplashCoordinateSpace.root)
         }
         .task {
+            pushTokenCoordinator.start()
             await restoreAuthSession()
         }
         .onChange(of: authService.state) { state in
+            pushTokenCoordinator.reconcile(authState: state)
             switch state {
             case .restoring:
                 initialSplashCanExit = false
@@ -61,7 +62,7 @@ struct AuthRootView: View {
             case .signedIn:
                 hasResolvedInitialAuth = true
                 isSigningIn = false
-                initialSplashCanExit = false
+                initialSplashCanExit = true
                 beginBootstrap()
             case .error:
                 hasResolvedInitialAuth = true
@@ -124,43 +125,42 @@ struct AuthRootView: View {
                 BootstrapSplashView(animate: false)
             }
         case .signedIn:
-            switch bootstrapState {
-            case .ready:
-                GeometryReader { proxy in
-                    let topSafeAreaOffset = max(
-                        proxy.safeAreaInsets.top - proxy.frame(in: .global).minY,
-                        0
-                    )
+            GeometryReader { proxy in
+                let topSafeAreaOffset = max(
+                    proxy.safeAreaInsets.top - proxy.frame(in: .global).minY,
+                    0
+                )
 
-                    ZStack(alignment: .top) {
-                        ContentView()
-                            .ignoresSafeArea()
+                ZStack(alignment: .top) {
+                    ContentView()
+                        .ignoresSafeArea()
 
-                        AppToastView()
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, topSafeAreaOffset + 7)
-                            .padding(.horizontal, 16)
-                            .allowsHitTesting(false)
-                            .zIndex(1000)
+                    if bootstrapState == .failed,
+                       let error = remoteFinancialStore.bootstrapError,
+                       error != .unauthorized,
+                       remoteFinancialStore.hasUsableContent {
+                        BootstrapInlineErrorBanner(
+                            error: error,
+                            retry: retryBootstrap
+                        )
+                        .padding(.top, topSafeAreaOffset + 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(2000)
                     }
+
+                    AppToastView()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, topSafeAreaOffset + 7)
+                        .padding(.horizontal, 16)
+                        .allowsHitTesting(false)
+                        .zIndex(1000)
                 }
-            case .failed:
-                BootstrapSplashView(showFailure: true, retry: retryBootstrap, animate: false)
-            case .resolvingSession, .loadingRequiredData, .signedOut:
-                BootstrapSplashView(animate: false)
             }
         case .signedOut:
             LoginView()
         case let .error(error):
             LoginView(error: error)
         }
-    }
-
-    private var initialSplashShowsFailure: Bool {
-        if case .signedIn = authService.state {
-            return bootstrapState == .failed
-        }
-        return false
     }
 
     private func beginBootstrap() {
@@ -183,8 +183,11 @@ struct AuthRootView: View {
             timeoutTask.cancel()
             bootstrapTask.cancel()
             guard !Task.isCancelled else { return }
+            if remoteFinancialStore.bootstrapError == .unauthorized {
+                await authService.signOut()
+                return
+            }
             bootstrapState = didBecomeReady ? .ready : .failed
-            initialSplashCanExit = didBecomeReady
         }
     }
 }
@@ -257,8 +260,6 @@ private enum SplashZoomFocalPoint {
 private struct BootstrapSplashView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    let showFailure: Bool
-    let retry: (() -> Void)?
     @Binding var canExit: Bool
     let containerSize: CGSize
     let onDestinationReveal: () -> Void
@@ -277,16 +278,12 @@ private struct BootstrapSplashView: View {
     @State private var wordmarkExitOpacity = 1.0
 
     init(
-        showFailure: Bool = false,
-        retry: (() -> Void)? = nil,
         canExit: Binding<Bool> = .constant(false),
         containerSize: CGSize = .zero,
         onDestinationReveal: @escaping () -> Void = {},
         animate: Bool = true,
         onFinished: @escaping () -> Void = {}
     ) {
-        self.showFailure = showFailure
-        self.retry = retry
         self._canExit = canExit
         self.containerSize = containerSize
         self.onDestinationReveal = onDestinationReveal
@@ -300,35 +297,18 @@ private struct BootstrapSplashView: View {
             Color.AppPageBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                SplashBrandLockup(
-                    phase: phase,
-                    reduceMotion: reduceMotion,
-                    reportsMarkFrame: animate,
-                    wordmarkWidth: $wordmarkWidth,
-                    breathingScale: breathingScale,
-                    exitZoomScale: exitZoomScale,
-                    exitZoomOffset: exitZoomOffset,
-                    wordmarkExitOpacity: wordmarkExitOpacity
-                )
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Sa7tot")
-
-                if showFailure {
-                    VStack(spacing: 14) {
-                        Text(AppLocalization.key("error.generic"))
-                            .font(.callout)
-                            .foregroundStyle(Color.SubtitleText)
-                            .multilineTextAlignment(.center)
-
-                        Button(AppLocalization.key("action.retry"), action: retry ?? {})
-                            .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.top, 28)
-                    .padding(.horizontal, 32)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            SplashBrandLockup(
+                phase: phase,
+                reduceMotion: reduceMotion,
+                reportsMarkFrame: animate,
+                wordmarkWidth: $wordmarkWidth,
+                breathingScale: breathingScale,
+                exitZoomScale: exitZoomScale,
+                exitZoomOffset: exitZoomOffset,
+                wordmarkExitOpacity: wordmarkExitOpacity
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Sa7tot")
         }
         .onPreferenceChange(SplashMarkFramePreferenceKey.self) { frame in
             markFrame = frame

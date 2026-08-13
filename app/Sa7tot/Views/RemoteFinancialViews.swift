@@ -248,12 +248,45 @@ struct RemoteMovimentiView: View {
         )
     }
 
+    private enum MovimentiContentState {
+        case loading
+        case inlineError(AppError)
+        case emptyNoAccount
+        case content
+    }
+
+    private var movimentiContentState: MovimentiContentState {
+        if !hasUsableMovementRows && store.activeAccounts.isEmpty {
+            if let error = store.bootstrapError {
+                return .inlineError(error)
+            } else if store.bootstrapStatus == .failed {
+                return .inlineError(.connectionFailed)
+            }
+        }
+
+        if shouldShowColdLoader {
+            return .loading
+        }
+
+        if (store.bootstrapStatus == .ready || store.didBootstrap) && store.activeAccounts.isEmpty {
+            return .emptyNoAccount
+        }
+
+        return .content
+    }
+
     var body: some View {
         Group {
-            if shouldShowColdLoader {
+            switch movimentiContentState {
+            case .loading:
                 Sa7totLoader()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if store.activeAccounts.isEmpty {
+            case let .inlineError(error):
+                MovimentiInlineErrorState(error: error) {
+                    Task { await store.bootstrapIfNeeded() }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .emptyNoAccount:
                 ContentUnavailableView {
                     Label(AppLocalization.key("movement.empty.accountTitle"), systemImage: "building.columns")
                 } description: {
@@ -263,7 +296,7 @@ struct RemoteMovimentiView: View {
                         .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
+            case .content:
                 movementContent
             }
         }
@@ -335,12 +368,6 @@ struct RemoteMovimentiView: View {
             Button(AppLocalization.key("action.cancel"), role: .cancel) {}
         } message: { _ in
             Text(AppLocalization.key("movement.deleteMessage"))
-        }
-        .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
-            Button(AppLocalization.key("action.retry")) { Task { await store.refresh() } }
-            Button(AppLocalization.key("action.cancel"), role: .cancel) { store.errorMessage = nil }
-        } message: {
-            Text(verbatim: store.errorMessage ?? AppLocalization.string("movement.loadError"))
         }
         .alert(AppLocalization.key("movement.deferredTitle"), isPresented: Binding(get: { store.deferredFeatureMessage != nil }, set: { if !$0 { store.deferredFeatureMessage = nil } })) {
             Button(AppLocalization.key("action.ok"), role: .cancel) { store.deferredFeatureMessage = nil }
@@ -724,9 +751,104 @@ struct RemoteMovimentiView: View {
 
             if store.isLoadingNextPage {
                 Sa7totLoader(size: .compact).padding(.vertical, 14)
+            } else if let _ = store.paginationError {
+                HStack(spacing: 8) {
+                    Text(AppLocalization.key("movement.paginationError"))
+                        .font(.caption)
+                        .foregroundStyle(Color.SubtitleText)
+
+                    Button {
+                        Task { await store.retryNextPage() }
+                    } label: {
+                        Text(AppLocalization.key("action.retry"))
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.mini)
+                }
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
+
+struct MovimentiInlineErrorState: View {
+    let error: AppError
+    let retry: () -> Void
+
+    @State private var isRetrying = false
+
+    private var presentation: AppErrorPresentation {
+        AppErrorPresentationPolicy.blockingPresentation(for: error)
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: presentation.iconName)
+                .font(.system(size: 32, weight: .regular))
+                .foregroundStyle(Color.SubtitleText)
+                .accessibilityHidden(true)
+
+            Text(LocalizedStringKey(presentation.titleKey))
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .foregroundStyle(Color.PrimaryText)
+
+            Text(LocalizedStringKey(presentation.messageKey))
+                .font(.subheadline)
+                .foregroundStyle(Color.SubtitleText)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            if #available(iOS 26.0, *) {
+                Button {
+                    handleRetry()
+                } label: {
+                    buttonLabel
+                }
+                .buttonStyle(.glass)
+                .disabled(isRetrying)
+                .padding(.top, 4)
+            } else {
+                Button {
+                    handleRetry()
+                } label: {
+                    buttonLabel
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isRetrying)
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 40)
+    }
+
+    private var buttonLabel: some View {
+        HStack(spacing: 6) {
+            if isRetrying {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+            } else {
+                Image(systemName: "arrow.clockwise")
+                    .font(.caption.weight(.semibold))
+            }
+            Text(LocalizedStringKey(presentation.primaryActionKey))
+                .font(.subheadline.weight(.semibold))
+        }
+        .padding(.horizontal, 6)
+    }
+
+    private func handleRetry() {
+        guard !isRetrying else { return }
+        isRetrying = true
+        retry()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            isRetrying = false
+        }
+    }
+}
 
     private func movementPresentationIdentity(_ transaction: RemoteTransactionDTO) -> String {
         if transaction.kind == .transfer {

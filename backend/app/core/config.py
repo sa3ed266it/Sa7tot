@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     supabase_audience: str = "authenticated"
 
     internal_job_secret: str | None = Field(default=None, repr=False)
+    apns_key_id: str | None = None
+    apns_team_id: str | None = None
+    apns_bundle_id: str = "com.saied.sa7tot"
+    apns_private_key: str | None = Field(default=None, repr=False)
+    apns_private_key_path: str | None = Field(default=None, repr=False)
+    apns_environment: str = "development"
     page_size_default: int = Field(default=50, ge=1, le=200)
     page_size_max: int = Field(default=200, ge=1, le=500)
 
@@ -49,6 +55,22 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.lower() == "production"
+
+    @property
+    def apns_base_url(self) -> str:
+        environment = self.apns_environment.lower()
+        if environment not in {"development", "production"}:
+            raise ValueError("APNS_ENVIRONMENT must be development or production")
+        return "https://api.push.apple.com" if environment == "production" else "https://api.sandbox.push.apple.com"
+
+    def apns_private_key_material(self) -> str | None:
+        if self.apns_private_key:
+            return self.apns_private_key.replace("\\n", "\n")
+        if self.apns_private_key_path:
+            from pathlib import Path
+
+            return Path(self.apns_private_key_path).read_text(encoding="utf-8")
+        return None
 
     @property
     def _supabase_base_url(self) -> str | None:

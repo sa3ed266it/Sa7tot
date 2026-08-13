@@ -134,6 +134,10 @@ public final class SupabaseAuthService: ObservableObject {
             let message = "Authenticated bootstrap succeeded: profile_subject_matches_session=\(subjectMatchesProfile) accounts=\(bootstrap.accounts.count) categories=\(bootstrap.categories.count)"
             authValidationLogger.info("\(message, privacy: .public)")
             print("[AuthValidation] \(message)")
+        } catch let error as AppError {
+            let message = "Authenticated bootstrap failed: app_error=\(String(describing: error))"
+            authValidationLogger.error("\(message, privacy: .public)")
+            print("[AuthValidation] \(message)")
         } catch let error as APIError {
             let message = "Authenticated bootstrap failed: api_error=\(String(describing: error))"
             authValidationLogger.error("\(message, privacy: .public)")

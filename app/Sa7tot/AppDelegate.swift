@@ -30,6 +30,26 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(
         _: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        NotificationCenter.default.post(
+            name: PushTokenCoordinatorNotifications.didRegister,
+            object: deviceToken
+        )
+    }
+
+    func application(
+        _: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        NotificationCenter.default.post(
+            name: PushTokenCoordinatorNotifications.didFailToRegister,
+            object: error
+        )
+    }
+
+    func application(
+        _: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
         options _: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {

@@ -258,8 +258,14 @@ final class FinancialRemoteStore: ObservableObject {
     @Published private(set) var subscriptionLoadState: RemoteSubscriptionLoadState = .idle
     @Published private(set) var hasLoadedSubscriptions = false
     @Published private(set) var bootstrapStatus: RemoteBootstrapStatus = .idle
+    @Published private(set) var bootstrapError: AppError?
+    @Published private(set) var paginationError: AppError?
     @Published private(set) var isUpdatingDefaultCurrency = false
     @Published private(set) var isUpdatingFinancialCalendar = false
+
+    var hasUsableContent: Bool {
+        !activeAccounts.isEmpty || !days.isEmpty || !upcomingItems.isEmpty
+    }
 
     var accountCache: [AccountMovementCacheKey: AccountMovementCacheEntry] = [:]
 
@@ -272,7 +278,7 @@ final class FinancialRemoteStore: ObservableObject {
     private let recurrencesRepository: RemoteRecurrencesRepository?
     private let upcomingRepository: RemoteUpcomingRepository?
     private let budgetRepository: RemoteBudgetRepository?
-    private var didBootstrap = false
+    private(set) var didBootstrap = false
     private var bootstrapTask: Task<Bool, Never>?
     private var secondaryBootstrapTask: Task<Void, Never>?
     private var subscriptionsLoadTask: Task<Void, Error>?
@@ -420,6 +426,7 @@ final class FinancialRemoteStore: ObservableObject {
 
             didBootstrap = true
             bootstrapStatus = .ready
+            bootstrapError = nil
             isLoading = false
             startSecondaryBootstrap()
             return true
@@ -444,7 +451,8 @@ final class FinancialRemoteStore: ObservableObject {
             pendingSpeculativePageGeneration = nil
             pendingSpeculativeUpcoming = nil
             pendingSpeculativeUpcomingGeneration = nil
-            errorMessage = userFacingMessage(for: error)
+            let appError = AppError.from(error)
+            bootstrapError = appError
             bootstrapStatus = .failed
             isLoading = false
             return false
@@ -593,6 +601,7 @@ final class FinancialRemoteStore: ObservableObject {
               !isLoadingNextPage,
               filter != .upcoming,
               let selectedAccountID else { return }
+        paginationError = nil
         isLoadingNextPage = true
         let cursor = nextCursor
         let generation = loadGeneration
@@ -615,9 +624,46 @@ final class FinancialRemoteStore: ObservableObject {
                 try Task.checkCancellation()
                 guard generation == self.loadGeneration, self.selectedAccountID == selectedAccountID else { return }
                 self.append(page)
+                self.paginationError = nil
             } catch is CancellationError {
             } catch {
-                self.errorMessage = self.userFacingMessage(for: error)
+                self.paginationError = AppError.from(error)
+            }
+            self.isLoadingNextPage = false
+        }
+    }
+
+    func retryNextPage() async {
+        guard let cursor = nextCursor,
+              !isLoadingNextPage,
+              filter != .upcoming,
+              let selectedAccountID else { return }
+        paginationError = nil
+        isLoadingNextPage = true
+        let generation = loadGeneration
+        movementTask?.cancel()
+        movementTaskAccountID = selectedAccountID
+        movementTask = Task { [weak self] in
+            guard let self, let movementsRepository = self.movementsRepository else { return }
+            do {
+                let page = try await movementsRepository.page(
+                    accountID: selectedAccountID,
+                    limit: 50,
+                    cursor: cursor,
+                    filter: self.filter.rawValue,
+                    income: self.filter == .type ? self.typeIsIncome : nil,
+                    day: self.filter == .day ? self.remoteDateOnly(self.selectedDay) : nil,
+                    weekStart: self.filter == .week ? self.remoteFinancialDateOnly(self.canonicalWeekStart(self.selectedWeek)) : nil,
+                    month: self.filter == .month ? self.remoteFinancialMonth(self.canonicalMonthStart(self.selectedMonth)) : nil,
+                    categoryID: self.filter == .category ? self.selectedCategoryID : nil
+                )
+                try Task.checkCancellation()
+                guard generation == self.loadGeneration, self.selectedAccountID == selectedAccountID else { return }
+                self.append(page)
+                self.paginationError = nil
+            } catch is CancellationError {
+            } catch {
+                self.paginationError = AppError.from(error)
             }
             self.isLoadingNextPage = false
         }
@@ -998,6 +1044,7 @@ final class FinancialRemoteStore: ObservableObject {
         subscriptionsLoadTask = nil
         didBootstrap = false
         bootstrapStatus = .idle
+        bootstrapError = nil
         profile = nil
         accounts = []
         categories = []
@@ -1294,7 +1341,9 @@ final class FinancialRemoteStore: ObservableObject {
                 return
             } catch {
                 guard expectedGeneration == loadGeneration else { return }
-                errorMessage = userFacingMessage(for: error)
+                if bootstrapStatus != .ready {
+                    bootstrapError = AppError.from(error)
+                }
                 return
             }
         }
@@ -1336,7 +1385,9 @@ final class FinancialRemoteStore: ObservableObject {
         } catch is CancellationError {
         } catch {
             guard expectedGeneration == loadGeneration else { return }
-            errorMessage = userFacingMessage(for: error)
+            if bootstrapStatus != .ready {
+                bootstrapError = AppError.from(error)
+            }
         }
     }
 
@@ -1366,7 +1417,9 @@ final class FinancialRemoteStore: ObservableObject {
         } catch is CancellationError {
         } catch {
             guard expectedGeneration == loadGeneration else { return }
-            errorMessage = userFacingMessage(for: error)
+            if bootstrapStatus != .ready {
+                bootstrapError = AppError.from(error)
+            }
         }
     }
 
@@ -1518,17 +1571,24 @@ final class FinancialRemoteStore: ObservableObject {
     }
 
     func userFacingMessage(for error: Error) -> String {
-        if let error = error as? APIError {
-            switch error {
-            case .unauthorized: return AppLocalization.string("error.unauthorized")
-            case .forbidden: return AppLocalization.string("error.forbidden")
-            case .notFound: return AppLocalization.string("error.notFound")
-            case .validation: return AppLocalization.string("error.validation")
-            case .server: return AppLocalization.string("error.server")
-            case .transport: return AppLocalization.string("error.network")
-            default: return AppLocalization.string("error.generic")
-            }
+        let appError = AppError.from(error)
+        switch appError {
+        case .unauthorized: return AppLocalization.string("error.unauthorized")
+        case .forbidden: return AppLocalization.string("error.forbidden")
+        case .notFound: return AppLocalization.string("error.notFound")
+        case .validation: return AppLocalization.string("error.validation")
+        case .serverUnavailable: return AppLocalization.string("error.server")
+        case .networkUnavailable, .connectionFailed, .timeout: return AppLocalization.string("error.network")
+        default: return AppLocalization.string("error.generic")
         }
-        return AppLocalization.string("error.generic")
     }
+
+    #if DEBUG
+    func setBootstrapErrorForTesting(_ error: AppError?) {
+        self.bootstrapError = error
+        if error != nil {
+            self.bootstrapStatus = .failed
+        }
+    }
+    #endif
 }

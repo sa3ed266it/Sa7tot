@@ -50,6 +50,28 @@ class Profile(Timestamped, Base):
     week_start_day: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, server_default="1")
 
 
+class PushDeviceToken(Timestamped, Base):
+    __tablename__ = "push_device_tokens"
+    __table_args__ = (
+        UniqueConstraint("token", name="uq_push_device_tokens_token"),
+        Index("ix_push_device_tokens_user_active", "user_id", "is_active"),
+        CheckConstraint("platform = 'ios'", name="ck_push_device_tokens_platform_ios"),
+        CheckConstraint(
+            "environment IN ('development', 'production')",
+            name="ck_push_device_tokens_environment",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    token: Mapped[str] = mapped_column(Text, nullable=False)
+    platform: Mapped[str] = mapped_column(Text, nullable=False, default="ios", server_default="ios")
+    environment: Mapped[str] = mapped_column(Text, nullable=False)
+    app_version: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+
+
 class Account(Timestamped, Base):
     __tablename__ = "accounts"
     __table_args__ = (

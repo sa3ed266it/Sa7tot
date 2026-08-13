@@ -52,6 +52,17 @@ public actor SupabaseAuthSessionCoordinator: AuthTokenProvider {
         return try await refresh(session).accessToken
     }
 
+    public func refreshSession() async throws -> String {
+        if let session {
+            let refreshed = try await refresh(session)
+            return refreshed.accessToken
+        }
+        if let restored = try await restore() {
+            return restored.accessToken
+        }
+        throw SupabaseAuthError.missingSession
+    }
+
     public func signOut() async throws {
         let oldSession = session
         session = nil
