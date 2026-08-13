@@ -207,6 +207,7 @@ private enum RemoteFinancialRoute: Identifiable {
 @available(iOS 26.0, *)
 struct RemoteMovimentiView: View {
     @EnvironmentObject private var store: FinancialRemoteStore
+    @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var showCents = true
     @AppStorage("hideBalances", store: UserDefaults(suiteName: "group.com.saied.sa7tot")) private var hideBalances = false
@@ -362,7 +363,11 @@ struct RemoteMovimentiView: View {
         .alert(AppLocalization.key("movement.deleteTitle"), isPresented: $isDeleteAlertPresented, presenting: deleteCandidate) { transaction in
             Button(AppLocalization.key("action.delete"), role: .destructive) {
                 Task {
-                    try? await store.deleteTransaction(transaction.id)
+                    do {
+                        try await store.deleteTransaction(transaction.id)
+                    } catch {
+                        appToastCoordinator.showError(titleKey: "error.mutation.delete.title", error: AppError.from(error))
+                    }
                 }
             }
             Button(AppLocalization.key("action.cancel"), role: .cancel) {}
@@ -707,7 +712,7 @@ struct RemoteMovimentiView: View {
 
     @ViewBuilder
     private func remoteHistoryList(for days: [RemoteMovementDayDTO]) -> some View {
-        LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+        LazyVStack(spacing: 0) {
             ForEach(days, id: \.day) { day in
                 Section {
                     ForEach(Array(day.movements.enumerated()), id: \.element.id) { index, transaction in
@@ -2418,7 +2423,7 @@ private struct RemoteMovementEditorSurface: View {
     @State private var showNoteSheet = false
     @State private var showingCategoryPicker = false
     @State private var isSaving = false
-    @State private var errorMessage: String?
+    @State private var mutationError: AppError?
     @State private var subscriptionService: SubscriptionCatalogService?
     @State private var subscriptionIsCustom = false
     @State private var subscriptionCustomName = ""
@@ -2493,9 +2498,6 @@ private struct RemoteMovementEditorSurface: View {
             }
             .onChange(of: store.activeAccounts.count) { _ in normalizeSelections() }
             .onChange(of: sourceID) { _ in normalizeSelections() }
-            .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-                Button(AppLocalization.key("action.ok"), role: .cancel) { errorMessage = nil }
-            } message: { Text(verbatim: errorMessage ?? AppLocalization.string("transaction.saveError")) }
     }
 
     private var editorContent: some View {
@@ -2507,6 +2509,12 @@ private struct RemoteMovementEditorSurface: View {
                     .id(mode)
                     .transition(modeContentTransition)
                     .animation(modeAnimation, value: mode)
+
+                if let mutationError {
+                    InlineMutationErrorView(error: mutationError) {
+                        self.mutationError = nil
+                    }
+                }
             }
             .padding(.horizontal, 17)
             .padding(.top, 12)
@@ -3000,6 +3008,7 @@ private struct RemoteMovementEditorSurface: View {
 
     private func save() {
         guard !isSaving else { return }
+        mutationError = nil
         if mode == .subscription { saveSubscription(); return }
         if isTransfer {
             saveTransfer()
@@ -3047,7 +3056,7 @@ private struct RemoteMovementEditorSurface: View {
                 }
                 dismiss()
             } catch {
-                errorMessage = AppLocalization.string("subscription.saveError")
+                mutationError = AppError.from(error)
             }
             isSaving = false
         }
@@ -3140,7 +3149,7 @@ private struct RemoteMovementEditorSurface: View {
                 }
                 dismiss()
             } catch {
-                errorMessage = AppLocalization.string("transaction.saveError")
+                mutationError = AppError.from(error)
             }
             isSaving = false
         }
@@ -3214,7 +3223,7 @@ private struct RemoteMovementEditorSurface: View {
                 ))
                 dismiss()
             } catch {
-                errorMessage = AppLocalization.string("transfer.saveError")
+                mutationError = AppError.from(error)
             }
             isSaving = false
         }
@@ -3534,9 +3543,9 @@ private struct AccountManagementCard: View {
 @available(iOS 26.0, *)
 struct RemoteAccountListView: View {
     @EnvironmentObject private var store: FinancialRemoteStore
+    @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     @State private var showingNewAccount = false
     @State private var editingAccount: RemoteAccountDTO?
-    @State private var errorMessage: String?
 
     var body: some View {
         List {
@@ -3563,7 +3572,7 @@ struct RemoteAccountListView: View {
                             Button {
                                 Task {
                                     do { try await store.archiveAccount(account.id) }
-                                    catch { errorMessage = AppLocalization.string("account.archiveError") }
+                                    catch { appToastCoordinator.showError(titleKey: "error.mutation.archive.title", error: AppError.from(error)) }
                                 }
                             } label: {
                                 Label(AppLocalization.key("action.archive"), systemImage: "archivebox")
@@ -3591,13 +3600,13 @@ struct RemoteAccountListView: View {
                 defaultCurrencyCode: "EUR"
             )
             .environmentObject(store)
+            .environmentObject(appToastCoordinator)
         }
         .sheet(item: $editingAccount) { account in
-            RemoteAccountEditorView(account: account).environmentObject(store)
+            RemoteAccountEditorView(account: account)
+                .environmentObject(store)
+                .environmentObject(appToastCoordinator)
         }
-        .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button(AppLocalization.key("action.ok"), role: .cancel) {}
-        } message: { Text(verbatim: errorMessage ?? AppLocalization.string("account.editError")) }
         .task { await store.bootstrapIfNeeded() }
     }
 }
@@ -3900,7 +3909,7 @@ struct RemoteAccountEditorView: View {
     @State private var openingBalance: String
     @State private var iconName: String
     @State private var color: String
-    @State private var errorMessage: String?
+    @State private var mutationError: AppError?
     @State private var isSaving = false
     @State private var isArmedForReplacement = false
     @FocusState private var isBalanceFocused: Bool
@@ -4021,7 +4030,13 @@ struct RemoteAccountEditorView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 10)
+
+                    if let mutationError {
+                        InlineMutationErrorView(error: mutationError) {
+                            self.mutationError = nil
+                        }
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -4046,9 +4061,6 @@ struct RemoteAccountEditorView: View {
                     .disabled(isSaving || !isValid)
                 }
             }
-            .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-                Button(AppLocalization.key("action.ok"), role: .cancel) {}
-            } message: { Text(verbatim: errorMessage ?? AppLocalization.string("account.saveError")) }
         }
         .presentationDetents([.height(590), .fraction(0.92)])
         .presentationCornerRadius(28)
@@ -4073,9 +4085,10 @@ struct RemoteAccountEditorView: View {
         guard !isSaving, isValid, let amount = parsedOpeningBalance else { return }
         let normalizedCurrency = currencyCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard normalizedCurrency.count == 3 else {
-            errorMessage = AppLocalization.string("account.validationError")
+            mutationError = .validation(message: AppLocalization.string("account.validationError"))
             return
         }
+        mutationError = nil
         isSaving = true
         Task {
             do {
@@ -4095,7 +4108,7 @@ struct RemoteAccountEditorView: View {
                     }
                 }
             } catch {
-                errorMessage = AppLocalization.string("account.saveError")
+                mutationError = AppError.from(error)
             }
             isSaving = false
         }
@@ -4118,10 +4131,10 @@ struct RemoteCategoryListView: View {
     }
 
     @EnvironmentObject private var store: FinancialRemoteStore
+    @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     @State private var selectedFilter: CategoryFilter = .expense
     @State private var showingNewCategory = false
     @State private var editingCategory: RemoteCategoryDTO?
-    @State private var errorMessage: String?
     @State private var activatingPresetKeys: Set<String> = []
 
     var body: some View {
@@ -4207,9 +4220,13 @@ struct RemoteCategoryListView: View {
         .sheet(isPresented: $showingNewCategory) {
             RemoteCategoryEditorView(category: nil, initialIncome: selectedFilter.isIncome)
                 .environmentObject(store)
+                .environmentObject(appToastCoordinator)
         }
-        .sheet(item: $editingCategory) { category in RemoteCategoryEditorView(category: category).environmentObject(store) }
-        .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) { Button(AppLocalization.key("action.ok"), role: .cancel) {} } message: { Text(verbatim: errorMessage ?? AppLocalization.string("category.editError")) }
+        .sheet(item: $editingCategory) { category in
+            RemoteCategoryEditorView(category: category)
+                .environmentObject(store)
+                .environmentObject(appToastCoordinator)
+        }
         .task { await store.bootstrapIfNeeded() }
         .overlay {
             GeometryReader { proxy in
@@ -4260,7 +4277,7 @@ struct RemoteCategoryListView: View {
             Button(role: .destructive) {
                 Task {
                     do { try await store.deleteCategory(category.id) }
-                    catch { errorMessage = AppLocalization.string("category.deleteError") }
+                    catch { appToastCoordinator.showError(titleKey: "error.mutation.delete.title", error: AppError.from(error)) }
                 }
             } label: {
                 Label(AppLocalization.key("action.delete"), systemImage: "trash")
@@ -4307,7 +4324,7 @@ struct RemoteCategoryListView: View {
             do {
                 _ = try await store.activateCategoryPreset(preset)
             } catch {
-                errorMessage = AppLocalization.string("category.activateError")
+                appToastCoordinator.showError(titleKey: "error.mutation.save.title", error: AppError.from(error))
             }
             activatingPresetKeys.remove(preset.key)
         }
@@ -4332,7 +4349,7 @@ struct RemoteCategoryEditorView: View {
     @State private var income: Bool
     @State private var selectedSymbol: String
     @State private var color: String
-    @State private var errorMessage: String?
+    @State private var mutationError: AppError?
     @State private var isSaving = false
     @FocusState private var nameFocused: Bool
 
@@ -4368,11 +4385,10 @@ struct RemoteCategoryEditorView: View {
                     iconPicker
                     colorPicker
 
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote.weight(.medium))
-                            .foregroundStyle(Color.AlertRed)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    if let mutationError {
+                        InlineMutationErrorView(error: mutationError) {
+                            self.mutationError = nil
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -4400,7 +4416,6 @@ struct RemoteCategoryEditorView: View {
                     .disabled(isSaving || trimmedName.isEmpty)
                 }
             }
-            .alert(AppLocalization.key("common.error"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) { Button(AppLocalization.key("action.ok"), role: .cancel) {} } message: { Text(verbatim: errorMessage ?? AppLocalization.string("category.saveError")) }
         }
     }
 
@@ -4550,6 +4565,7 @@ struct RemoteCategoryEditorView: View {
 
     private func save() {
         guard !isSaving, !trimmedName.isEmpty else { return }
+        mutationError = nil
         isSaving = true
         Task {
             do {
@@ -4570,7 +4586,7 @@ struct RemoteCategoryEditorView: View {
                     }
                 }
             } catch {
-                errorMessage = AppLocalization.string("category.saveError")
+                mutationError = AppError.from(error)
             }
             isSaving = false
         }

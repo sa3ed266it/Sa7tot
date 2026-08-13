@@ -70,4 +70,14 @@ final class AppToastTests: XCTestCase {
 
         XCTAssertNil(coordinator.current)
     }
+
+    func testShowErrorToastSetsCurrentToastWithTitleAndMessage() {
+        let coordinator = AppToastCoordinator(visibleDuration: 60, feedbackEnabled: false)
+
+        coordinator.showError(titleKey: "error.mutation.delete.title", error: .connectionFailed)
+
+        XCTAssertEqual(coordinator.current?.kind, .error(titleKey: "error.mutation.delete.title", messageKey: "error.blocking.connection.message"))
+        XCTAssertEqual(coordinator.current?.title, AppLocalization.string("error.mutation.delete.title"))
+        XCTAssertEqual(coordinator.current?.message, AppLocalization.string("error.blocking.connection.message"))
+    }
 }

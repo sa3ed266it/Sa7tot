@@ -192,7 +192,7 @@ cd backend
 .venv/bin/ruff check .
 .venv/bin/ruff format --check .
 APP_ENV=test TEST_DATABASE_URL=postgresql+asyncpg://localhost/sa7tot_test \
-  .venv/bin/pytest
+  .venv/bin/pytest tests pure_tests
 ```
 
 Backend tests require an isolated disposable PostgreSQL database. They must
@@ -201,6 +201,7 @@ tests at development, staging, or production data.
 
 ## Documentation
 
+- [Documentation index](docs/README.md)
 - [Authentication Foundation](docs/AUTHENTICATION_FOUNDATION.md)
 - [Subscription Logos](docs/SUBSCRIPTION_LOGOS.md)
 - [Archived audits and migration material](docs/archive/)
@@ -210,6 +211,8 @@ tests at development, staging, or production data.
 
 Sa7tot is under active development as a personal iOS finance application. The
 current financial path is remote-only through the authenticated backend.
+The future Sa7tot deployment target is `root@89.167.101.23` with its own
+Compose project and `/opt/sa7tot-api` release tree; nothing has been deployed.
 
 ## Open-Source Attribution
 

@@ -18,7 +18,7 @@ iOS Sa7tot
 The main components are:
 
 - `app/Sa7tot/AppDelegate.swift` receives APNs registration callbacks.
-- `app/Sa7tot/Remote/Push/PushTokenCoordinator.swift` waits for notification authorization, reconciles the token with the authenticated session, and performs best-effort token lifecycle updates.
+- `app/Sa7tot/Remote/Push/PushTokenCoordinator.swift` waits for notification authorization and reconciles the token with the authenticated session. Normal token rotation cleanup is best-effort; account sign-out uses an awaited, failure-safe deactivation path.
 - `app/Sa7tot/Remote/Repositories/PushDevicesRepository.swift` calls the authenticated push-device API.
 - `backend/app/api/v1/endpoints/push.py` exposes registration and deactivation endpoints. Ownership comes from the validated JWT, not from a client-provided user ID.
 - `backend/app/services/push_devices.py` implements idempotent upsert, deactivation, and active-device lookup.
@@ -29,25 +29,64 @@ The main components are:
 
 - Push foundation: implemented.
 - Remote migration `0007_push_device_tokens`: applied to the device-test database.
+- Migration `0008_subscription_reminders`: implemented and validated against
+  the isolated test database; shared/staging and Production application remain
+  operational gates.
 - Row-level security: enabled with the `push_device_tokens_owner_all` policy.
 - Sandbox APNs key: created and configured locally.
 - APNs topic restriction: `com.saied.sa7tot`.
 - Production APNs key: not yet created.
-- Real Sandbox APNs test push: accepted for one active development device; visible receipt still awaits physical-device confirmation.
-- Subscription seven-day reminder scheduler: not yet implemented.
+- Development/Sandbox push foundation: **fully validated end-to-end** on a physical iPhone.
+- Verified physical flow: authorized permission, APNs token registration, authenticated device upload, one active `ios`/`development` token, relaunch idempotency, Sandbox APNs acceptance, visible background receipt, sign-out deactivation, sign-in reassociation/reactivation, no duplicate active token, and a visible post-login push receipt.
+- Subscription seven-day reminder scheduler: implemented for Development/Sandbox;
+  physical reminder receipt is still pending.
 - Notification tap routing: not yet implemented.
 
 The existing generic local daily reminder remains separate from this push foundation and is intentionally unchanged.
 
-## Step 3B physical validation — 2026-08-13
+## Phase 2 subscription reminder scheduler
+
+The internal runner is invoked hourly by an external scheduler; no hosting
+provider or public reminder endpoint is configured in the repository:
+
+```sh
+python -m app.scripts.send_subscription_reminders --environment development
+python -m app.scripts.send_subscription_reminders --environment development --dry-run
+```
+
+The runner uses the backend-authoritative `next_billing_date`, the owner's
+profile IANA timezone, and 09:00 local delivery time. It sends one reminder
+seven calendar days before renewal, with a bounded three-calendar-day
+catch-up window while renewal remains future. Subscriptions created or
+schedule-edited inside the seven-day window are skipped rather than receiving
+a misleading late reminder.
+
+Migration `0008_subscription_reminders` stores one logical event and one
+per-device delivery state. All active iOS devices in the selected APNs
+environment are targeted independently. Permanent invalid-token responses
+deactivate only that device; transient and provider-authentication failures
+remain retryable with bounded backoff. The notification includes only the
+subscription name and localized renewal copy, not amount, currency, account,
+or balance. No local fallback or tap routing is added.
+
+## Physical validation
 
 The user confirmed that notification permission was manually enabled on the paired physical iPhone 17 Pro Max. The Development app was relaunched with the LAN development API host and authenticated successfully. The normal APNs registration path produced an authenticated `PUT /v1/push/devices` response of `200`; the resulting remote row was active, `ios`, `development`, and associated with an existing authenticated profile. The row had the current app version and a single distinct token.
 
-A force-quit and relaunch updated that same row without creating a duplicate. The development-only test sender then attempted one Sandbox push and reported `attempted=1 sent=1 deactivated=0`, which is the APNs client success path. The device notification itself could not be visually inspected from this environment, so visible receipt remains pending user confirmation. No sign-out, account switch, production APNs setup, scheduler, or routing work was performed. No token, credential, JWT, or private-key value was recorded.
+A force-quit and relaunch updated that same row without creating a duplicate. The development-only test sender attempted one Sandbox push and reported `attempted=1 sent=1 deactivated=0`; the notification was visibly received while the app was backgrounded. The subsequent sign-out and sign-in lifecycle also passed: the current token was deactivated before session clear, then reactivated for the same authenticated user without creating a duplicate active row. No token, credential, JWT, or private-key value was recorded.
 
-## Step 3D sign-out lifecycle fix — 2026-08-13
+## Sign-out lifecycle invariant
 
-Physical lifecycle validation found that signing out left the current development token active. The cause was that a newly created `PushTokenCoordinator` did not restore its persisted APNs token before sign-out, while deactivation failures were also swallowed. The coordinator now restores the token from its existing local persistence, awaits the authenticated deactivation request, and prevents auth sign-out from continuing when deactivation fails. Focused tests cover ordering, persisted-token recovery, authenticated DELETE behavior, no-session behavior, and failure safety. Physical sign-out/re-sign-in validation remains pending; no lifecycle checkbox is marked complete from this code-only fix.
+Account sign-out follows this security-sensitive ordering:
+
+```text
+restore the current persisted APNs token
+  → authenticated device deactivation request
+  → await successful completion
+  → clear auth/session state
+```
+
+If deactivation fails, auth sign-out is stopped and the session is not cleared. This is distinct from normal token rotation, where deactivation of the previous token is best-effort. Focused tests cover ordering, persisted-token recovery, authenticated DELETE behavior, no-session behavior, and failure safety.
 
 ## Apple Developer setup
 
@@ -119,7 +158,9 @@ The backend loads the private key from `APNS_PRIVATE_KEY_PATH`. It does not requ
 
 ## Database and RLS
 
-Migration `0007_push_device_tokens` creates the `push_device_tokens` table. Important fields are:
+Migration `0007_push_device_tokens` creates the `push_device_tokens` table;
+`0008_subscription_reminders` adds the durable logical and per-device
+reminder tables. Important device fields are:
 
 - `user_id`: authenticated application owner.
 - `token`: normalized APNs device token, unique across the table.
@@ -136,7 +177,7 @@ RLS is enabled on the deployed table with policy `push_device_tokens_owner_all`:
 user_id = sa7tot_current_user_id()
 ```
 
-The authenticated FastAPI layer derives ownership from the validated JWT subject. The public client cannot select an arbitrary `user_id`. RLS prevents one user from reading, changing, or deleting another user's rows, while the privileged backend role retains the access required for registration and server-side sending.
+Direct/ordinary role access remains constrained by RLS. The authenticated FastAPI layer derives ownership from the validated JWT subject, and the public client cannot select an arbitrary `user_id`. Privileged backend/service-role database access may bypass ordinary RLS enforcement, so backend ownership checks remain mandatory for registration, deactivation, and server-side sending.
 
 ## iOS token lifecycle
 
@@ -199,19 +240,24 @@ Treat this as critical. Check sign-out deactivation, token reassociation, JWT-de
 - [x] The authenticated token row is created.
 - [x] Relaunch does not create a duplicate row.
 - [x] One generic development test push is accepted by Sandbox APNs.
-- [ ] One generic development test push is visibly received on the physical device.
+- [x] One generic development test push is visibly received on the physical device while the app is backgrounded.
 - [ ] Foreground and background behavior is recorded.
-- [ ] Sign-out deactivates the token association.
-- [ ] Sign-in reactivates/reassociates it safely.
-- [ ] No secret or full token is exposed.
+- [x] Sign-out deactivates the token association before auth/session clear.
+- [x] Sign-in reactivates/reassociates it safely without an active duplicate.
+- [x] No secret or full token is exposed.
+- [x] Migration `0008_subscription_reminders` and automated reminder tests are green.
 
 ## Future roadmap
 
-- **Phase 2:** server-side seven-day subscription reminder scheduler.
+- **Phase 2:** server-side seven-day subscription reminder scheduler — backend
+  implementation complete; Development/Sandbox physical reminder validation
+  pending.
 - **Phase 3:** notification tap routing to **Abbonamenti** and a specific subscription.
 - **Later:** production APNs credentials, delivery/retry observability, and optional additional reminder lead times.
 
-No scheduler, worker, reminder copy, or routing is part of the current push foundation.
+The scheduler implementation is backend-first and does not change the iOS
+token lifecycle. Physical visible reminder receipt is not claimed until the
+user confirms it on the device.
 
 ## Subscription reminder decision
 

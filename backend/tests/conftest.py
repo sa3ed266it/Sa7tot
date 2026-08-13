@@ -43,7 +43,8 @@ async def clean_database() -> AsyncIterator[None]:
     async with test_engine.begin() as connection:
         await connection.execute(
             text(
-                "TRUNCATE TABLE recurrence_occurrences, recurrence_rules, subscription_occurrences, transactions, "
+                "TRUNCATE TABLE subscription_reminder_device_deliveries, subscription_reminder_deliveries, "
+                "recurrence_occurrences, recurrence_rules, subscription_occurrences, transactions, "
                 "subscriptions, push_device_tokens, "
                 "budgets, main_budgets, categories, accounts, profiles RESTART IDENTITY CASCADE"
             )

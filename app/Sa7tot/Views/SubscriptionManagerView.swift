@@ -2,9 +2,9 @@ import SwiftUI
 
 struct SubscriptionManagerView: View {
     @EnvironmentObject private var remoteStore: FinancialRemoteStore
+    @EnvironmentObject private var appToastCoordinator: AppToastCoordinator
     @State private var selectedRemoteSubscription: RemoteSubscriptionDTO?
     @State private var showCancelConfirmation = false
-    @State private var remoteActionError: String?
 
     @AppStorage("showCents", store: UserDefaults(suiteName: "group.com.saied.sa7tot"))
     private var showCents = true
@@ -35,20 +35,15 @@ struct SubscriptionManagerView: View {
                 EmptyView()
             }
         }
-        .alert(AppLocalization.key("subscription.cancelErrorTitle"), isPresented: Binding(
-            get: { remoteActionError != nil },
-            set: { if !$0 { remoteActionError = nil } }
-        )) {
-            Button(AppLocalization.key("action.ok"), role: .cancel) { remoteActionError = nil }
-        } message: {
-            Text(verbatim: remoteActionError ?? AppLocalization.string("action.retry"))
-        }
         .alert(AppLocalization.key("subscription.cancelTitle"), isPresented: $showCancelConfirmation) {
             Button(AppLocalization.key("subscription.cancel"), role: .destructive) {
                 guard let subscription = selectedRemoteSubscription else { return }
                 Task {
-                    do { try await remoteStore.cancelSubscription(subscription.id) }
-                    catch { remoteActionError = AppLocalization.string("subscription.cancelError") }
+                    do {
+                        try await remoteStore.cancelSubscription(subscription.id)
+                    } catch {
+                        appToastCoordinator.showError(titleKey: "error.mutation.cancel.title", error: AppError.from(error))
+                    }
                 }
             }
             Button(AppLocalization.key("action.cancel"), role: .cancel) {}
@@ -187,7 +182,7 @@ struct SubscriptionManagerView: View {
     private func performRemoteAction(_ action: @escaping () async throws -> Void) {
         Task {
             do { try await action() }
-            catch { remoteActionError = AppLocalization.string("subscription.updateError") }
+            catch { appToastCoordinator.showError(titleKey: "error.mutation.save.title", error: AppError.from(error)) }
         }
     }
 

@@ -1,0 +1,14 @@
+[Unit]
+Description=Sa7tot production subscription reminder delivery
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/sa7tot-api/current/backend
+ExecStart=/usr/bin/flock -n /run/lock/sa7tot-reminders.lock /usr/bin/docker compose --project-name sa7tot-api --env-file /opt/sa7tot-api/shared/.env -f /opt/sa7tot-api/current/backend/compose.production.yaml run --rm --no-deps api python -m app.scripts.send_subscription_reminders --environment production --allow-production
+TimeoutStartSec=15min
+User=root
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,9 @@ class PushPayload:
     category: str | None = None
     deep_link: str | None = None
     subscription_id: str | None = None
+    reminder_type: str | None = None
+    renewal_date: str | None = None
+    lead_days: int | None = None
 
     def as_apns_payload(self) -> dict[str, Any]:
         aps: dict[str, Any] = {"alert": {"title": self.title, "body": self.body}, "sound": "default"}
@@ -28,6 +31,12 @@ class PushPayload:
             payload["deep_link"] = self.deep_link
         if self.subscription_id:
             payload["subscription_id"] = self.subscription_id
+        if self.reminder_type:
+            payload["reminder_type"] = self.reminder_type
+        if self.renewal_date:
+            payload["renewal_date"] = self.renewal_date
+        if self.lead_days is not None:
+            payload["lead_days"] = self.lead_days
         return payload
 
 

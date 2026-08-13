@@ -68,6 +68,7 @@ async def create_subscription(session: AsyncSession, user_id: UUID, payload: Sub
         cadence_interval=payload.cadence_interval,
         billing_anchor=payload.billing_anchor,
         next_billing_date=next_billing_date,
+        schedule_changed_at=datetime.now(UTC),
         status=payload.status.value,
         note=_clean(payload.note),
     )
@@ -123,6 +124,8 @@ async def update_subscription(
     subscription.cadence_interval = values.get("cadence_interval", subscription.cadence_interval)
     subscription.billing_anchor = billing_anchor
     subscription.next_billing_date = next_billing_date
+    if schedule_changed:
+        subscription.schedule_changed_at = datetime.now(UTC)
     subscription.note = _clean(values.get("note", subscription.note))
     await session.commit()
     await session.refresh(subscription)

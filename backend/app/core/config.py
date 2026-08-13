@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -71,6 +73,25 @@ class Settings(BaseSettings):
 
             return Path(self.apns_private_key_path).read_text(encoding="utf-8")
         return None
+
+    def validate_production(self) -> None:
+        """Fail closed for production-only runtime configuration."""
+        if self.app_env.lower() != "production":
+            return
+        if self.database_url == "postgresql+asyncpg://localhost/sa7tot" or "database_url" not in self.model_fields_set:
+            raise ValueError("DATABASE_URL is required in production")
+        if not self.supabase_url:
+            raise ValueError("SUPABASE_URL is required in production")
+        if self.apns_environment.lower() != "production":
+            raise ValueError("APNS_ENVIRONMENT must be production in production")
+        if not self.apns_key_id or not self.apns_team_id or not self.apns_bundle_id:
+            raise ValueError("production APNs identity is incomplete")
+        if not self.apns_private_key and not self.apns_private_key_path:
+            raise ValueError("production APNs private key configuration is required")
+        if self.apns_private_key_path:
+            key_path = Path(self.apns_private_key_path)
+            if not key_path.is_file() or not os.access(key_path, os.R_OK):
+                raise ValueError("APNS_PRIVATE_KEY_PATH is not readable")
 
     @property
     def _supabase_base_url(self) -> str | None:

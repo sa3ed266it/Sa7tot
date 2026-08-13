@@ -15,11 +15,16 @@ app/Sa7tot/Assets.xcassets/SubscriptionLogos/subscription-app-icon-*.imageset/
 ## Local secrets and generated build/test output
 .env
 *.p8
+**/.env
+**/.env.*
+**/secrets/
 **/__pycache__/
 .pytest_cache/
 *.xcresult
 DerivedData/
 .build/
+.deploy/
+*.log
 
 ## Local backend environment
 backend/.env

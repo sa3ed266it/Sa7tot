@@ -33,4 +33,25 @@ Supabase sessions are stored in Keychain. Expired or near-expiry access tokens a
 
 The current API policy is to obtain a fresh token before each authenticated request and surface a FastAPI `401` without retrying it. This avoids an implicit retry loop; a later API-layer retry can be added as a separate, explicit policy if needed.
 
+## Session restoration and application readiness
+
+The Supabase session is persisted in Keychain and restored when the app launches. The session coordinator refreshes an expired or near-expiry session where needed. `AuthRootView` restores the authentication state and then runs the remote bootstrap/data-readiness flow through `FinancialRemoteStore` before entering the ready main UI.
+
+Being authenticated or signed in is therefore not the same as being application-data-ready. Bootstrap failure remains an application error state; it does not activate a local Core Data or CloudKit financial fallback.
+
+## Sign-out and push-device lifecycle
+
+When the authenticated user signs out, the current APNs device association must be deactivated while the session is still valid:
+
+```text
+resolve/restore the current persisted APNs token
+  → authenticated backend deactivation
+  → await successful completion
+  → clear the auth/session state
+```
+
+If push-device deactivation fails, the session remains authenticated and sign-out is stopped. This prevents a signed-out account from retaining an active push-device association. The persisted token is restored before deactivation so a newly created coordinator can complete this lifecycle safely.
+
+## Data boundary
+
 Authentication is handled through Sign in with Apple and Supabase Auth. The iOS app uses Supabase directly only for authentication and session management; application and financial data are accessed through the FastAPI backend backed by Supabase PostgreSQL. The app no longer relies on local Core Data or CloudKit for financial storage.

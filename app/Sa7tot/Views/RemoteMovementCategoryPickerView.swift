@@ -90,7 +90,7 @@ struct RemoteMovementCategoryPickerView: View {
                 initialIncome: income,
                 onCreated: { createdCategory in
                     guard createdCategory.income == income else {
-                        errorMessage = AppLocalization.string("category.saveError")
+                        appToastCoordinator.showError(titleKey: "error.mutation.save.title", messageKey: AppLocalization.string("category.saveError"))
                         return
                     }
                     withAnimation(.easeInOut(duration: 0.18)) {
@@ -100,17 +100,6 @@ struct RemoteMovementCategoryPickerView: View {
             )
             .environmentObject(store)
             .environmentObject(appToastCoordinator)
-        }
-        .alert(
-            AppLocalization.key("common.error"),
-            isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )
-        ) {
-            Button(AppLocalization.key("action.ok"), role: .cancel) { errorMessage = nil }
-        } message: {
-            Text(verbatim: errorMessage ?? AppLocalization.string("category.activateError"))
         }
         .presentationDetents([.fraction(0.70)])
         .presentationDragIndicator(.visible)

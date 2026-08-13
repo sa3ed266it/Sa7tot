@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly Sa7tot subscription reminder schedule
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+Persistent=true
+RandomizedDelaySec=5min
+Unit=sa7tot-reminders.service
+
+[Install]
+WantedBy=timers.target

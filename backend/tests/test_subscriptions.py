@@ -97,6 +97,67 @@ async def test_subscription_access_is_scoped_to_owner(client: AsyncClient, switc
 
 
 @pytest.mark.asyncio
+async def test_subscription_update_keeps_next_billing_date_backend_derived(client: AsyncClient):
+    account = await create_account(client)
+    today = datetime.now(UTC).astimezone(ZoneInfo("Europe/Rome")).date()
+    initial_anchor = today + timedelta(days=3)
+    response = await client.post(
+        "/v1/subscriptions",
+        json={
+            "account_id": account["id"],
+            "custom_name": "Calendario coerente",
+            "amount_minor": 1200,
+            "currency_code": "EUR",
+            "currency_exponent": 2,
+            "cadence": "monthly",
+            "billing_anchor": initial_anchor.isoformat(),
+        },
+    )
+    assert response.status_code == 201, response.text
+    subscription_id = response.json()["id"]
+    assert response.json()["next_billing_date"] == initial_anchor.isoformat()
+
+    attempted_override = today + timedelta(days=365)
+    ignored = await client.patch(
+        f"/v1/subscriptions/{subscription_id}",
+        json={"next_billing_date": attempted_override.isoformat()},
+    )
+    assert ignored.status_code == 200, ignored.text
+    assert ignored.json()["next_billing_date"] == initial_anchor.isoformat()
+
+    edited_anchor = today + timedelta(days=5)
+    schedule_edit = await client.patch(
+        f"/v1/subscriptions/{subscription_id}",
+        json={"billing_anchor": edited_anchor.isoformat()},
+    )
+    assert schedule_edit.status_code == 200, schedule_edit.text
+    assert schedule_edit.json()["next_billing_date"] == edited_anchor.isoformat()
+
+    metadata_edit = await client.patch(
+        f"/v1/subscriptions/{subscription_id}",
+        json={"note": "Solo una nota"},
+    )
+    assert metadata_edit.status_code == 200, metadata_edit.text
+    assert metadata_edit.json()["next_billing_date"] == edited_anchor.isoformat()
+
+    paused = await client.post(f"/v1/subscriptions/{subscription_id}/pause")
+    assert paused.status_code == 200, paused.text
+    assert paused.json()["next_billing_date"] == edited_anchor.isoformat()
+
+    resumed = await client.post(f"/v1/subscriptions/{subscription_id}/resume")
+    assert resumed.status_code == 200, resumed.text
+    assert resumed.json()["next_billing_date"] == edited_anchor.isoformat()
+
+    cancelled = await client.post(f"/v1/subscriptions/{subscription_id}/cancel")
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["next_billing_date"] == edited_anchor.isoformat()
+
+    readback = await client.get("/v1/subscriptions")
+    assert readback.status_code == 200
+    assert readback.json()[0]["next_billing_date"] == edited_anchor.isoformat()
+
+
+@pytest.mark.asyncio
 async def test_scheduler_handles_eom_leap_year_and_intervals():
     assert occurrence_at_index(date(2024, 1, 31), "monthly", 1, 1) == date(2024, 2, 29)
     assert occurrence_at_index(date(2023, 1, 31), "monthly", 1, 1) == date(2023, 2, 28)
@@ -252,4 +313,3 @@ async def test_materialized_subscription_with_user_note_retains_note(
     assert transaction.note == "Family shared plan"
     assert transaction.subscription_service_id == "amazon-prime"
     assert transaction.subscription_display_name == "Amazon Prime"
-

@@ -2,17 +2,24 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.router import router as v1_router
-from app.core.database import dispose_engine
+from app.core.config import get_settings
+from app.core.database import dispose_engine, get_session
 from app.core.errors import DomainError
 from app.core.security import get_jwt_validator
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    settings = get_settings()
+    if settings.is_production:
+        settings.validate_production()
     yield
     await get_jwt_validator().aclose()
     await dispose_engine()
@@ -29,6 +36,20 @@ app.include_router(v1_router)
 
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/health/live", tags=["health"])
+async def health_live() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/health/ready", tags=["health"])
+async def health_ready(session: AsyncSession = Depends(get_session)) -> dict[str, str]:
+    try:
+        await session.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="not ready") from exc
     return {"status": "ok"}
 
 

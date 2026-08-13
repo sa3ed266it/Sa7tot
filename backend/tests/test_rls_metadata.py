@@ -10,6 +10,8 @@ USER_DATA_TABLES = (
     "transactions",
     "subscriptions",
     "push_device_tokens",
+    "subscription_reminder_deliveries",
+    "subscription_reminder_device_deliveries",
     "subscription_occurrences",
     "recurrence_rules",
     "recurrence_occurrences",

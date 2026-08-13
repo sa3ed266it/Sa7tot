@@ -23,7 +23,7 @@ struct RemoteBudgetEditor: View {
     @State private var amountText: String
     @State private var currencyCode: String
     @State private var isSaving = false
-    @State private var errorMessage: String?
+    @State private var mutationError: AppError?
 
     init(
         overallBudgetCreated: Bool = false,
@@ -76,6 +76,14 @@ struct RemoteBudgetEditor: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                 }
+
+                if let mutationError {
+                    Section {
+                        InlineMutationErrorView(error: mutationError) {
+                            self.mutationError = nil
+                        }
+                    }
+                }
             }
             .navigationTitle(AppLocalization.key("budget.new"))
             .navigationBarTitleDisplayMode(.inline)
@@ -89,9 +97,6 @@ struct RemoteBudgetEditor: View {
         }
         .presentationDetents([.fraction(0.74), .large])
         .presentationDragIndicator(.visible)
-        .alert(AppLocalization.key("budget.saveErrorTitle"), isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button(AppLocalization.key("action.ok"), role: .cancel) {}
-        } message: { Text(verbatim: errorMessage ?? AppLocalization.string("budget.saveError")) }
     }
 
     private var exponent: Int { mainBudget?.currencyExponent ?? categoryBudget?.currencyExponent ?? 2 }
@@ -102,6 +107,7 @@ struct RemoteBudgetEditor: View {
 
     private func save() {
         guard let amountMinor = parsedMinor else { return }
+        mutationError = nil
         isSaving = true
         let remotePeriod: RemoteBudgetPeriod = switch period { case .day: .day; case .week: .week; case .month: .month; case .year: .year }
         let payload = RemoteBudgetMutationPayload(amountMinor: amountMinor, currencyCode: currencyCode, currencyExponent: exponent, periodType: remotePeriod)
@@ -114,7 +120,7 @@ struct RemoteBudgetEditor: View {
                 }
                 dismiss()
             } catch {
-                errorMessage = AppLocalization.string("budget.saveError")
+                mutationError = AppError.from(error)
                 isSaving = false
             }
         }

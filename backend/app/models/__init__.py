@@ -10,6 +10,8 @@ from app.models.entities import (
     RecurrenceRule,
     Subscription,
     SubscriptionOccurrence,
+    SubscriptionReminderDelivery,
+    SubscriptionReminderDeviceDelivery,
     Transaction,
 )
 
@@ -25,5 +27,7 @@ __all__ = [
     "RecurrenceRule",
     "Subscription",
     "SubscriptionOccurrence",
+    "SubscriptionReminderDelivery",
+    "SubscriptionReminderDeviceDelivery",
     "Transaction",
 ]

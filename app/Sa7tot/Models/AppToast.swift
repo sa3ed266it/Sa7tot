@@ -6,6 +6,7 @@ struct AppToast: Equatable, Identifiable {
         case incomeAdded
         case categoryAdded
         case accountAdded
+        case error(titleKey: String, messageKey: String)
 
         var titleKey: String {
             switch self {
@@ -17,6 +18,8 @@ struct AppToast: Equatable, Identifiable {
                 return "toast.category.added"
             case .accountAdded:
                 return "toast.account.added"
+            case let .error(titleKey, _):
+                return titleKey
             }
         }
     }
@@ -25,15 +28,24 @@ struct AppToast: Equatable, Identifiable {
     let kind: Kind
     let title: String
     let amount: String
+    let message: String?
 
-    init(id: UUID = UUID(), kind: Kind, amount: String) {
+    init(id: UUID = UUID(), kind: Kind, amount: String = "") {
         self.id = id
         self.kind = kind
         self.title = AppLocalization.string(kind.titleKey)
         self.amount = amount
+        if case let .error(_, messageKey) = kind {
+            self.message = AppLocalization.string(messageKey)
+        } else {
+            self.message = nil
+        }
     }
 
     var accessibilityAnnouncement: String {
-        amount.isEmpty ? title : "\(title), \(amount)"
+        if let message {
+            return "\(title), \(message)"
+        }
+        return amount.isEmpty ? title : "\(title), \(amount)"
     }
 }

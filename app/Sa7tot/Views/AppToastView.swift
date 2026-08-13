@@ -141,10 +141,17 @@ private struct AppToastCard: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(.green)
-                .accessibilityHidden(true)
+            if case .error = toast.kind {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(.green)
+                    .accessibilityHidden(true)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(toast.title)
@@ -152,7 +159,12 @@ private struct AppToastCard: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
 
-                if !toast.amount.isEmpty {
+                if let message = toast.message, !message.isEmpty {
+                    Text(message)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                } else if !toast.amount.isEmpty {
                     Text(toast.amount)
                         .font(.system(size: 14, weight: .medium))
                         .monospacedDigit()

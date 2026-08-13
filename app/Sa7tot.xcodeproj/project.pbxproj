@@ -155,6 +155,16 @@
 		F7000000000000000000000A /* SupabaseAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7000000000000000000001D /* SupabaseAuthTests.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		F00000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5327D27B287C697400F76ADF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5327D282287C697400F76ADF;
+			remoteInfo = Sa7tot;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		D6A4DE1B2D6153C200F7F751 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -613,6 +623,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F00000000000000000000002 /* Sa7tot target dependency */,
 			);
 			name = Sa7totTests;
 			productName = Sa7totTests;
@@ -857,6 +868,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		F00000000000000000000002 /* Sa7tot target dependency */ = {
+			isa = PBXTargetDependency;
+			target = 5327D282287C697400F76ADF /* Sa7tot */;
+			targetProxy = F00000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		5327D28F287C697C00F76ADF /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -999,7 +1018,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.4;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saied.sa7tot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPABASE_PUBLISHABLE_KEY = sb_publishable_DXteK7EcBCMlMQ2DFkLq2g_uvD3tfPO;
@@ -1038,7 +1057,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.4;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saied.sa7tot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPABASE_PUBLISHABLE_KEY = sb_publishable_DXteK7EcBCMlMQ2DFkLq2g_uvD3tfPO;
@@ -1063,18 +1082,21 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sa7tot.app/Sa7tot";
 			};
 			name = Debug;
 		};
 		53BC2A572A8B21920019E4A8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.saied.sa7tot.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sa7tot.app/Sa7tot";
 			};
 			name = Release;
 		};

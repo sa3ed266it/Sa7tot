@@ -104,6 +104,13 @@ struct SettingsView: View {
             .accessibilityValue(AppLocalization.key(financialWeekday.localizationKey))
             .disabled(remoteStore.isUpdatingFinancialCalendar)
           }
+          if let financialCalendarErrorMessage {
+            SettingsDivider()
+            InlineMutationErrorView(error: .validation(message: financialCalendarErrorMessage)) {
+              self.financialCalendarErrorMessage = nil
+            }
+            .padding(.top, 4)
+          }
         }
 
         SettingsCard(title: "settings.management") {

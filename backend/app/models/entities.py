@@ -224,8 +224,90 @@ class Subscription(Timestamped, Base):
     cadence_interval: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, server_default="1")
     billing_anchor: Mapped[date] = mapped_column(Date, nullable=False)
     next_billing_date: Mapped[date] = mapped_column(Date, nullable=False)
+    schedule_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active", server_default="active")
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class SubscriptionReminderDelivery(Timestamped, Base):
+    __tablename__ = "subscription_reminder_deliveries"
+    __table_args__ = (
+        UniqueConstraint("user_id", "id", name="uq_subscription_reminder_deliveries_user_id_id"),
+        UniqueConstraint(
+            "user_id",
+            "subscription_id",
+            "renewal_date",
+            "reminder_type",
+            "lead_days",
+            name="uq_subscription_reminder_deliveries_identity",
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "subscription_id"],
+            ["subscriptions.user_id", "subscriptions.id"],
+            name="fk_subscription_reminder_deliveries_subscription_owner",
+            ondelete="RESTRICT",
+        ),
+        Index("ix_subscription_reminder_deliveries_status_renewal", "status", "renewal_date"),
+        Index("ix_subscription_reminder_deliveries_user_subscription", "user_id", "subscription_id"),
+        CheckConstraint(
+            "status IN ('pending', 'sending', 'completed', 'cancelled', 'expired')",
+            name="ck_subscription_reminder_deliveries_status",
+        ),
+        CheckConstraint("lead_days > 0", name="ck_subscription_reminder_deliveries_lead_days_positive"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    subscription_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    renewal_date: Mapped[date] = mapped_column(Date, nullable=False)
+    reminder_type: Mapped[str] = mapped_column(Text, nullable=False, default="subscription_renewal")
+    lead_days: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=7, server_default="7")
+    status: Mapped[str] = mapped_column(Text, nullable=False, default="pending", server_default="pending")
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class SubscriptionReminderDeviceDelivery(Timestamped, Base):
+    __tablename__ = "subscription_reminder_device_deliveries"
+    __table_args__ = (
+        UniqueConstraint("user_id", "id", name="uq_subscription_reminder_device_deliveries_user_id_id"),
+        UniqueConstraint(
+            "reminder_delivery_id",
+            "push_device_token_id",
+            name="uq_subscription_reminder_device_deliveries_identity",
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "reminder_delivery_id"],
+            ["subscription_reminder_deliveries.user_id", "subscription_reminder_deliveries.id"],
+            name="fk_subscription_reminder_device_deliveries_reminder_owner",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["push_device_token_id"],
+            ["push_device_tokens.id"],
+            name="fk_subscription_reminder_device_deliveries_device",
+            ondelete="RESTRICT",
+        ),
+        Index("ix_subscription_reminder_device_deliveries_status_retry", "status", "next_attempt_at"),
+        Index("ix_subscription_reminder_device_deliveries_user_id", "user_id"),
+        CheckConstraint(
+            "status IN ('pending', 'sending', 'sent', 'retryable', 'permanent_failure', 'expired')",
+            name="ck_subscription_reminder_device_deliveries_status",
+        ),
+        CheckConstraint("attempt_count >= 0", name="ck_subscription_reminder_device_deliveries_attempts_nonnegative"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    reminder_delivery_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    push_device_token_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False, default="pending", server_default="pending")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    apns_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_error_kind: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_error_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class RecurrenceRule(Timestamped, Base):

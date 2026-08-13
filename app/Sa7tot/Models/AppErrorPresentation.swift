@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 public struct AppErrorPresentation: Equatable, Sendable {
     public let iconName: String
@@ -65,5 +66,67 @@ public enum AppErrorPresentationPolicy {
                 messageKey: "error.blocking.generic.message"
             )
         }
+    }
+}
+
+public struct InlineMutationErrorView: View {
+    public let error: AppError
+    public let titleKey: String?
+    public let onDismiss: (() -> Void)?
+
+    public init(error: AppError, titleKey: String? = "error.mutation.save.title", onDismiss: (() -> Void)? = nil) {
+        self.error = error
+        self.titleKey = titleKey
+        self.onDismiss = onDismiss
+    }
+
+    private var presentation: AppErrorPresentation {
+        AppErrorPresentationPolicy.blockingPresentation(for: error)
+    }
+
+    public var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: presentation.iconName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.orange)
+                .padding(.top, 2)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(LocalizedStringKey(titleKey ?? presentation.titleKey))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.primary)
+
+                Text(LocalizedStringKey(presentation.messageKey))
+                    .font(.caption)
+                    .foregroundStyle(Color.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 4)
+
+            if let onDismiss {
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.secondary)
+                        .padding(4)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(AppLocalization.key("action.dismiss"))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.secondary.opacity(0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                )
+        }
+        .padding(.horizontal, 20)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 }

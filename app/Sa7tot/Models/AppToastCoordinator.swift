@@ -51,6 +51,46 @@ final class AppToastCoordinator: ObservableObject {
         }
     }
 
+    func showError(titleKey: String = "error.mutation.delete.title", error: AppError) {
+        let presentation = AppErrorPresentationPolicy.blockingPresentation(for: error)
+        showError(titleKey: titleKey, messageKey: presentation.messageKey)
+    }
+
+    func showError(titleKey: String, messageKey: String) {
+        dismissalTask?.cancel()
+
+        let toast = AppToast(kind: .error(titleKey: titleKey, messageKey: messageKey), amount: "")
+        withAnimation(.easeOut(duration: 0.25)) {
+            current = toast
+        }
+
+        if feedbackEnabled {
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(.warning)
+        }
+
+        if UIAccessibility.isVoiceOverRunning {
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: toast.accessibilityAnnouncement
+            )
+        }
+
+        let toastID = toast.id
+        let duration = visibleDurationNanoseconds
+        dismissalTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: duration)
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            self?.dismiss(id: toastID)
+        }
+    }
+
     func dismiss() {
         dismissalTask?.cancel()
         dismissalTask = nil

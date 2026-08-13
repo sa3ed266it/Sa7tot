@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
 
@@ -20,6 +21,7 @@ async def register(client: AsyncClient, token: str = TOKEN):
     )
 
 
+@pytest.mark.asyncio
 async def test_device_registration_is_authenticated_and_idempotent(client: AsyncClient, session):
     first = await register(client)
     assert first.status_code == 200, first.text
@@ -31,6 +33,7 @@ async def test_device_registration_is_authenticated_and_idempotent(client: Async
     assert await session.scalar(select(func.count()).select_from(PushDeviceToken)) == 1
 
 
+@pytest.mark.asyncio
 async def test_device_token_can_be_deactivated_only_by_current_user(client: AsyncClient, switch_user, session):
     created = await register(client)
     token_id = created.json()["id"]
@@ -49,6 +52,7 @@ async def test_device_token_can_be_deactivated_only_by_current_user(client: Asyn
     assert device.is_active is False
 
 
+@pytest.mark.asyncio
 async def test_invalid_platform_and_token_are_rejected(client: AsyncClient):
     invalid_platform = await client.put(
         "/v1/push/devices",
@@ -63,6 +67,7 @@ async def test_invalid_platform_and_token_are_rejected(client: AsyncClient):
     assert invalid_token.status_code == 422
 
 
+@pytest.mark.asyncio
 async def test_token_re_registration_reassigns_installation_without_duplicate(
     client: AsyncClient, switch_user, session
 ):

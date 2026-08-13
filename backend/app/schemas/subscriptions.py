@@ -37,7 +37,6 @@ class SubscriptionUpdate(OptionalCurrencyFields):
     cadence: Cadence | None = None
     cadence_interval: int | None = Field(default=None, ge=1, le=32767)
     billing_anchor: date | None = None
-    next_billing_date: date | None = None
     note: str | None = None
 
 

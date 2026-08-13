@@ -22,12 +22,19 @@ Implemented:
 - account-relative balances and transfers, including `creditCard` behavior;
 - cursor-paginated Movimenti responses;
 - subscription scheduling and idempotent materialization;
+- server-side seven-day subscription renewal reminder eligibility, durable
+  multi-device delivery state, and Development/Sandbox CLI sending;
 - Alembic migration from an empty PostgreSQL database.
 
 Not included in this backend:
 
 - historical local-data migration;
 - a production scheduler such as `pg_cron`.
+
+The reminder runner is intentionally provider-agnostic and is invoked hourly
+by an external scheduler. Development/Sandbox physical subscription-reminder
+receipt and idempotent repeat-run behavior are validated. Production APNs and
+production hosting remain unconfigured and unvalidated.
 
 ## Minimum local/staging configuration
 
@@ -75,6 +82,9 @@ Health check:
 curl http://127.0.0.1:8000/health
 ```
 
+The deployment foundation also provides `/health/live` for process liveness
+and `/health/ready` for a minimal PostgreSQL readiness check.
+
 The health endpoint is intentionally a process/configuration check and does
 not expose database details.
 
@@ -110,13 +120,18 @@ network supports it.
 6. Run `python -m app.scripts.smoke_db`.
 7. Start FastAPI and call `GET /health`.
 
-No Dashboard table creation is required. Auth configuration remains separate
-and deferred.
+No Dashboard table creation is required. Authentication configuration remains
+separate from database startup and Alembic operations.
 
-## Future authentication configuration
+## Current authentication configuration
 
-Supabase Auth and Sign in with Apple remain prepared but deferred. When
-authenticated routes are enabled, add only:
+Sign in with Apple is active in the iOS app through Supabase Auth. The iOS
+client persists and restores the Supabase session in Keychain, and authenticated
+FastAPI requests carry the Supabase bearer token. FastAPI validates the token
+and derives application-data ownership from the authenticated subject; the
+client cannot choose an arbitrary user identity.
+
+For authenticated backend routes, configure:
 
 ```dotenv
 SUPABASE_URL=https://your-project.supabase.co
@@ -133,7 +148,7 @@ checks, and tests using an explicit principal override work without
 URL is provided; they never fall back to a development user or bypass JWT
 validation.
 
-The future flow remains:
+The active flow is:
 
 ```text
 Sign in with Apple -> Supabase Auth -> Supabase JWT -> FastAPI JWT validation
@@ -201,7 +216,7 @@ createdb sa7tot_test
 APP_ENV=test TEST_DATABASE_URL=postgresql+asyncpg://localhost/sa7tot_test \
   alembic upgrade head
 APP_ENV=test TEST_DATABASE_URL=postgresql+asyncpg://localhost/sa7tot_test \
-  pytest
+  pytest tests pure_tests
 APP_ENV=test TEST_DATABASE_URL=postgresql+asyncpg://localhost/sa7tot_test \
   ruff format --check .
 APP_ENV=test TEST_DATABASE_URL=postgresql+asyncpg://localhost/sa7tot_test \
@@ -217,6 +232,16 @@ Live staging validation is a separate, non-pytest workflow. It may use
 `APP_ENV=development` and `DATABASE_URL`, but destructive seed reset requires
 the explicit `--allow-development-reset` flag and is refused in production.
 Normal `smoke_db` only performs read-only connectivity and migration checks.
+
+For a safe Development/Sandbox reminder inspection or send:
+
+```sh
+python -m app.scripts.send_subscription_reminders --environment development --dry-run
+python -m app.scripts.send_subscription_reminders --environment development
+```
+
+The runner uses profile-local timezone/date semantics, never logs tokens or
+financial amounts, and does not accept a user ID from the command line.
 
 Coverage includes ownership and archive behavior, category soft delete,
 expense/income/transfer creation, currency rejection, Movimenti balance and
